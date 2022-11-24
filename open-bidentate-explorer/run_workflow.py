@@ -67,7 +67,7 @@ class Workflow:
         
         
         # Unpack inputs of MACE, Chemspax, CREST
-        print('Workflow is initializing. Converting your graph input to variables.')
+        print('Workflow is initializing. Converting your dict. input to variables.')
         print('')
         
         if mace_input != []:  
@@ -98,6 +98,7 @@ class Workflow:
         substituent_list = self.chemspax_input['substituent_list']
         path_to_database = self.chemspax_input['path_to_database']
         path_to_substituents = self.chemspax_input['path_to_substituents']
+        
         return substituent_list, path_to_database, path_to_substituents
     
     def initialize_crest(self): 
@@ -109,7 +110,6 @@ class Workflow:
         solvent = self.crest_input['solvent']
         
         return method, charge_of_complex, multiplicity, solvent
-        
         
     def prepare_folder_structure(self):
         
@@ -141,18 +141,17 @@ class Workflow:
                   complex.generate_complex_SP_xyz()
             except Exception:
               print('Wrong SMILES:', i)               
-        # os.chdir("..")
-        
-        
-    def run_chemspax(self, functionalization_list = ''):  
+    
+    def run_chemspax(self):  
         
         """
+        
         Run chemspax from the pip installable package chemspax.
         Use prepare_data(...) to prepare the substituents.
         Then run main(...) to functionalize the skeletons prepared by MACE.
         
-        :param functionalization_list -> this will go to the second line of the copied MACE skeletons into the ChemSpax/skeletons dir.
         """
+        
         print(self.substituent_list)
         chemspax_working_directory = os.path.join(self.path_to_workflow, 'ChemSpaX')
         
@@ -170,7 +169,7 @@ class Workflow:
           skeleton_list = glob.glob(os.path.join(self.path_to_workflow , 'ChemSpaX', 'skeletons','*.xyz'))
         
           for xyz_file in skeleton_list:
-              change_second_line_xyz(xyz_file, new_content=functionalization_list)
+              change_second_line_xyz(xyz_file, new_content='')
   
           # set skeleton path to ../ChemSpaX/skeletons        
           path_to_skeletons = os.path.join(os.getcwd(), dest_dir_skeletons)
@@ -194,7 +193,6 @@ class Workflow:
             os.rename(os.path.join(path_to_output, os.path.basename(os.path.normpath(skeleton_list[0]))[:-4] + '_func_' + str(len(sub_list)) + '.mol'), \
                 os.path.join(path_to_output, os.path.basename(os.path.normpath(skeleton_list[0]))[:-4] + '_' + '_'.join(sub_list) + '.mol'))
             
-            
             ## Convert mol to xyz to keep the bonding information
             obconversion = openbabel.OBConversion()
             obconversion.SetInFormat('mol')
@@ -209,27 +207,59 @@ class Workflow:
             for filename in glob.glob(os.path.join(self.path_to_workflow, 'ChemSpaX', 'chemspax_output', '*_func_*')):
                 os.remove(filename) 
     
-    def run_crest(self, path_to_complexes = []):
+    def run_crest(self, path_to_complexes = [], path_to_output = [], conformer_search = 'off'):
         
         """
-        The crest call takes 6 inputs:
         
-        path_to_complexes=$1
-        method=$2
-        charge=$3
-        geom=$4
-        multiplicity=$5
-        solvent=$6
+        This function is designed to either run conformer search with xtb preopt. or just xtb optimization.
+        The subprocess.call is used to make a binary call from your ./bashrc file or any local path in your 
+        $PATH system variable.
+        
+        Files are stored in the users preferred place when you run the workflow in a modular way, or by design
+        the results are stored in your Workflow/CREST folder.
+
         """
     
-        print('About to run optimization:')
         
         if path_to_complexes == []:
           path_to_complexes = os.path.join(self.path_to_workflow, 'ChemSpaX', 'chemspax_output')
           os.chdir(self.path_to_workflow)
-          
-        subprocess.call('bash "run_crest.sh" "%s" %s %s %s %s %s' % (path_to_complexes, self.method, self.charge_of_complex, self.geom, self.multiplicity, self.solvent), shell=True)
-        # os.chdir("-")
+
+        
+        for path_to_complex in glob.glob(os.path.join(path_to_complexes, '*.xyz')):
+            os.chdir(path_to_complexes)
+            
+            folder_name = path_to_complex[:-4]
+            os.mkdir(folder_name)
+            os.chdir(folder_name)
+
+            print('About to run {}-xtb optimization:'.self.method)
+
+            if conformer_search == 'on':
+                subprocess.call('xtb "%s" --%s --chrg %s  --uhf %s --alpb %s --opt > xtb.out' \
+                    % (path_to_complex, self.method, self.charge_of_complex, self.multiplicity, self.solvent), shell=True)
+                
+                print('About to run {}-xtb optimization:'.self.method)
+                
+                subprocess.call('crest xtbopt.xyz --%s --chrg %s  --uhf %s --alpb %s > crest.out' \
+                    % (path_to_complex, self.method, self.charge_of_complex, self.multiplicity, self.solvent), shell=True)
+       
+            else:
+                subprocess.call('xtb "%s" --%s --chrg %s  --uhf %s --alpb %s --opt > xtb.out' \
+                    % (path_to_complex, self.method, self.charge_of_complex, self.multiplicity, self.solvent), shell=True)
+            
+            
+            src_dir = path_to_complex[:-4]
+            if path_to_output != []:
+                dest_dir = path_to_output
+            else:
+                dest_dir = os.path.join(self.path_to_workflow, 'CREST')
+            
+            shutil.move(src_dir, dest_dir) 
+            os.chdir(path_to_complexes)
+        
+        os.chdir(self.path_to_workflow)
+            
     
     def calculate_descriptors(self, path_to_outputs = [], output = 'CREST'):
         
@@ -255,9 +285,7 @@ class Workflow:
                     properties["bite_angle"] = BiteAngle(coordinates, bidentate[1], bidentate[0], bidentate[2]).angle
                     properties["cone_angle"] = ConeAngle(elements, coordinates, bidentate[1]).cone_angle
                     bv = BuriedVolume(elements, coordinates, bidentate[1], radius=3.5)
-                    
-                    
-                    properties["buried_volume"] = BuriedVolume(elements, coordinates, bidentate[1], radius=3.5).fraction_buried_volume
+                    properties["buried_volume"] = bv.fraction_buried_volume
 
                     # print(BuriedVolume(ce.elements, conformer.coordinates, bidentate[1]).print_report())
                     # BuriedVolume(elements, coordinates, bidentate[1], radius=4).print_report()
@@ -283,7 +311,8 @@ class Workflow:
                     for property in properties.keys():
                         dictionary_for_properties[os.path.basename(os.path.normpath(complex))] = properties
                 except Exception:
-                    print("Descriptor calculation failed for this complex:", os.path.basename(os.path.normpath(complex)))        
+                    print("Descriptor calculation failed for this complex:", os.path.basename(os.path.normpath(complex)))   
+                         
         # Iterate through the CREST outputs of different descriptors
         else:
             dictionary_for_properties = {}    
@@ -374,17 +403,19 @@ if __name__ == "__main__":
     #                     ["CCH3CH3CH3", "CCH3CH3CH3", "3_5_dimethyl_4_metoxy_phenyl", "3_5_dimethyl_4_metoxy_phenyl"],
     #                     ["3_5_dimethyl_phenyl", "3_5_dimethyl_phenyl", "naphtalenyl", "naphtalenyl"]]  # will find substituent.xyz
     
+
     substituent_list = [["3_5_dimethyl_phenyl", "3_5_dimethyl_phenyl", "3_5_trifluoro_methyl_phenyl", "3_5_trifluoro_methyl_phenyl"]]
     skeleton_list = glob.glob(os.path.join("skeletons", "*.xyz"))
     path_to_hand_drawn_skeletons = os.path.join(current_directory, "skeletons")
     path_to_output = os.path.join(current_directory, "complexes")
-    # print(path_to_hand_drawn_skeletons)
+
 
     chemspax_input = {'skeleton_list' : skeleton_list, 
                     'substituent_list' : substituent_list, 
                     'path_to_database' : path_to_database, 
                     'path_to_substituents' : path_to_substituents, 
                     'path_to_additional_skeletons' : path_to_hand_drawn_skeletons}
+
 
     method = 'gfn2'
     charge_of_complex = 0
@@ -396,14 +427,15 @@ if __name__ == "__main__":
                    'multiplicity' : multiplicity,
                    'solvent' : solvent}
 
-    workflow = Workflow(mace_input = mace_input, crest_input = crest_input, chemspax_input=chemspax_input, path_to_workflow = os.getcwd() + '/Workflow')
+    workflow = Workflow(mace_input = mace_input, crest_input = crest_input, path_to_workflow = os.getcwd() + '/Workflow copy')
+    workflow.run_crest(path_to_complexes = os.getcwd() + '/Workflow copy/MACE')
+    
+    # workflow.calculate_descriptors(path_to_outputs=os.getcwd() + '/Workflow/CREST' , output='xtb')
+    # workflow.run_crest(path_to_complexes = os.path.join(os.getcwd(), "Workflow_test2_SP", "MACE"))
+    # workflow.calculate_descriptors(path_to_outputs = os.path.join(os.getcwd(), "Workflow_test2_SP", "CREST"))
     # workflow.run_crest()
     # workflow.run_chemspax()
     # workflow.run_crest(path_to_complexes=os.path.join(os.getcwd(), "Workflow copy", "ChemSpaX", "chemspax_output"))
     
     # workflow.calculate_descriptors(path_to_outputs=os.getcwd() + '/Workflow/CREST' , output='xtb')
-    # workflow.run_crest(path_to_complexes=os.getcwd() + '/subs_test/MACE')
-    workflow.calculate_descriptors(path_to_outputs=os.getcwd() + '/Workflow/CREST' , output='xtb')
-    # workflow.run_crest(path_to_complexes = os.path.join(os.getcwd(), "Workflow_test2_SP", "MACE"))
-    # workflow.calculate_descriptors(path_to_outputs = os.path.join(os.getcwd(), "Workflow_test2_SP", "CREST"))
-
+    

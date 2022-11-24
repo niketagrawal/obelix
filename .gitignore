@@ -292,5 +292,8 @@ open-bidentate-explorer/crest_xtb_binaries
 open-bidentate-explorer/chemspax
 open-bidentate-explorer/Workflow*/
 open-bidentate-explorer/tools/images
+open-bidentate-explorer/**/CREST
+open-bidentate-explorer/**/MACE
+open-bidentate-explorer/**/chemspax*
 
 # End of https://www.toptal.com/developers/gitignore/api/visualstudiocode
