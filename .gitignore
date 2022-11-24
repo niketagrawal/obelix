@@ -293,6 +293,12 @@ open-bidentate-explorer/chemspax
 open-bidentate-explorer/Workflow*/
 open-bidentate-explorer/tools/images
 open-bidentate-explorer/**/CREST
+open-bidentate-explorer/**/crest*
+open-bidentate-explorer/subs_test/*
+open-bidentate-explorer/subs_test/*
+open-bidentate-explorer/tools/**/*OH*
+open-bidentate-explorer/tools/**/*SP*
+
 open-bidentate-explorer/**/MACE
 open-bidentate-explorer/**/chemspax*
 
