@@ -11,6 +11,7 @@ bd = pd.read_excel('descriptors_SP.xlsx').dropna()
 oh = pd.read_excel('descriptors_OH.xlsx').dropna()
 mace_averaged_bd =bd.groupby(['Cas']).mean()
 mace_averaged_oh =oh.groupby(['Cas']).mean()
+print(mace_averaged_oh)
 # plt.figure()
 # plt.scatter(mace_averaged_bd['bite_angle'], mace_averaged_oh['bite_angle'])
 # a = np.polyfit(mace_averaged_bd['bite_angle'], mace_averaged_oh['bite_angle'], deg = 1)
@@ -71,54 +72,52 @@ ax = fig.add_subplot(111, projection='3d')
 #     reds[i,:] = [df['yield'][i],  df['yield'][i]/10, df['yield'][i]/10]
 
 plt.rcParams['image.cmap'] = 'RdBu'
-
-p = ax.scatter(u_geom, u_elec, u_steric, c=np.abs(df['label']), s=400)
+print(max(np.abs(df['ee'])))
+p = ax.scatter(u_geom, u_elec, u_steric, c=np.abs(df['yield']), s=400)
 ax.set_xlabel('Geometric') # geom effects
 ax.set_ylabel('Electronic') 
 ax.set_zlabel('Steric')
 fig.colorbar(p, fraction=0.025, pad=0.05)
-# sm = plt.cm.ScalarMappable(cmap=colormap)
-# sm.set_clim(vmin=0, vmax=100)
-# plt.colorbar(sm)
+
 
 fig = plt.figure()
 plt.xlabel('Geometric')
 plt.ylabel('Electronic')
-p = plt.scatter(u_geom, u_elec, c=np.abs(df['label']), s=100)
+p = plt.scatter(u_geom, u_elec, c=np.abs(df['yield']), s=100)
 fig.colorbar(p)
 
 fig = plt.figure()
 plt.xlabel('Geometric')
 plt.ylabel('Steric')
-p = plt.scatter(u_geom, u_elec, c=np.abs(df['label']), s=100)                     
+p = plt.scatter(u_geom, u_elec, c=np.abs(df['yield']), s=100)                     
 fig.colorbar(p)
 
 fig = plt.figure()
 plt.xlabel('Electronic')
 plt.ylabel('Steric')
-p = plt.scatter(u_elec, u_steric, c=np.abs(df['label']), s=100)
+p = plt.scatter(u_elec, u_steric, c=np.abs(df['yield']), s=100)
 fig.colorbar(p)
 
 # plt.savefig('Interpretable_MAP_PCA.png', dpi = 400, bbox_inches='tight')
 fig = plt.figure()
 plt.xlabel('Electronic')
 plt.ylabel('Yield')
-p = plt.scatter(u_elec, df['yield'], c=np.abs(df['bite_angle']), s=100)
+p = plt.scatter(u_elec, df['yield'], c=np.abs(df['label']), s=100)
 fig.colorbar(p)
 
 fig = plt.figure()
 plt.xlabel('Steric')
 plt.ylabel('Yield')
-p = plt.scatter(u_steric, df['yield'], c=(u_elec), s=100)
+p = plt.scatter(u_steric, df['yield'], c=np.abs(df['label']), s=100)
 fig.colorbar(p)
 
+df['Cas'] = df.index
+dataframe = pd.DataFrame()
+dataframe['steric'] = list(u_steric.reshape(45, -1))
+dataframe['elec'] = list(u_elec.reshape(45,-1))
+dataframe['geom'] = list(u_geom.reshape(45, -1))
+dataframe['yield'] = df['yield'].to_list()
+dataframe['Cas'] = df['Cas'].to_list()
+dataframe['ee'] = df['ee'].to_list()
 
-pd.DataFrame(np.array([df.index, u_geom, u_elec, u_steric, df['yield'], df['ee']]).reshape(34,6)).to_excel('PCA.xlsx')
-#%%
-read_descriptors = pd.read_csv('data/6_OH_descriptors.csv')
-plt.figure()
-plt.scatter(read_descriptors['boltzmann_bite_angle_SP'], read_descriptors['boltzmann_bite_angle'])
-plt.xlabel('Bite angle BD')
-plt.ylabel('Bite angle OH')
-plt.show()
-
+dataframe.to_excel('PCA2.xlsx')

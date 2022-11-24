@@ -47,7 +47,7 @@ def prepare_data(path_to_substituents, path_to_skeletons, path_to_database):
     console.setLevel(logging.INFO)
     # add the handlers to the logger
     logger.addHandler(console)
-
+    
     substituent_folder = path_to_substituents
     skeleton_folder = path_to_skeletons
     csv_database_file = path_to_database
@@ -67,7 +67,7 @@ def prepare_data(path_to_substituents, path_to_skeletons, path_to_database):
     # convert skeleton .xyz files to .mol files
     convert_file('xyz', 'mol', skeleton_folder)
 
-    # check if csv database exists and delete if that's the case
+    # # check if csv database exists and delete if that's the case
     # if glob.glob(csv_database_file):
     #     logger.log(logging.INFO, 'Deleting existing csv database')
     #     os.remove(csv_database_file)
@@ -77,9 +77,8 @@ def prepare_data(path_to_substituents, path_to_skeletons, path_to_database):
     for file_path in glob.glob(substituent_folder + '*.xyz'):
         # this assumes that the central atom of the substituent is the first atom in the file!
         molecule_name = os.path.basename(os.path.normpath(file_path)).split(".")[0]
-        atom = Substituent(molecule=molecule_name, path_to_substituents=substituent_folder, central_atom=0, bond_length=2.0)
+        atom = Substituent(molecule=molecule_name, path_to_substituents=substituent_folder, central_atom=0, bond_length=1.8)
         atom.write_central_atom_and_centroid_to_csv()
-        
         
         
 def check_structure(path_to_structure_mol_file):

@@ -46,5 +46,5 @@ echo "Run crest from pre-opt"
 fi
 echo "CREST done"
 cd ..
-mv $filename ../../CREST/${filename}
+mv $filename ../CREST/${filename}
 done

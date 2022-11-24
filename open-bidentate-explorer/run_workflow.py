@@ -14,6 +14,8 @@ from morfeus.conformer import ConformerEnsemble
 from morfeus import BiteAngle, ConeAngle, BuriedVolume, Dispersion, SASA, read_xyz
 from xtb.utils import get_method
 import pandas as pd
+from tools.chemspax_util import prepare_data
+from openbabel import openbabel
 
 
 class MACE:   
@@ -119,7 +121,7 @@ class Workflow:
         os.mkdir('ChemSpaX')
         os.mkdir('CREST')
         os.mkdir('Descriptors')      
-        os.chdir('..')
+        os.chdir(self.path_to_workflow)
 
 
     def run_mace(self):
@@ -139,7 +141,7 @@ class Workflow:
                   complex.generate_complex_SP_xyz()
             except Exception:
               print('Wrong SMILES:', i)               
-        os.chdir("..")
+        # os.chdir("..")
         
         
     def run_chemspax(self, functionalization_list = ''):  
@@ -165,7 +167,7 @@ class Workflow:
         else:              
           dest_dir_skeletons =  os.path.join(self.path_to_workflow, 'ChemSpaX', 'skeletons')        
           shutil.copytree(src_dir_skeletons, dest_dir_skeletons)
-          skeleton_list = glob.glob(self.path_to_workflow + '/ChemSpaX/skeletons/*.xyz')
+          skeleton_list = glob.glob(os.path.join(self.path_to_workflow , 'ChemSpaX', 'skeletons','*.xyz'))
         
           for xyz_file in skeleton_list:
               change_second_line_xyz(xyz_file, new_content=functionalization_list)
@@ -179,18 +181,31 @@ class Workflow:
           shutil.copytree(src_dir_subs, dest_dir_subs)
   
           # Prepare data (from data_preparation.py in the chemspax package)
-                  
           print('Data preparation has been performed.')
           path_to_substituents = os.path.join(os.getcwd(), dest_dir_subs)
-          
+          #   prepare_data(path_to_substituents, path_to_skeletons, self.path_to_database)
+
           # Set path to output
           path_to_output = os.path.join(self.path_to_workflow, 'ChemSpaX','chemspax_output')
                   
           # Run chemspax from main
         for index, sub_list in enumerate(self.substituent_list):
-            main(skeleton_list, sub_list, path_to_database, path_to_substituents, path_to_skeletons, chemspax_working_directory, path_to_output)
-            os.rename(os.path.join(path_to_output, os.path.basename(os.path.normpath(skeleton_list[0]))[:-4] + '_func_' + str(len(sub_list)) + '.xyz'), \
+            main(skeleton_list, sub_list, self.path_to_database, path_to_substituents, path_to_skeletons, chemspax_working_directory, path_to_output)
+            os.rename(os.path.join(path_to_output, os.path.basename(os.path.normpath(skeleton_list[0]))[:-4] + '_func_' + str(len(sub_list)) + '.mol'), \
+                os.path.join(path_to_output, os.path.basename(os.path.normpath(skeleton_list[0]))[:-4] + '_' + '_'.join(sub_list) + '.mol'))
+            
+            
+            ## Convert mol to xyz to keep the bonding information
+            obconversion = openbabel.OBConversion()
+            obconversion.SetInFormat('mol')
+            obconversion.SetOutFormat('xyz')
+            mol = openbabel.OBMol()
+            obconversion.ReadFile(mol, \
+                os.path.join(path_to_output, os.path.basename(os.path.normpath(skeleton_list[0]))[:-4] + '_' + '_'.join(sub_list) + '.mol'))
+            
+            obconversion.WriteFile(mol, \
                 os.path.join(path_to_output, os.path.basename(os.path.normpath(skeleton_list[0]))[:-4] + '_' + '_'.join(sub_list) + '.xyz'))
+            
             for filename in glob.glob(os.path.join(self.path_to_workflow, 'ChemSpaX', 'chemspax_output', '*_func_*')):
                 os.remove(filename) 
     
@@ -213,8 +228,8 @@ class Workflow:
           path_to_complexes = os.path.join(self.path_to_workflow, 'ChemSpaX', 'chemspax_output')
           os.chdir(self.path_to_workflow)
           
-        subprocess.call('bash "../run_crest.sh" "%s" %s %s %s %s %s' % (path_to_complexes, self.method, self.charge_of_complex, self.geom, self.multiplicity, self.solvent), shell=True)
-        os.chdir("-")
+        subprocess.call('bash "run_crest.sh" "%s" %s %s %s %s %s' % (path_to_complexes, self.method, self.charge_of_complex, self.geom, self.multiplicity, self.solvent), shell=True)
+        # os.chdir("-")
     
     def calculate_descriptors(self, path_to_outputs = [], output = 'CREST'):
         
@@ -233,35 +248,42 @@ class Workflow:
             
             for complex in complexes_to_calc_descriptors:
                 properties = {}
-                elements, coordinates = read_xyz(os.path.join(complex, 'xtbopt.xyz'))
-                
-                bidentate = find_bidentate(os.path.join(complex, 'xtbopt.xyz'))
-                properties["bite_angle"] = BiteAngle(coordinates, bidentate[1], bidentate[0], bidentate[2]).angle
-                properties["cone_angle"] = ConeAngle(elements, coordinates, bidentate[1]).cone_angle
-                properties["buried_volume"] = BuriedVolume(elements, coordinates, bidentate[1]).fraction_buried_volume
-                
-                properties["dispersion"] = Dispersion(elements, coordinates).atom_p_int[1]
-                properties["sasa"] = SASA(elements, coordinates).area
-                
-                # Electronic descriptors
-                
-                instance_electronic = mf.XTB(elements, coordinates, solvent='ch2cl2')
-                
-                properties["ip"] = instance_electronic.get_ip()
-                properties["dipole"] = instance_electronic.get_dipole().dot(instance_electronic.get_dipole())
-                properties["ea"] = instance_electronic.get_ea()
-                properties["electrofugality"] = instance_electronic.get_global_descriptor(variety = 'electrofugality')
-                properties["nucleofugality"] = instance_electronic.get_global_descriptor(variety = 'nucleofugality')
-                properties["nucleophilicity"] = instance_electronic.get_global_descriptor(variety = 'nucleophilicity')
-                properties["electrophilicity"] = instance_electronic.get_global_descriptor(variety = 'electrophilicity')
+                try:
+                    elements, coordinates = read_xyz(os.path.join(complex, 'xtbopt.xyz'))
+                    
+                    bidentate = find_bidentate(os.path.join(complex, 'xtbopt.xyz'))
+                    properties["bite_angle"] = BiteAngle(coordinates, bidentate[1], bidentate[0], bidentate[2]).angle
+                    properties["cone_angle"] = ConeAngle(elements, coordinates, bidentate[1]).cone_angle
+                    bv = BuriedVolume(elements, coordinates, bidentate[1], radius=3.5)
+                    
+                    
+                    properties["buried_volume"] = BuriedVolume(elements, coordinates, bidentate[1], radius=3.5).fraction_buried_volume
 
-                homo = instance_electronic.get_homo()
-                lumo = instance_electronic.get_lumo()    
-                properties["HOMO_LUMO_gap"] = homo - lumo
-                
-                for property in properties.keys():
-                    dictionary_for_properties[os.path.basename(os.path.normpath(complex))] = properties
-        
+                    # print(BuriedVolume(ce.elements, conformer.coordinates, bidentate[1]).print_report())
+                    # BuriedVolume(elements, coordinates, bidentate[1], radius=4).print_report()
+                    properties["dispersion"] = Dispersion(elements, coordinates).atom_p_int[1]
+                    properties["sasa"] = SASA(elements, coordinates).area
+                    
+                    # Electronic descriptors
+                    
+                    instance_electronic = mf.XTB(elements, coordinates, solvent='ch2cl2')
+                    
+                    properties["ip"] = instance_electronic.get_ip()
+                    properties["dipole"] = instance_electronic.get_dipole().dot(instance_electronic.get_dipole())
+                    properties["ea"] = instance_electronic.get_ea()     
+                    properties["electrofugality"] = instance_electronic.get_global_descriptor(variety = 'electrofugality')
+                    properties["nucleofugality"] = instance_electronic.get_global_descriptor(variety = 'nucleofugality')
+                    properties["nucleophilicity"] = instance_electronic.get_global_descriptor(variety = 'nucleophilicity')
+                    properties["electrophilicity"] = instance_electronic.get_global_descriptor(variety = 'electrophilicity')
+
+                    homo = instance_electronic.get_homo()
+                    lumo = instance_electronic.get_lumo()    
+                    properties["HOMO_LUMO_gap"] = homo - lumo
+                    
+                    for property in properties.keys():
+                        dictionary_for_properties[os.path.basename(os.path.normpath(complex))] = properties
+                except Exception:
+                    print("Descriptor calculation failed for this complex:", os.path.basename(os.path.normpath(complex)))        
         # Iterate through the CREST outputs of different descriptors
         else:
             dictionary_for_properties = {}    
@@ -284,7 +306,6 @@ class Workflow:
                     # Electronic descriptors
                     
                     instance_electronic = mf.XTB(ce.elements, conformer.coordinates, solvent='ch2cl2')
-                    
                     conformer.properties["ip"] = instance_electronic.get_ip()
                     conformer.properties["dipole"] = instance_electronic.get_dipole().dot(instance_electronic.get_dipole())
                     conformer.properties["ea"] = instance_electronic.get_ea()
@@ -301,7 +322,7 @@ class Workflow:
                     dictionary_for_properties[os.path.basename(os.path.normpath(complex))] = {property: ce.boltzmann_statistic(property)}
                 
         dataframe = dataframe_from_dictionary(dictionary_for_properties)
-        dataframe.to_excel('descriptors_NEW.xlsx')     
+        dataframe.to_excel('descriptors_NEW2.xlsx')     
         
            
     def run_workflow(self):
@@ -340,22 +361,24 @@ if __name__ == "__main__":
     # os.chdir(current_directory)
     path_to_substituents = os.path.join(current_directory, "substituents_xyz") 
     path_to_database = os.path.join(path_to_substituents, "central_atom_centroid_database.csv")
-    substituent_list = [["CCH3CH3CH3", "CCH3CH3CH3", "para_trifluoromethyl_phenyl", "para_trifluoromethyl_phenyl"], 
-                        ["C6H12", "C6H12", "para_trifluoromethyl_phenyl", "para_trifluoromethyl_phenyl"], 
-                        ["C6H12", "C6H12", "3_5_dimethyl_4_metoxy_phenyl", "3_5_dimethyl_4_metoxy_phenyl"],
-                        ["CCH3CH3CH3", "CCH3CH3CH3", "furanyl", "furanyl"],
-                        ["3_5_dimethyl_phenyl", "3_5_dimethyl_phenyl", "3_5_dimethyl_4_metoxy_phenyl", "3_5_dimethyl_4_metoxy_phenyl"],
-                        ["ortho_methyl_phenyl", "ortho_methyl_phenyl", "furanyl", "furanyl"],
-                        ["ortho_methyl_phenyl", "ortho_methyl_phenyl", "CCH3CH3CH3", "CCH3CH3CH3"], 
-                        ["3_5_dimethyl_phenyl", "3_5_dimethyl_phenyl", "3_5_triflluoromethyl_phenyl", "3_5_triflluoromethyl_phenyl"],
-                        ["C6H6", "C6H6", "C6H12", "C6H12"],
-                        ["3_5_dimethyl_phenyl", "3_5_dimethyl_phenyl", "C6H6", "C6H6"], 
-                        ["CCH3CH3CH3", "CCH3CH3CH3", "3_5_dimethyl_4_metoxy_phenyl", "3_5_dimethyl_4_metoxy_phenyl"],
-                        ["3_5_dimethyl_phenyl", "3_5_dimethyl_phenyl", "naphtalenyl", "naphtalenyl"]]  # will find substituent.xyz
+    # substituent_list = [["CCH3CH3CH3", "CCH3CH3CH3", "para_trifluoromethyl_phenyl", "para_trifluoromethyl_phenyl"], 
+    #                     ["C6H12", "C6H12", "para_trifluoromethyl_phenyl", "para_trifluoromethyl_phenyl"], 
+    #                     ["C6H12", "C6H12", "3_5_dimethyl_4_metoxy_phenyl", "3_5_dimethyl_4_metoxy_phenyl"],
+    #                     ["CCH3CH3CH3", "CCH3CH3CH3", "furanyl", "furanyl"],
+    #                     ["3_5_dimethyl_phenyl", "3_5_dimethyl_phenyl", "3_5_dimethyl_4_metoxy_phenyl", "3_5_dimethyl_4_metoxy_phenyl"],
+    #                     ["C6H6-CH3_ortho_1", "C6H6-CH3_ortho_1", "furanyl", "furanyl"],
+    #                     ["C6H6-CH3_ortho_1", "C6H6-CH3_ortho_1", "CCH3CH3CH3", "CCH3CH3CH3"], 
+    #                     ["3_5_dimethyl_phenyl", "3_5_dimethyl_phenyl", "3_5_trifluoro_methyl_phenyl", "3_5_trifluoro_methyl_phenyl"],
+    #                     ["C6H6", "C6H6", "C6H12", "C6H12"],
+    #                     ["3_5_dimethyl_phenyl", "3_5_dimethyl_phenyl", "C6H6", "C6H6"], 
+    #                     ["CCH3CH3CH3", "CCH3CH3CH3", "3_5_dimethyl_4_metoxy_phenyl", "3_5_dimethyl_4_metoxy_phenyl"],
+    #                     ["3_5_dimethyl_phenyl", "3_5_dimethyl_phenyl", "naphtalenyl", "naphtalenyl"]]  # will find substituent.xyz
+    
+    substituent_list = [["3_5_dimethyl_phenyl", "3_5_dimethyl_phenyl", "3_5_trifluoro_methyl_phenyl", "3_5_trifluoro_methyl_phenyl"]]
     skeleton_list = glob.glob(os.path.join("skeletons", "*.xyz"))
     path_to_hand_drawn_skeletons = os.path.join(current_directory, "skeletons")
     path_to_output = os.path.join(current_directory, "complexes")
-    print(path_to_hand_drawn_skeletons)
+    # print(path_to_hand_drawn_skeletons)
 
     chemspax_input = {'skeleton_list' : skeleton_list, 
                     'substituent_list' : substituent_list, 
@@ -373,10 +396,14 @@ if __name__ == "__main__":
                    'multiplicity' : multiplicity,
                    'solvent' : solvent}
 
-    workflow = Workflow(mace_input = mace_input, crest_input = crest_input, chemspax_input=chemspax_input, path_to_workflow = os.getcwd() + '/Workflow1')
-    workflow.run_chemspax()
-    # workflow.calculate_descriptors(path_to_outputs=os.getcwd() + '/Workflow1/CREST' , output='xtb')
+    workflow = Workflow(mace_input = mace_input, crest_input = crest_input, chemspax_input=chemspax_input, path_to_workflow = os.getcwd() + '/Workflow')
+    # workflow.run_crest()
+    # workflow.run_chemspax()
+    # workflow.run_crest(path_to_complexes=os.path.join(os.getcwd(), "Workflow copy", "ChemSpaX", "chemspax_output"))
     
+    # workflow.calculate_descriptors(path_to_outputs=os.getcwd() + '/Workflow/CREST' , output='xtb')
+    # workflow.run_crest(path_to_complexes=os.getcwd() + '/subs_test/MACE')
+    workflow.calculate_descriptors(path_to_outputs=os.getcwd() + '/Workflow/CREST' , output='xtb')
     # workflow.run_crest(path_to_complexes = os.path.join(os.getcwd(), "Workflow_test2_SP", "MACE"))
     # workflow.calculate_descriptors(path_to_outputs = os.path.join(os.getcwd(), "Workflow_test2_SP", "CREST"))
 
