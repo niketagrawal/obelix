@@ -3,7 +3,7 @@ from chemspax.utilities import *
 import os
 import glob
 import pandas as pd
-from tools.utilities import *s
+from tools.utilities import *
 from tools.chemspax_util import *
 import shutil
 from tqdm import tqdm
@@ -14,7 +14,7 @@ from morfeus.conformer import ConformerEnsemble
 from morfeus import BiteAngle, ConeAngle, BuriedVolume, Dispersion, SASA, read_xyz
 from xtb.utils import get_method
 import pandas as pd
-from tools.chemspax_util import prepare_data
+# from tools.chemspax_util import prepare_datas
 from openbabel import openbabel
 
 
