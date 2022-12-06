@@ -1,0 +1,4 @@
+1. download crest binary from git (.zip)
+2. upload to supercomputer in a folder software/
+3. add path to this binary to your ~/.bashrc (export PATH="~/software/:$PATH"
+4. try if crest works by going to home folder and running `crest --version`
