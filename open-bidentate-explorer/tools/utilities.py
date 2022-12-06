@@ -7,7 +7,7 @@ def add_code_to_structure():
     N = 10
     code_name = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(N))
     return code_name
-
+    
 
 def change_second_line_xyz(xyz, new_content=''):
     with open('{}'.format(xyz), 'r', newline='\n') as file:

@@ -300,6 +300,8 @@ open-bidentate-explorer/tools/**/*OH*
 open-bidentate-explorer/tools/**/*SP*
 
 open-bidentate-explorer/**/MACE
-open-bidentate-explorer/**/chemspax*
+open-bidentate-explorer/**/ferro
+open-bidentate-explorer/tools/data/new_descriptors/ferro/
 
+.empty
 # End of https://www.toptal.com/developers/gitignore/api/visualstudiocode

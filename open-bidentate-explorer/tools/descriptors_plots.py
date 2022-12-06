@@ -11,7 +11,8 @@ bd = pd.read_excel('descriptors_SP.xlsx').dropna()
 oh = pd.read_excel('descriptors_OH.xlsx').dropna()
 mace_averaged_bd =bd.groupby(['Cas']).mean()
 mace_averaged_oh =oh.groupby(['Cas']).mean()
-print(mace_averaged_oh)
+
+
 # plt.figure()
 # plt.scatter(mace_averaged_bd['bite_angle'], mace_averaged_oh['bite_angle'])
 # a = np.polyfit(mace_averaged_bd['bite_angle'], mace_averaged_oh['bite_angle'], deg = 1)

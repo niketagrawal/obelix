@@ -1,4 +1,4 @@
-name: MaChCMM
+name: obelix
 channels:
      - conda-forge
      - anaconda
@@ -15,9 +15,10 @@ dependencies:
 - morfeus-ml==0.7.1
 - mordred==1.2.0
 - openpyxl
+- scikit-learn
 - pip
 - pip:
   - libconeangle
   - epic-mace==0.4.0
-  - chemplot
-  - joblib
+  - --editable "./open-bidentate-explorer/build/chemspax/"
+  

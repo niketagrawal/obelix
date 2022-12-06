@@ -3,7 +3,7 @@ from chemspax.utilities import *
 import os
 import glob
 import pandas as pd
-from tools.utilities import *
+from tools.utilities import *s
 from tools.chemspax_util import *
 import shutil
 from tqdm import tqdm
@@ -34,7 +34,7 @@ class MACE:
             X.AddConformers(numConfs=10)   
             X.ToXYZ(self.CA + '_' + '{}{}.xyz'.format(self.name_of_xyz, i), confId='min')
             
-            
+        
     def generate_complex_OH_xyz(self, auxiliary_ligands = [], substrate = []):
         geom = 'OH'
 
@@ -45,11 +45,12 @@ class MACE:
             auxiliary_ligands = ['[H-:1]']*3
         
         auxiliary = auxiliary_ligands
+        
         if substrate == []:
             auxiliary.extend([self.bidentate])
         else:
             auxiliary.extend([self.bidentate, substrate[0]])
-        print(auxiliary)
+
         core = mace.ComplexFromLigands(auxiliary, self.CA, geom)
         Xs = core.GetStereomers(regime='all', dropEnantiomers=True)
         for i, X in enumerate(Xs):
@@ -75,10 +76,8 @@ class Workflow:
         if chemspax_input != []:        
           self.substituent_list, self.path_to_database, self.path_to_substituents = self.initialize_chemspax()
         if crest_input != []:
-          self.method, self.charge_of_complex, self.multiplicity, self.solvent = self.initialize_crest()
-                  
-          
-
+          self.method, self.charge_of_complex, self.multiplicity, self.solvent, self.conf_search = self.initialize_crest()
+              
     def initialize_mace(self):
         print('Reading MACE inputs')
         
@@ -89,8 +88,7 @@ class Workflow:
         names_of_xyz_key = list(pd.read_excel(self.mace_input['bidentate_ligands'])['Cas'])
         substrate = self.mace_input['substrate']
         return bidentate, auxiliary_ligands, geom, central_atom, names_of_xyz_key, substrate
-    
-    
+      
     def initialize_chemspax(self):
 
         print('Reading ChemSpaX inputs')
@@ -108,8 +106,8 @@ class Workflow:
         multiplicity = self.crest_input['multiplicity']
         charge_of_complex = self.crest_input['charge_complex']
         solvent = self.crest_input['solvent']
-        
-        return method, charge_of_complex, multiplicity, solvent
+        conf_search = self.crest_input['conformer_search']
+        return method, charge_of_complex, multiplicity, solvent, conf_search
         
     def prepare_folder_structure(self):
         
@@ -122,7 +120,6 @@ class Workflow:
         os.mkdir('CREST')
         os.mkdir('Descriptors')      
         os.chdir(self.path_to_workflow)
-
 
     def run_mace(self):
         
@@ -239,7 +236,7 @@ class Workflow:
                 subprocess.call('xtb "%s" --%s --chrg %s  --uhf %s --alpb %s --opt > xtb.out' \
                     % (path_to_complex, self.method, self.charge_of_complex, self.multiplicity, self.solvent), shell=True)
                 
-                print('About to run {}-xtb optimization:'.self.method)
+                print('About to RUN conformer search with CREST:')
                 
                 subprocess.call('crest xtbopt.xyz --%s --chrg %s  --uhf %s --alpb %s > crest.out' \
                     % (path_to_complex, self.method, self.charge_of_complex, self.multiplicity, self.solvent), shell=True)
@@ -250,6 +247,7 @@ class Workflow:
             
             
             src_dir = path_to_complex[:-4]
+            
             if path_to_output != []:
                 dest_dir = path_to_output
             else:
@@ -260,8 +258,13 @@ class Workflow:
         
         os.chdir(self.path_to_workflow)
             
-    
-    def calculate_descriptors(self, path_to_outputs = [], output = 'CREST'):
+    def calculate_descriptors(self, path_to_outputs = [], output = 'xtb'):
+        
+        """
+        
+        This function calculates morfeus descriptors.
+        
+        """
         
         if path_to_outputs == []:
             complexes_to_calc_descriptors = glob.glob(os.path.join(self.path_to_workflow, 'CREST', '*'))
@@ -275,21 +278,49 @@ class Workflow:
         if output == 'xtb':
             dictionary_for_properties = {}
             
-            
-            for complex in complexes_to_calc_descriptors:
-                properties = {}
-                try:
+            try:
+                for complex in complexes_to_calc_descriptors:
+                    properties = {}
                     elements, coordinates = read_xyz(os.path.join(complex, 'xtbopt.xyz'))
+                    
                     
                     bidentate = find_bidentate(os.path.join(complex, 'xtbopt.xyz'))
                     properties["bite_angle"] = BiteAngle(coordinates, bidentate[1], bidentate[0], bidentate[2]).angle
+                    
+                    # elements_no_H = []
+                    # H_indices = []
+                    # for elem_index, elem in enumerate(elements):
+                    #     if elem != 'H':
+                    #         elements_no_H.append(elem)     
+                    #     else:
+                    #         H_indices.append(elem_index)
+                    # H_indices.sort(reverse=True)
+                    # coordinates_no_H = np.delete(np.array(coordinates), H_indices, axis=0)
+                    
+                    # nr_of_atoms_less_than_metal = 0
+
+                    # for index in H_indices:
+                    #     if index > bidentate[1]:
+                    #         pass
+                    #     else:
+                    #         nr_of_atoms_less_than_metal += 1
+                    
+                    
                     properties["cone_angle"] = ConeAngle(elements, coordinates, bidentate[1]).cone_angle
-                    bv = BuriedVolume(elements, coordinates, bidentate[1], radius=3.5)
-                    properties["buried_volume"] = bv.fraction_buried_volume
+                    
+                    # print(properties["cone_angle"])
+                    bv1 = BuriedVolume(elements, coordinates, bidentate[1], radius=3.5)
+                    bv2 = BuriedVolume(elements, coordinates, bidentate[0], radius=3.5)
+                    bv3 = BuriedVolume(elements, coordinates, bidentate[2], radius=3.5)
+                    
+                    properties["buried_volume_metal_center"] = bv1.fraction_buried_volume
+                    properties["buried_volume_P1"] = bv2.fraction_buried_volume
+                    properties["buried_volume_P2"] = bv3.fraction_buried_volume
 
                     # print(BuriedVolume(ce.elements, conformer.coordinates, bidentate[1]).print_report())
                     # BuriedVolume(elements, coordinates, bidentate[1], radius=4).print_report()
-                    properties["dispersion"] = Dispersion(elements, coordinates).atom_p_int[1]
+
+                    properties["dispersion"] = Dispersion(elements, coordinates).atom_p_int[bidentate[1]]
                     properties["sasa"] = SASA(elements, coordinates).area
                     
                     # Electronic descriptors
@@ -309,9 +340,9 @@ class Workflow:
                     properties["HOMO_LUMO_gap"] = homo - lumo
                     
                     for property in properties.keys():
-                        dictionary_for_properties[os.path.basename(os.path.normpath(complex))] = properties
-                except Exception:
-                    print("Descriptor calculation failed for this complex:", os.path.basename(os.path.normpath(complex)))   
+                            dictionary_for_properties[os.path.basename(os.path.normpath(complex))] = properties
+            except Exception:
+                print("Descriptor calculation failed for this complex:", os.path.basename(os.path.normpath(complex)))   
                          
         # Iterate through the CREST outputs of different descriptors
         else:
@@ -326,9 +357,21 @@ class Workflow:
                     
                     bidentate = find_bidentate(conformer)
                     conformer.properties["bite_angle"] = BiteAngle(conformer.coordinates, bidentate[1], bidentate[0], bidentate[2]).angle
-                    conformer.properties["cone_angle"] = ConeAngle(ce.elements, conformer.coordinates, bidentate[1]).cone_angle
-                    conformer.properties["buried_volume"] = BuriedVolume(ce.elements, conformer.coordinates, bidentate[1]).fraction_buried_volume
+                    H_indices = []
                     
+                    for elem_index, elem in enumerate(elements):
+                        if elem == 'H':
+                            H_indices.append(elem_index)                    
+
+                    coordinates_no_H = np.delete(np.array(coordinates), H_indices, axis=0)
+                    
+                    elements_no_H = elements[:]
+                    
+                    for elem_index in H_indices:
+                        H_indices.pop(elem_index)
+                    
+                    conformer.properties["cone_angle"] = ConeAngle(elements_no_H, coordinates_no_H, bidentate[1]).cone_angle
+                    conformer.properties["buried_volume"] = BuriedVolume(ce.elements, conformer.coordinates, bidentate[1]).fraction_buried_volume
                     conformer.properties["dispersion"] = Dispersion(ce.elements, conformer.coordinates).atom_p_int[1]
                     conformer.properties["sasa"] = SASA(ce.elements, conformer.coordinates).area
                     
@@ -351,9 +394,8 @@ class Workflow:
                     dictionary_for_properties[os.path.basename(os.path.normpath(complex))] = {property: ce.boltzmann_statistic(property)}
                 
         dataframe = dataframe_from_dictionary(dictionary_for_properties)
-        dataframe.to_excel('descriptors_NEW2.xlsx')     
+        dataframe.to_excel('descriptors_with_specific_buried_vol.xlsx')     
         
-           
     def run_workflow(self):
         
         if self.path_to_workflow != []:
@@ -361,8 +403,8 @@ class Workflow:
         
         self.run_mace()
         self.run_chemspax()
-        self.run_crest()
-        self.calculate_descriptors(output='xtb')
+        self.run_crest(self.conf_search)
+        self.calculate_descriptors()
 
 
 if __name__ == "__main__":
@@ -390,6 +432,8 @@ if __name__ == "__main__":
     # os.chdir(current_directory)
     path_to_substituents = os.path.join(current_directory, "substituents_xyz") 
     path_to_database = os.path.join(path_to_substituents, "central_atom_centroid_database.csv")
+    substituent_list = [["C6H12", "C6H12", "3_5_trifluoro_methyl_phenyl", "3_5_trifluoro_methyl_phenyl"]]
+   
     # substituent_list = [["CCH3CH3CH3", "CCH3CH3CH3", "para_trifluoromethyl_phenyl", "para_trifluoromethyl_phenyl"], 
     #                     ["C6H12", "C6H12", "para_trifluoromethyl_phenyl", "para_trifluoromethyl_phenyl"], 
     #                     ["C6H12", "C6H12", "3_5_dimethyl_4_metoxy_phenyl", "3_5_dimethyl_4_metoxy_phenyl"],
@@ -404,7 +448,7 @@ if __name__ == "__main__":
     #                     ["3_5_dimethyl_phenyl", "3_5_dimethyl_phenyl", "naphtalenyl", "naphtalenyl"]]  # will find substituent.xyz
     
 
-    substituent_list = [["3_5_dimethyl_phenyl", "3_5_dimethyl_phenyl", "3_5_trifluoro_methyl_phenyl", "3_5_trifluoro_methyl_phenyl"]]
+    # substituent_list = [["3_5_dimethyl_phenyl", "3_5_dimethyl_phenyl", "3_5_trifluoro_methyl_phenyl", "3_5_trifluoro_methyl_phenyl"]]
     skeleton_list = glob.glob(os.path.join("skeletons", "*.xyz"))
     path_to_hand_drawn_skeletons = os.path.join(current_directory, "skeletons")
     path_to_output = os.path.join(current_directory, "complexes")
@@ -425,17 +469,10 @@ if __name__ == "__main__":
     crest_input = {'method': method, 
                    'charge_complex': charge_of_complex,
                    'multiplicity' : multiplicity,
-                   'solvent' : solvent}
+                   'solvent' : solvent,
+                   'conformer_search' : 'off'}
 
-    workflow = Workflow(mace_input = mace_input, crest_input = crest_input, path_to_workflow = os.getcwd() + '/Workflow copy')
-    workflow.run_crest(path_to_complexes = os.getcwd() + '/Workflow copy/MACE')
+    workflow = Workflow(mace_input = mace_input, chemspax_input = chemspax_input, path_to_workflow = os.getcwd() + '/Workflow')
+    workflow.calculate_descriptors(path_to_outputs = os.path.join(os.getcwd(), "Workflow", "CREST"), output = 'xtb')
     
-    # workflow.calculate_descriptors(path_to_outputs=os.getcwd() + '/Workflow/CREST' , output='xtb')
-    # workflow.run_crest(path_to_complexes = os.path.join(os.getcwd(), "Workflow_test2_SP", "MACE"))
-    # workflow.calculate_descriptors(path_to_outputs = os.path.join(os.getcwd(), "Workflow_test2_SP", "CREST"))
-    # workflow.run_crest()
-    # workflow.run_chemspax()
-    # workflow.run_crest(path_to_complexes=os.path.join(os.getcwd(), "Workflow copy", "ChemSpaX", "chemspax_output"))
-    
-    # workflow.calculate_descriptors(path_to_outputs=os.getcwd() + '/Workflow/CREST' , output='xtb')
     
