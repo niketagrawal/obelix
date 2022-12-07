@@ -16,6 +16,7 @@ dependencies:
 - mordred==1.2.0
 - openpyxl
 - scikit-learn
+- xtb-python
 - pip
 - pip:
   - libconeangle
