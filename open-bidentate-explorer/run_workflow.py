@@ -22,17 +22,66 @@ class MACE:
         self.CA = CA
         self.name_of_xyz = name_of_xyz
         self.bidentate = bidentate
-    
+
+    @staticmethod
+    def find_bidentate(mol, metal_atom_atomic_number):
+        """Find indices of bidentate ligand if functions implemented in MACE class are not working or if
+        structure was made manually and there is no mapped SMILES string
+
+        Args:
+            mol: RDKit mol object
+            metal_atom_atomic_number:
+
+        Returns: list of bidentate atom indices
+
+        """
+        bidentate_idxs = []
+        try:
+            # find bidentate indices for first conformer, they should be the same for all conformers
+            # in case of SP we only need to find metal atom and neighbours since only one cycle with metal center is possible
+            metal_atom = [atom for atom in mol.GetAtoms() if atom.GetAtomicNum() == metal_atom_atomic_number][0]
+            metal_bonds = [bond for bond in metal_atom.GetBonds()]
+            for bond in metal_bonds:
+                # atoms that are connected to the metal and in the bidentate cycle are the bidentate atoms
+                idx1, idx2 = bond.GetBeginAtomIdx(), bond.GetEndAtomIdx()
+                bidentate_idxs.append(idx1) if idx1 != metal_atom.GetIdx() else bidentate_idxs.append(idx2)
+
+        except Exception as e:
+            # ToDo: add logging
+            # go on to next conformer and try again
+            return None
+
+        return bidentate_idxs[0], metal_atom.GetIdX(), bidentate_idxs[1]
+
     def generate_complex_SP_xyz(self):
         geom = 'SP'
 
         core = mace.ComplexFromLigands([self.bidentate], self.CA, geom)
         Xs = core.GetStereomers(regime='all', dropEnantiomers=True)
+
+        bidentate_idxs = []  # the final bidentate cycle indices
         for i, X in enumerate(Xs):
             X.AddConformers(numConfs=10)   
             X.ToXYZ(self.CA + '_' + '{}{}.xyz'.format(self.name_of_xyz, i), confId='min')
-            
-        
+            if len(bidentate_idxs) == 0:
+                try:
+                    # find bidentate indices for first conformer, they should be the same for all conformers
+                    # in case of SP we only need to find metal atom and neighbours since only one cycle with metal center is possible
+                    atomic_number_metal_center = Chem.MolFromSmiles(self.CA).GetAtomWithIdx(0).GetAtomicNum()
+                    metal_atom = [atom for atom in X.mol3D.GetAtoms() if atom.GetAtomicNum() == atomic_number_metal_center][0]
+                    metal_bonds = [bond for bond in metal_atom.GetBonds()]
+                    for bond in metal_bonds:
+                        # atoms that are connected to the metal and in the bidentate cycle are the bidentate atoms
+                        idx1, idx2 = bond.GetBeginAtomIdx(), bond.GetEndAtomIdx()
+                        bidentate_idxs.append(idx1) if idx1 != metal_atom.GetIdx() else bidentate_idxs.append(idx2)
+
+                except Exception as e:
+                    # ToDo: add logging
+                    # go on to next conformer and try again
+                    continue
+
+        return bidentate_idxs[0], metal_atom.GetIdX(), bidentate_idxs[1]
+
     def generate_complex_OH_xyz(self, auxiliary_ligands = [], substrate = []):
         geom = 'OH'
 
@@ -51,11 +100,46 @@ class MACE:
 
         core = mace.ComplexFromLigands(auxiliary, self.CA, geom)
         Xs = core.GetStereomers(regime='all', dropEnantiomers=True)
+
+        bidentate_cycle_idxs = None  # all cycles that could possibly be the metal-bidentate cycle
+        bidentate_idxs = []  # the final bidentate cycle indices
         for i, X in enumerate(Xs):
             X.AddConformers(numConfs=10)   
             X.ToXYZ(self.CA + '_' + '{}{}.xyz'.format(self.name_of_xyz, i), confId='min')
-            
 
+            # find bidentate indices on the conformer if none were yet
+            if len(bidentate_idxs) == 0:
+                try:
+                    # get all mapped (donor) atom indices
+                    donor_atoms = [atom.GetIdx() for atom in X.mol3D.GetAtoms() if atom.GetAtomMapNum()]
+                    # smallest set of simple rings containing at least two mapped atoms
+                    # Chem.GetSSSR() is updated in rdkit 2020.09.1, versions before had to use Chem.GetSymmSSSR()
+                    atoms_of_smallest_rings = [list(idx) for idx in Chem.GetSSSR(X.mol3D)]
+                    for list_idxs in atoms_of_smallest_rings:
+                        # if at least two mapped atoms are in the ring it's a multidentate ligand
+                        if check_if_at_least_two_mapped_atoms_in_ring(donor_atoms, list_idxs):
+                            bidentate_cycle_idxs = list_idxs
+                            break
+
+                    # find metal atom and neighbours
+                    atomic_number_metal_center = Chem.MolFromSmiles(self.CA).GetAtomWithIdx(0).GetAtomicNum()
+                    metal_atom = [atom for atom in X.mol3D.GetAtoms() if atom.GetAtomicNum() == atomic_number_metal_center][0]
+                    metal_bonds = [bond for bond in metal_atom.GetBonds()]
+                    for bond in metal_bonds:
+                        # atoms that are connected to the metal and in the bidentate cycle are the bidentate atoms
+                        idx1, idx2 = bond.GetBeginAtomIdx(), bond.GetEndAtomIdx()
+                        if idx1 == metal_atom.GetIdx() and idx2 in bidentate_cycle_idxs:
+                            bidentate_idxs.append(idx2)
+                        elif idx1 in bidentate_cycle_idxs and idx2 == metal_atom.GetIdx():
+                            bidentate_idxs.append(idx1)
+
+                except Exception as e:
+                    # ToDo: add logging
+                    # go on to next conformer and try again
+                    continue
+
+        return bidentate_idxs[0], metal_atom.GetIdX(), bidentate_idxs[1]
+            
 
 class Workflow:
     def __init__(self, mace_input = [], chemspax_input = [], crest_input = [], path_to_workflow = []):
@@ -63,7 +147,10 @@ class Workflow:
         self.chemspax_input = chemspax_input
         self.crest_input = crest_input
         self.path_to_workflow = path_to_workflow
-        
+
+        self.bidentate_1_index = None
+        self.bidentate_2_index = None
+        self.metal_index = None
         
         # Unpack inputs of MACE, Chemspax, CREST
         print('Workflow is initializing. Converting your dict. input to variables.')
@@ -128,12 +215,13 @@ class Workflow:
               if self.geom == 'OH':
                   identifier_OH = self.names_of_xyz[i] + '_OH'
                   complex = MACE(self.mace_ligands[i], central_atom,  identifier_OH)
-                  complex.generate_complex_OH_xyz(auxiliary_ligands, substrate=self.substrate) 
+                  self.bidentate_1_index, self.metal_index, self.bidentate_2_index = \
+                      complex.generate_complex_OH_xyz(auxiliary_ligands, substrate=self.substrate)
               
               if self.geom == 'SP':
                   identifier_SP = self.names_of_xyz[i] + '_SP'
                   complex = MACE(self.mace_ligands[i], central_atom,  identifier_SP)
-                  complex.generate_complex_SP_xyz()
+                  self.bidentate_1_index, self.metal_index, self.bidentate_2_index = complex.generate_complex_SP_xyz()
             except Exception:
               print('Wrong SMILES:', i)               
     
@@ -281,8 +369,11 @@ class Workflow:
                     properties = {}
                     elements, coordinates = read_xyz(os.path.join(complex, 'xtbopt.xyz'))
                     
-                    
-                    bidentate = find_bidentate(os.path.join(complex, 'xtbopt.xyz'))
+                    if self.bidentate_1_index is None or self.bidentate_2_index is None or self.metal_index is None:
+                        bidentate = find_bidentate(os.path.join(complex, 'xtbopt.xyz'))
+                    else:
+                        bidentate = [self.bidentate_1_index, self.metal_index, self.bidentate_2_index]
+                    #     # ToDo: use find_bidentate static method from MACE class if None, but need mol object returned
                     properties["bite_angle"] = BiteAngle(coordinates, bidentate[1], bidentate[0], bidentate[2]).angle
                     
                     # elements_no_H = []
@@ -352,8 +443,14 @@ class Workflow:
                 for conformer in ce:        
                     # sasa = ce.boltzmann_statistic("sasa")
                     # sasa_std = ce.boltzmann_statistic("sasa", statistic = "std")
-                    
-                    bidentate = find_bidentate(conformer)
+
+                    if self.bidentate_1_index is None or self.bidentate_2_index is None or self.metal_index is None:
+                        bidentate = find_bidentate(conformer)
+                    else:
+                        bidentate = [self.bidentate_1_index, self.metal_index, self.bidentate_2_index]
+                    #     # ToDo: use find_bidentate static method from MACE class if None, but need mol object returned
+
+                    # bidentate = find_bidentate(conformer)
                     conformer.properties["bite_angle"] = BiteAngle(conformer.coordinates, bidentate[1], bidentate[0], bidentate[2]).angle
                     H_indices = []
                     

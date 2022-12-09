@@ -68,11 +68,21 @@ def get_cluster_centroid_coord(n_clusters, unique_labels, dataframe):
     return centroids
 
 
+def find_bonds_with_neighbours(mol, center_atom_atomic_number):
+    center_atom = [atom for atom in mol.GetAtoms() if atom.GetAtomicNum() == center_atom_atomic_number][0]
+    bonds = [bond for bond in center_atom.GetBonds()]
+    return bonds
+
+
+def check_if_at_least_two_mapped_atoms_in_ring(list_of_mapped_idxs, list_of_ring_idxs):
+    return len(set(list_of_mapped_idxs) & set(list_of_ring_idxs)) >= 2
+
+
 def find_bidentate(xyz):
-    
+
     with open(xyz) as file:
         listfile = []
-    
+
         for line in file:
             listfile.append(line.strip())
     indices = [0]*3
