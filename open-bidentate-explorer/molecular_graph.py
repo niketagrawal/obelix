@@ -2,24 +2,25 @@ import numpy as np
 from numpy.linalg import norm as cartesian_distance
 from morfeus import read_xyz
 import pandas as pd
-import networkx as nx
-import matplotlib.pyplot as plt
+
 
 # Needed data
 
-atom_covalent_bond_nr = {'N'  : 2, 
-                         'P'  : 2, 
-                         'S'  : 2.2, 
-                         'C'  : 2.1, 
-                         'O'  : 1.8,
-                         'H'  : 1.15,
-                         'Fe' : 2.1}
+atom_covalent_max_dist = {'N'  : 2, 
+                          'P'  : 2, 
+                          'S'  : 2.2, 
+                          'C'  : 2.1, 
+                          'O'  : 1.8,
+                          'H'  : 1.15,
+                          'Fe' : 2.1,
+                          'F'  : 1.5, 
+                          'Cl' : 2}
+
 
 metal_centers = {'Rh' : {'OH' : 6, 'BD' : 2}, 
                  'Ir' : {'OH' : 6, 'BD' : 2}, 
                  'Mn' : {'OH' : 6, 'BD' : 2}, 
-                 'Rh' : {'OH' : 6, 'BD' : 2},
-                 'Ru' : {'OH' : 5, 'BD' : 2}}
+                 'Ru' : {'OH' : 6, 'BD' : 2}}
 
 
 def bfs(visited, graph, node):
@@ -37,10 +38,10 @@ def bfs(visited, graph, node):
     return visited
 
 
-def molecular_graph(xyz, geom = 'OH'):
+def molecular_graph(elements, coords, geom = 'OH'):
     
     # Read xyz - coord, type with morfeus
-    elements, coords = read_xyz(xyz)
+    # elements, coords = read_xyz(xyz)
     
     nr_of_atoms = len(elements)
     
@@ -55,7 +56,7 @@ def molecular_graph(xyz, geom = 'OH'):
     # Find atom type like this: atom_type = elem_dict[atom_index].keys() 
     
     # atom_type = elem_dict[16].keys()
-    # test_bond = atom_covalent_bond_nr[list(atom_type)[0]]
+    # test_bond = atom_covalent_max_dist[list(atom_type)[0]]
 
     interatomic_distances = {}
     
@@ -90,10 +91,10 @@ def molecular_graph(xyz, geom = 'OH'):
 
     for (atom_ligand, atom_type) in zip(ligand_start_idx, elements[ligand_start_idx]):      
         
-        if atom_type in list(atom_covalent_bond_nr.keys()):
-            nr_of_bonds = atom_covalent_bond_nr[atom_type] 
+        if atom_type in list(atom_covalent_max_dist.keys()):
+            nr_of_bonds = atom_covalent_max_dist[atom_type] 
             # print(atom_type)
-            idx = np.where(np.array(interatomic_distances[atom_ligand]) <= atom_covalent_bond_nr[atom_type])
+            idx = np.where(np.array(interatomic_distances[atom_ligand]) <= atom_covalent_max_dist[atom_type])
             # print('idx', idx)
             idx = idx[:len(idx) + 1]
 
@@ -110,9 +111,9 @@ def molecular_graph(xyz, geom = 'OH'):
     for atom_key in range(0, nr_of_atoms):
         if atom_key not in ligandMetal:
             atom_type = elements[atom_key]
-            nr_of_bonds = atom_covalent_bond_nr[atom_type] 
+            nr_of_bonds = atom_covalent_max_dist[atom_type] 
              
-            idx = np.where(np.array(interatomic_distances[atom_key]) <= atom_covalent_bond_nr[atom_type])
+            idx = np.where(np.array(interatomic_distances[atom_key]) <= atom_covalent_max_dist[atom_type])
             idx = idx[:len(idx) + 1]
 
             # bond_distances = np.array(interatomic_distances[atom_ligand])[idx]                           
@@ -127,7 +128,7 @@ def molecular_graph(xyz, geom = 'OH'):
             
     mol_graph[metal_key] = ligand_start_idx
 
-    ### Adjacency Matrix (fingerprint)
+    # ### Adjacency Matrix (fingerprint)
     # keys=sorted(mol_graph.keys())
     # size=len(keys)
 
@@ -135,7 +136,9 @@ def molecular_graph(xyz, geom = 'OH'):
 
     # for a,b in [(keys.index(a), keys.index(b)) for a, row in mol_graph.items() for b in row]:
     #     adj_matrix[a][b] = 1
-        
+    # plt.spy(adj_matrix)
+    # plt.savefig('spy.png')  
+    
     ### Breadth first search algorithm (go through all neighbours and store)
     ligands_atoms_idx = {}
     checklist = []
@@ -154,18 +157,22 @@ def molecular_graph(xyz, geom = 'OH'):
     
     for ligand_index1 in ligand_start_idx:
         for ligand_index2 in ligand_start_idx:
-            if ligand_index1 != ligand_index2 and ligand_index1 in ligands_atoms_idx[ligand_index2]:
-                bidentate_indices.append(ligand_index1)
-                bidentate_indices.append(ligand_index2)
-            break
+            if ligand_index1 != ligand_index2:
+                if ligand_index1 in list(ligands_atoms_idx[ligand_index2]):               
+                    if ligand_index1 not in bidentate_indices:
+                        bidentate_indices.append(ligand_index1)
+                    if ligand_index2 not in bidentate_indices:
+                        bidentate_indices.append(ligand_index2)
+                        break
     
-    for elem in ligands_atoms_idx:
-        print(elements[elem]) 
-        
+    # for elem in ligands_atoms_idx:
+    #     print(elements[elem]) 
+    
     return ligands_atoms_idx,bidentate_indices
 
-                    
-# print(molecular_graph('xtbopt.xyz'))
 
-ligands_indices, bidentate = molecular_graph('xtbopt.xyz')
-print(bidentate, ligands_indices)
+# elem, coord = read_xyz('xtbopt.xyz')
+# print(molecular_graph(elem, coord))
+
+# ligands_indices, bidentate = molecular_graph('xtbopt.xyz')
+# print(bidentate, ligands_indices)
