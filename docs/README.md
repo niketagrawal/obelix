@@ -28,13 +28,12 @@ workflow.prepare_folder_structure()
 
 The workflow contains 4 modules: MACE, ChemSpaX, xTB/CREST, Morfeus.
 
-You can run the whole workflow at once, like this: 
+You can run the whole workflow at once, like this:
 
 ```python
 workflow = Workflow(mace_input = mace_input, chemspax_input = chemspax_input, crest_input = crest_input, path_to_workflow = "your/path/to/workflow")
-workflow.prepare_folder_structure()
+workflow.run_workflow()
 ```
-
 
 The input to the workflow class contains the input to MACE, input to ChemSpax, input to xTB/CREST. The inputs should be given as below:
 
