@@ -14,6 +14,9 @@ from morfeus import BiteAngle, ConeAngle, BuriedVolume, Dispersion, SASA, read_x
 from xtb.utils import get_method
 import pandas as pd
 from openbabel import openbabel
+from molecular_graph import molecular_graph
+from rdkit import RDLogger
+RDLogger.DisableLog('rdApp.info')
 
 
 class MACE:   
@@ -143,6 +146,7 @@ class MACE:
 
 class Workflow:
     def __init__(self, mace_input = [], chemspax_input = [], crest_input = [], path_to_workflow = []):
+        
         self.mace_input = mace_input
         self.chemspax_input = chemspax_input
         self.crest_input = crest_input
@@ -360,78 +364,79 @@ class Workflow:
         ### Data structure 'complex': {}
         
         # Get descriptors from xtb-optimized structures
-        
         if output == 'xtb':
             dictionary_for_properties = {}
             
-            try:
-                for complex in complexes_to_calc_descriptors:
-                    properties = {}
-                    elements, coordinates = read_xyz(os.path.join(complex, 'xtbopt.xyz'))
-                    
-                    if self.bidentate_1_index is None or self.bidentate_2_index is None or self.metal_index is None:
-                        bidentate = find_bidentate(os.path.join(complex, 'xtbopt.xyz'))
-                    else:
-                        bidentate = [self.bidentate_1_index, self.metal_index, self.bidentate_2_index]
-                    #     # ToDo: use find_bidentate static method from MACE class if None, but need mol object returned
-                    properties["bite_angle"] = BiteAngle(coordinates, bidentate[1], bidentate[0], bidentate[2]).angle
-                    
-                    # elements_no_H = []
-                    # H_indices = []
-                    # for elem_index, elem in enumerate(elements):
-                    #     if elem != 'H':
-                    #         elements_no_H.append(elem)     
-                    #     else:
-                    #         H_indices.append(elem_index)
-                    # H_indices.sort(reverse=True)
-                    # coordinates_no_H = np.delete(np.array(coordinates), H_indices, axis=0)
-                    
-                    # nr_of_atoms_less_than_metal = 0
-
-                    # for index in H_indices:
-                    #     if index > bidentate[1]:
-                    #         pass
-                    #     else:
-                    #         nr_of_atoms_less_than_metal += 1
-                    
-                    
-                    properties["cone_angle"] = ConeAngle(elements, coordinates, bidentate[1]).cone_angle
-                    
-                    # print(properties["cone_angle"])
-                    bv1 = BuriedVolume(elements, coordinates, bidentate[1], radius=3.5)
-                    bv2 = BuriedVolume(elements, coordinates, bidentate[0], radius=3.5)
-                    bv3 = BuriedVolume(elements, coordinates, bidentate[2], radius=3.5)
-                    
-                    properties["buried_volume_metal_center"] = bv1.fraction_buried_volume
-                    properties["buried_volume_P1"] = bv2.fraction_buried_volume
-                    properties["buried_volume_P2"] = bv3.fraction_buried_volume
-
-                    # print(BuriedVolume(ce.elements, conformer.coordinates, bidentate[1]).print_report())
-                    # BuriedVolume(elements, coordinates, bidentate[1], radius=4).print_report()
-
-                    properties["dispersion"] = Dispersion(elements, coordinates).atom_p_int[bidentate[1]]
-                    properties["sasa"] = SASA(elements, coordinates).area
-                    
-                    # Electronic descriptors
-                    
-                    instance_electronic = mf.XTB(elements, coordinates, solvent='ch2cl2')
-                    
-                    properties["ip"] = instance_electronic.get_ip()
-                    properties["dipole"] = instance_electronic.get_dipole().dot(instance_electronic.get_dipole())
-                    properties["ea"] = instance_electronic.get_ea()     
-                    properties["electrofugality"] = instance_electronic.get_global_descriptor(variety = 'electrofugality')
-                    properties["nucleofugality"] = instance_electronic.get_global_descriptor(variety = 'nucleofugality')
-                    properties["nucleophilicity"] = instance_electronic.get_global_descriptor(variety = 'nucleophilicity')
-                    properties["electrophilicity"] = instance_electronic.get_global_descriptor(variety = 'electrophilicity')
-
-                    homo = instance_electronic.get_homo()
-                    lumo = instance_electronic.get_lumo()    
-                    properties["HOMO_LUMO_gap"] = homo - lumo
-                    
-                    for property in properties.keys():
-                            dictionary_for_properties[os.path.basename(os.path.normpath(complex))] = properties
-            except Exception:
+            for complex in complexes_to_calc_descriptors:
+                properties = {}
                 print("Descriptor calculation failed for this complex:", os.path.basename(os.path.normpath(complex)))   
+
+                elements, coordinates = read_xyz(os.path.join(complex, 'xtbopt.xyz'))
+                print(len(elements))
+                # if self.bidentate_1_index is None or self.bidentate_2_index is None or self.metal_index is None:
+                #     bidentate = find_bidentate(os.path.join(complex, 'xtbopt.xyz'))
+                # else:
+                #     bidentate = [self.bidentate_1_index, self.metal_index, self.bidentate_2_index]
+                
+                
+                ligand_atoms, bidentate = molecular_graph(elements=elements, coords=coordinates)
+                #     # ToDo: use find_bidentate static method from MACE class if None, but need mol object returned
+                
+                #### Set up a as bidentate + metal array
+                a = [bidentate[0]]
+                a.extend(ligand_atoms[bidentate[1]])
+                a = list(np.sort(np.array(a)))
+                
+                ### Get index of metal in the structure without the aux ligands and the substrate                
+                for id, i in enumerate(a):
+                    if i == bidentate[0]:
+                        diff = id
+                                 
+                # Diff is the new index of the Metal 
+                # diff + 1 from the indexing in morfeus ( + 1)
+                                       
+                properties["bite_angle"] = BiteAngle(coordinates, bidentate[0] + 1, bidentate[1] + 1, bidentate[2] + 1).angle
+                elements_cone_angle = elements[a]                
+                coordinates_cone_angle = np.array(coordinates)[a]
+                
+                properties["cone_angle"] = ConeAngle(elements_cone_angle, coordinates_cone_angle, diff + 1).cone_angle
+                
+                bv1 = BuriedVolume(elements, coordinates, bidentate[0] + 1, radius=3.5)
+                bv2 = BuriedVolume(elements, coordinates, bidentate[1] + 1, radius=3.5)
+                bv3 = BuriedVolume(elements, coordinates, bidentate[2] + 1, radius=3.5)
+                
+                
+                properties["buried_volume_metal_center"] = bv1.fraction_buried_volume
+                properties["buried_volume_P1"] = bv2.fraction_buried_volume
+                properties["buried_volume_P2"] = bv3.fraction_buried_volume
+
+                # print(BuriedVolume(ce.elements, conformer.coordinates, bidentate[1]).print_report())
+                # BuriedVolume(elements, coordinates, bidentate[1], radius=4).print_report()
+
+                properties["dispersion"] = Dispersion(elements, coordinates).atom_p_int[bidentate[0] + 1]
+                properties["sasa"] = SASA(elements, coordinates).area
+                
+                # Electronic descriptors
+                
+                instance_electronic = mf.XTB(elements, coordinates, solvent='ch2cl2')
+                
+                properties["ip"] = instance_electronic.get_ip()
+                properties["dipole"] = instance_electronic.get_dipole().dot(instance_electronic.get_dipole())
+                properties["ea"] = instance_electronic.get_ea()     
+                properties["electrofugality"] = instance_electronic.get_global_descriptor(variety = 'electrofugality')
+                properties["nucleofugality"] = instance_electronic.get_global_descriptor(variety = 'nucleofugality')
+                properties["nucleophilicity"] = instance_electronic.get_global_descriptor(variety = 'nucleophilicity')
+                properties["electrophilicity"] = instance_electronic.get_global_descriptor(variety = 'electrophilicity')
+
+                homo = instance_electronic.get_homo()
+                lumo = instance_electronic.get_lumo()    
+                properties["HOMO_LUMO_gap"] = lumo - homo
+                
+                for property in properties.keys():
+                    dictionary_for_properties[os.path.basename(os.path.normpath(complex))] = properties
+
+            # except Exception:
+            #     print("Descriptor calculation failed for this complex:", os.path.basename(os.path.normpath(complex)))   
                          
         # Iterate through the CREST outputs of different descriptors
         else:
@@ -444,32 +449,48 @@ class Workflow:
                     # sasa = ce.boltzmann_statistic("sasa")
                     # sasa_std = ce.boltzmann_statistic("sasa", statistic = "std")
 
-                    if self.bidentate_1_index is None or self.bidentate_2_index is None or self.metal_index is None:
-                        bidentate = find_bidentate(conformer)
-                    else:
-                        bidentate = [self.bidentate_1_index, self.metal_index, self.bidentate_2_index]
-                    #     # ToDo: use find_bidentate static method from MACE class if None, but need mol object returned
+                    # if self.bidentate_1_index is None or self.bidentate_2_index is None or self.metal_index is None:
+                    #     bidentate = find_bidentate(conformer)
+                    # else:
+                    #     bidentate = [self.bidentate_1_index, self.metal_index, self.bidentate_2_index]
+                    # #     # ToDo: use find_bidentate static method from MACE class if None, but need mol object returned
 
+                                    #### Set up a as bidentate + metal array
+                    a = [bidentate[0]]
+                    a.extend(ligand_atoms[bidentate[1]])
+                    a = list(np.sort(np.array(a)))
+                    
+                    ### Get index of metal in the structure without the aux ligands and the substrate                
+                    for id, i in enumerate(a):
+                        if i == bidentate[0]:
+                            diff = id
+                                    
+                    # Diff is the new index of the Metal 
+                    # diff + 1 from the indexing in morfeus ( + 1)
+                    properties["bite_angle"] = BiteAngle(coordinates, bidentate[0] + 1, bidentate[1] + 1, bidentate[2] + 1).angle
+                    elements_cone_angle = elements[a]                
+                    coordinates_cone_angle = np.array(coordinates)[a]
+                
                     # bidentate = find_bidentate(conformer)
+           
                     conformer.properties["bite_angle"] = BiteAngle(conformer.coordinates, bidentate[1], bidentate[0], bidentate[2]).angle
-                    H_indices = []
-                    
-                    for elem_index, elem in enumerate(elements):
-                        if elem == 'H':
-                            H_indices.append(elem_index)                    
-
-                    coordinates_no_H = np.delete(np.array(coordinates), H_indices, axis=0)
-                    
-                    elements_no_H = elements[:]
-                    
-                    for elem_index in H_indices:
-                        H_indices.pop(elem_index)
-                    
                     conformer.properties["cone_angle"] = ConeAngle(elements_no_H, coordinates_no_H, bidentate[1]).cone_angle
                     conformer.properties["buried_volume"] = BuriedVolume(ce.elements, conformer.coordinates, bidentate[1]).fraction_buried_volume
-                    conformer.properties["dispersion"] = Dispersion(ce.elements, conformer.coordinates).atom_p_int[1]
-                    conformer.properties["sasa"] = SASA(ce.elements, conformer.coordinates).area
                     
+                    conformer.properties["cone_angle"] = ConeAngle(elements_cone_angle, coordinates_cone_angle, diff + 1).cone_angle
+                
+                    bv1 = BuriedVolume(elements, coordinates, bidentate[0] + 1, radius=3.5)
+                    bv2 = BuriedVolume(elements, coordinates, bidentate[1] + 1, radius=3.5)
+                    bv3 = BuriedVolume(elements, coordinates, bidentate[2] + 1, radius=3.5)
+                    
+                    
+                    properties["buried_volume_metal_center"] = bv1.fraction_buried_volume
+                    properties["buried_volume_P1"] = bv2.fraction_buried_volume
+                    properties["buried_volume_P2"] = bv3.fraction_buried_volume
+
+
+                    properties["dispersion"] = Dispersion(elements, coordinates).atom_p_int[bidentate[0] + 1]
+                    properties["sasa"] = SASA(elements, coordinates).area
                     # Electronic descriptors
                     
                     instance_electronic = mf.XTB(ce.elements, conformer.coordinates, solvent='ch2cl2')
@@ -489,7 +510,7 @@ class Workflow:
                     dictionary_for_properties[os.path.basename(os.path.normpath(complex))] = {property: ce.boltzmann_statistic(property)}
                 
         dataframe = dataframe_from_dictionary(dictionary_for_properties)
-        dataframe.to_excel('descriptors_with_specific_buried_vol.xlsx')     
+        dataframe.to_excel('descriptors_OH_oct_quads.xlsx')     
         
     def run_workflow(self):
         
@@ -544,6 +565,7 @@ if __name__ == "__main__":
     
 
     # substituent_list = [["3_5_dimethyl_phenyl", "3_5_dimethyl_phenyl", "3_5_trifluoro_methyl_phenyl", "3_5_trifluoro_methyl_phenyl"]]
+    
     skeleton_list = glob.glob(os.path.join("skeletons", "*.xyz"))
     path_to_hand_drawn_skeletons = os.path.join(current_directory, "skeletons")
     path_to_output = os.path.join(current_directory, "complexes")
@@ -567,7 +589,7 @@ if __name__ == "__main__":
                    'solvent' : solvent,
                    'conformer_search' : 'off'}
 
+
     workflow = Workflow(mace_input = mace_input, chemspax_input = chemspax_input, path_to_workflow = os.getcwd() + '/Workflow')
-    workflow.calculate_descriptors(path_to_outputs = os.path.join(os.getcwd(), "Workflow", "CREST"), output = 'xtb')
-    
+    workflow.calculate_descriptors(path_to_outputs = os.getcwd() + '/Workflow/CREST', output='xtb')
     
