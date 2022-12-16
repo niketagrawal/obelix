@@ -2,6 +2,8 @@ import random, string
 from rdkit import Chem
 import numpy as np
 import pandas as pd
+import glob, os
+
 
 def add_code_to_structure():
     N = 10
@@ -99,3 +101,35 @@ def find_bidentate(xyz):
                 indices[1] = index - 1
                 atoms.append(atom[:2])
     return indices
+
+
+def xyz_to_gjf(header, path, output_path):
+    
+    if not os.path.exists(output_path):
+        os.mkdir(output_path)
+
+    os.chdir(output_path)
+
+    xyzs = glob.glob('*.xyz')
+    # print(xyzs)
+    
+    for xyz in xyzs:
+        with open(xyz) as file:
+            f = file.readlines()
+            print(len(f))
+            for new_line in reversed(header):
+                f.insert(0, new_line)        
+                        
+            f.pop(len(header))
+            f.pop(len(header))      
+            
+            file.close()
+  
+            with open(f'{xyz[:-4]}.gjf', 'w+') as file:
+            
+                file.writelines(f)
+                file.close()
+    
+    
+
+
