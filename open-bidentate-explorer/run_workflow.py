@@ -174,7 +174,7 @@ class Workflow:
         auxiliary_ligands = self.mace_input['auxiliary_ligands']
         geom = self.mace_input['geom']
         central_atom = self.mace_input['central_atom']
-        names_of_xyz_key = list(pd.read_excel(self.mace_input['bidentate_ligands'])['Cas'])
+        names_of_xyz_key = list(pd.read_excel(self.mace_input['bidentate_ligands'])['Name'])
         substrate = self.mace_input['substrate']
         return bidentate, auxiliary_ligands, geom, central_atom, names_of_xyz_key, substrate
       
@@ -229,7 +229,7 @@ class Workflow:
             except Exception:
               print('Wrong SMILES:', i)               
     
-    def run_chemspax(self):  
+    def run_chemspax(self, names, skeleton_list_):  
         
         """
         
@@ -247,38 +247,40 @@ class Workflow:
         src_dir_skeletons =  os.path.join(self.path_to_workflow, 'MACE')
         
         if self.substituent_list == []:
-          dest_dir_skeletons = os.path.join(self.path_to_workflow, 'ChemSpaX', 'chemspax_output')
-          shutil.copytree(src_dir_skeletons, dest_dir_skeletons)  
+            dest_dir_skeletons = os.path.join(self.path_to_workflow, 'ChemSpaX', 'chemspax_output')
+            shutil.copytree(src_dir_skeletons, dest_dir_skeletons)  
 
         else:              
-          dest_dir_skeletons =  os.path.join(self.path_to_workflow, 'ChemSpaX', 'skeletons')        
-          shutil.copytree(src_dir_skeletons, dest_dir_skeletons)
-          skeleton_list = glob.glob(os.path.join(self.path_to_workflow , 'ChemSpaX', 'skeletons','*.xyz'))
+            dest_dir_skeletons =  os.path.join(self.path_to_workflow, 'ChemSpaX', 'skeletons')        
+            shutil.copytree(src_dir_skeletons, dest_dir_skeletons)
+            skeleton_list = glob.glob(os.path.join(self.path_to_workflow , 'ChemSpaX', 'skeletons','*.xyz'))
         
-          for xyz_file in skeleton_list:
-              change_second_line_xyz(xyz_file, new_content='')
-  
-          # set skeleton path to ../ChemSpaX/skeletons        
-          path_to_skeletons = os.path.join(os.getcwd(), dest_dir_skeletons)
-          
-          # copy substituents from user source to ChemSpaX folder
-          src_dir_subs = self.path_to_substituents
-          dest_dir_subs = os.path.join(self.path_to_workflow, 'ChemSpaX', 'substituents_xyz')        
-          shutil.copytree(src_dir_subs, dest_dir_subs)
-  
-          # Prepare data (from data_preparation.py in the chemspax package)
-          print('Data preparation has been performed.')
-          path_to_substituents = os.path.join(os.getcwd(), dest_dir_subs)
-          #   prepare_data(path_to_substituents, path_to_skeletons, self.path_to_database)
+            for xyz_file in skeleton_list:
+                change_second_line_xyz(xyz_file, new_content='')
 
-          # Set path to output
-          path_to_output = os.path.join(self.path_to_workflow, 'ChemSpaX','chemspax_output')
-                  
-          # Run chemspax from main
+            # set skeleton path to ../ChemSpaX/skeletons        
+            path_to_skeletons = os.path.join(os.getcwd(), dest_dir_skeletons)
+            
+            # copy substituents from user source to ChemSpaX folder
+            src_dir_subs = self.path_to_substituents
+            dest_dir_subs = os.path.join(self.path_to_workflow, 'ChemSpaX', 'substituents_xyz')        
+            shutil.copytree(src_dir_subs, dest_dir_subs)
+
+            # Prepare data (from data_preparation.py in the chemspax package)
+            print('Data preparation has been performed.')
+            path_to_substituents = os.path.join(os.getcwd(), dest_dir_subs)
+            #   prepare_data(path_to_substituents, path_to_skeletons, self.path_to_database)
+
+            # Set path to output
+            path_to_output = os.path.join(self.path_to_workflow, 'ChemSpaX','chemspax_output')
+        
+            # Run chemspax from main
         for index, sub_list in enumerate(self.substituent_list):
-            main(skeleton_list, sub_list, self.path_to_database, path_to_substituents, path_to_skeletons, chemspax_working_directory, path_to_output)
-            os.rename(os.path.join(path_to_output, os.path.basename(os.path.normpath(skeleton_list[0]))[:-4] + '_func_' + str(len(sub_list)) + '.mol'), \
-                os.path.join(path_to_output, os.path.basename(os.path.normpath(skeleton_list[0]))[:-4] + '_' + '_'.join(sub_list) + '.mol'))
+            #### Run chemspa
+            main([os.path.join(path_to_skeletons, skeleton_list_[index])], sub_list, self.path_to_database, path_to_substituents, os.path.join(path_to_skeletons), chemspax_working_directory, path_to_output)
+            
+            os.rename(os.path.join(path_to_output, skeleton_list_[index][:-4] + '_func_' + str(len(sub_list)) + '.mol'), \
+                os.path.join(path_to_output, list(names)[index] +  '.mol'))
             
             ## Convert mol to xyz to keep the bonding information
             obconversion = openbabel.OBConversion()
@@ -286,10 +288,10 @@ class Workflow:
             obconversion.SetOutFormat('xyz')
             mol = openbabel.OBMol()
             obconversion.ReadFile(mol, \
-                os.path.join(path_to_output, os.path.basename(os.path.normpath(skeleton_list[0]))[:-4] + '_' + '_'.join(sub_list) + '.mol'))
+                os.path.join(path_to_output, list(names)[index] +  '.mol'))
             
             obconversion.WriteFile(mol, \
-                os.path.join(path_to_output, os.path.basename(os.path.normpath(skeleton_list[0]))[:-4] + '_' + '_'.join(sub_list) + '.xyz'))
+                os.path.join(path_to_output, list(names)[index] +  '.xyz'))
             
             for filename in glob.glob(os.path.join(self.path_to_workflow, 'ChemSpaX', 'chemspax_output', '*_func_*')):
                 os.remove(filename) 
@@ -548,28 +550,14 @@ if __name__ == "__main__":
     # os.chdir(current_directory)
     path_to_substituents = os.path.join(current_directory, "substituents_xyz") 
     path_to_database = os.path.join(path_to_substituents, "central_atom_centroid_database.csv")
-    substituent_list = [["C6H12", "C6H12", "3_5_trifluoro_methyl_phenyl", "3_5_trifluoro_methyl_phenyl"]]
-   
-    # substituent_list = [["CCH3CH3CH3", "CCH3CH3CH3", "para_trifluoromethyl_phenyl", "para_trifluoromethyl_phenyl"], 
-    #                     ["C6H12", "C6H12", "para_trifluoromethyl_phenyl", "para_trifluoromethyl_phenyl"], 
-    #                     ["C6H12", "C6H12", "3_5_dimethyl_4_metoxy_phenyl", "3_5_dimethyl_4_metoxy_phenyl"],
-    #                     ["CCH3CH3CH3", "CCH3CH3CH3", "furanyl", "furanyl"],
-    #                     ["3_5_dimethyl_phenyl", "3_5_dimethyl_phenyl", "3_5_dimethyl_4_metoxy_phenyl", "3_5_dimethyl_4_metoxy_phenyl"],
-    #                     ["C6H6-CH3_ortho_1", "C6H6-CH3_ortho_1", "furanyl", "furanyl"],
-    #                     ["C6H6-CH3_ortho_1", "C6H6-CH3_ortho_1", "CCH3CH3CH3", "CCH3CH3CH3"], 
-    #                     ["3_5_dimethyl_phenyl", "3_5_dimethyl_phenyl", "3_5_trifluoro_methyl_phenyl", "3_5_trifluoro_methyl_phenyl"],
-    #                     ["C6H6", "C6H6", "C6H12", "C6H12"],
-    #                     ["3_5_dimethyl_phenyl", "3_5_dimethyl_phenyl", "C6H6", "C6H6"], 
-    #                     ["CCH3CH3CH3", "CCH3CH3CH3", "3_5_dimethyl_4_metoxy_phenyl", "3_5_dimethyl_4_metoxy_phenyl"],
-    #                     ["3_5_dimethyl_phenyl", "3_5_dimethyl_phenyl", "naphtalenyl", "naphtalenyl"]]  # will find substituent.xyz
-    
+    substituent_df = pd.read_excel('walphos_chemspax.xlsx').dropna()
+    substituent_list = np.array(substituent_df[['R1', 'R2', 'R3', 'R4']])
+    print(substituent_list)
+    names = substituent_df['Name']
 
-    # substituent_list = [["3_5_dimethyl_phenyl", "3_5_dimethyl_phenyl", "3_5_trifluoro_methyl_phenyl", "3_5_trifluoro_methyl_phenyl"]]
-    
-    skeleton_list = glob.glob(os.path.join("skeletons", "*.xyz"))
+    skeleton_list = list(substituent_df['skeleton'])
     path_to_hand_drawn_skeletons = os.path.join(current_directory, "skeletons")
     path_to_output = os.path.join(current_directory, "complexes")
-
 
     chemspax_input = {'skeleton_list' : skeleton_list, 
                     'substituent_list' : substituent_list, 
@@ -580,7 +568,7 @@ if __name__ == "__main__":
 
     method = 'gfn2'
     charge_of_complex = 0
-    multiplicity = 1
+    multiplicity = 2
     solvent = 'ch2cl2'
     
     crest_input = {'method': method, 
@@ -589,7 +577,8 @@ if __name__ == "__main__":
                    'solvent' : solvent,
                    'conformer_search' : 'off'}
 
-
-    workflow = Workflow(mace_input = mace_input, chemspax_input = chemspax_input, path_to_workflow = os.getcwd() + '/Workflow')
-    workflow.calculate_descriptors(path_to_outputs = os.getcwd() + '/Workflow/CREST', output='xtb')
+    # print(skeleton_list)
+    workflow = Workflow(chemspax_input = chemspax_input, path_to_workflow = os.getcwd() + '/Workflow')
+    
+    workflow.run_chemspax(names=names ,skeleton_list_=skeleton_list)
     
