@@ -100,18 +100,18 @@ def find_bidentate(xyz):
             if atom[:2] == 'Ir':
                 indices[1] = index - 1
                 atoms.append(atom[:2])
+                
     return indices
 
 
-def xyz_to_gjf(header, path, output_path):
+def xyz_to_gjf(header, io_path):
     
-    if not os.path.exists(output_path):
-        os.mkdir(output_path)
+    if not os.path.exists(io_path):
+        os.mkdir(io_path)
 
-    os.chdir(output_path)
+    os.chdir(io_path)
 
     xyzs = glob.glob('*.xyz')
-    # print(xyzs)
     
     for xyz in xyzs:
         with open(xyz) as file:
@@ -119,17 +119,52 @@ def xyz_to_gjf(header, path, output_path):
             print(len(f))
             for new_line in reversed(header):
                 f.insert(0, new_line)        
-                        
-            f.pop(len(header))
-            f.pop(len(header))      
             
+            f.pop(len(header))
+            f.pop(len(header))
+            
+            if f[-1] != '\n':
+                f.append('\n')
             file.close()
   
             with open(f'{xyz[:-4]}.gjf', 'w+') as file:
             
                 file.writelines(f)
                 file.close()
-    
-    
 
 
+def gjf_to_xyz(path, header):
+    for gjf in glob.glob(os.path.join(path, "*.gjf")):
+        with open(gjf) as file:
+            f = file.readlines()
+            
+            # count = len(f) - len(header)
+            # print(count, gjf)
+            
+            f = f[len(header):]
+            # print(f)
+            count = len(f) - 2
+            f.insert(0, '\n')
+            f.insert(0, str(count))
+            file.close()
+        with open(f'{gjf[:-4]}.xyz', 'w+') as file:
+            file.writelines(f)
+            file.close()  
+
+# header = ['%nprocshared=32 \n',  
+#           '%mem=32GB \n', 
+#           '#p opt freq pop=nbo def2svpp empiricaldispersion=gd3bj integral=grid=ultrafinegrid pbe1pbe\n', 
+#           'scf=(xqc,maxconventionalcycles=90) nosymm\n',      
+#           '\n', 
+#           'Title Card Required\n'
+#           '\n', 
+#           '1 1 \n']
+
+
+# xyz_to_gjf(header=header, 
+#            io_path='data/Rh_dataset/ferrocenes/other')
+
+
+# gjf_to_xyz(path='data/Rh_dataset/ferrocenes/gaussian_input_files/gjf', header=header)
+
+# xyz_to_gjf(header=header, io_path='data/Rh_dataset/ferrocenes/gaussian_input_files/gjf')
