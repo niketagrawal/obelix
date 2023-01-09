@@ -145,7 +145,7 @@ class MACE:
             
 
 class Workflow:
-    def __init__(self, mace_input = [], chemspax_input = [], crest_input = [], path_to_workflow = []):
+    def __init__(self, mace_input = [], chemspax_input = [], crest_input = [], path_to_workflow = [], geom='SP'):
         
         self.mace_input = mace_input
         self.chemspax_input = chemspax_input
@@ -159,7 +159,7 @@ class Workflow:
         # Unpack inputs of MACE, Chemspax, CREST
         print('Workflow is initializing. Converting your dict. input to variables.')
         print('')
-        
+        self.geom = geom
         if mace_input != []:  
           self.mace_ligands, self.auxiliary_ligands, self.geom, self.central_atom, self.names_of_xyz, self.substrate = self.initialize_mace()
         if chemspax_input != []:        
@@ -239,7 +239,6 @@ class Workflow:
         
         """
         
-        print(self.substituent_list)
         chemspax_working_directory = os.path.join(self.path_to_workflow, 'ChemSpaX')
         
         # Export MACE skeletons to ChemSpaX
@@ -252,7 +251,8 @@ class Workflow:
 
         else:              
             dest_dir_skeletons =  os.path.join(self.path_to_workflow, 'ChemSpaX', 'skeletons')        
-            shutil.copytree(src_dir_skeletons, dest_dir_skeletons)
+            if not os.path.exists(dest_dir_skeletons):      
+                shutil.copytree(src_dir_skeletons, dest_dir_skeletons)            
             skeleton_list = glob.glob(os.path.join(self.path_to_workflow , 'ChemSpaX', 'skeletons','*.xyz'))
         
             for xyz_file in skeleton_list:
@@ -263,8 +263,10 @@ class Workflow:
             
             # copy substituents from user source to ChemSpaX folder
             src_dir_subs = self.path_to_substituents
-            dest_dir_subs = os.path.join(self.path_to_workflow, 'ChemSpaX', 'substituents_xyz')        
-            shutil.copytree(src_dir_subs, dest_dir_subs)
+            dest_dir_subs = os.path.join(self.path_to_workflow, 'ChemSpaX', 'substituents_xyz')   
+            
+            if not os.path.exists(dest_dir_subs):      
+                shutil.copytree(src_dir_subs, dest_dir_subs)
 
             # Prepare data (from data_preparation.py in the chemspax package)
             print('Data preparation has been performed.')
@@ -276,7 +278,8 @@ class Workflow:
         
             # Run chemspax from main
         for index, sub_list in enumerate(self.substituent_list):
-            #### Run chemspa
+            #### Run chemspax
+            print(sub_list, skeleton_list_[index])
             main([os.path.join(path_to_skeletons, skeleton_list_[index])], sub_list, self.path_to_database, path_to_substituents, os.path.join(path_to_skeletons), chemspax_working_directory, path_to_output)
             
             os.rename(os.path.join(path_to_output, skeleton_list_[index][:-4] + '_func_' + str(len(sub_list)) + '.mol'), \
@@ -309,7 +312,6 @@ class Workflow:
 
         """
     
-        
         if path_to_complexes == []:
           path_to_complexes = os.path.join(self.path_to_workflow, 'ChemSpaX', 'chemspax_output')
           os.chdir(self.path_to_workflow)
@@ -322,7 +324,7 @@ class Workflow:
             os.mkdir(folder_name)
             os.chdir(folder_name)
 
-            print('About to run {}-xtb optimization:'.self.method)
+            print('About to run {}-xtb optimization:'.format(self.method))
 
             if conformer_search == 'on':
                 subprocess.call('xtb "%s" --%s --chrg %s  --uhf %s --alpb %s --opt > xtb.out' \
@@ -361,57 +363,98 @@ class Workflow:
         if path_to_outputs == []:
             complexes_to_calc_descriptors = glob.glob(os.path.join(self.path_to_workflow, 'CREST', '*'))
         else:
-            complexes_to_calc_descriptors = glob.glob(os.path.join(path_to_outputs, '*'))
+            complexes_to_calc_descriptors = glob.glob(os.path.join(path_to_outputs, '*.xyz'))
+        print(len(complexes_to_calc_descriptors))
         # Check output     
         ### Data structure 'complex': {}
-        
         # Get descriptors from xtb-optimized structures
         if output == 'xtb':
             dictionary_for_properties = {}
             
+            # try:
             for complex in complexes_to_calc_descriptors:
                 properties = {}
-                print("Descriptor calculation failed for this complex:", os.path.basename(os.path.normpath(complex)))   
-
-                elements, coordinates = read_xyz(os.path.join(complex, 'xtbopt.xyz'))
-                print(len(elements))
+                print(os.path.basename(complex))
+                elements, coordinates = read_xyz(complex)
                 # if self.bidentate_1_index is None or self.bidentate_2_index is None or self.metal_index is None:
                 #     bidentate = find_bidentate(os.path.join(complex, 'xtbopt.xyz'))
                 # else:
                 #     bidentate = [self.bidentate_1_index, self.metal_index, self.bidentate_2_index]
                 
+                ligand_atoms, bidentate = molecular_graph(elements=elements, coords=coordinates, geom=self.geom)
                 
-                ligand_atoms, bidentate = molecular_graph(elements=elements, coords=coordinates)
                 #     # ToDo: use find_bidentate static method from MACE class if None, but need mol object returned
                 
                 #### Set up a as bidentate + metal array
-                a = [bidentate[0]]
-                a.extend(ligand_atoms[bidentate[1]])
-                a = list(np.sort(np.array(a)))
                 
                 ### Get index of metal in the structure without the aux ligands and the substrate                
-                for id, i in enumerate(a):
-                    if i == bidentate[0]:
-                        diff = id
-                                 
+
                 # Diff is the new index of the Metal 
                 # diff + 1 from the indexing in morfeus ( + 1)
-                                       
+                                    
                 properties["bite_angle"] = BiteAngle(coordinates, bidentate[0] + 1, bidentate[1] + 1, bidentate[2] + 1).angle
-                elements_cone_angle = elements[a]                
-                coordinates_cone_angle = np.array(coordinates)[a]
-                
-                properties["cone_angle"] = ConeAngle(elements_cone_angle, coordinates_cone_angle, diff + 1).cone_angle
-                
-                bv1 = BuriedVolume(elements, coordinates, bidentate[0] + 1, radius=3.5)
-                bv2 = BuriedVolume(elements, coordinates, bidentate[1] + 1, radius=3.5)
-                bv3 = BuriedVolume(elements, coordinates, bidentate[2] + 1, radius=3.5)
-                
-                
-                properties["buried_volume_metal_center"] = bv1.fraction_buried_volume
-                properties["buried_volume_P1"] = bv2.fraction_buried_volume
-                properties["buried_volume_P2"] = bv3.fraction_buried_volume
+                print(properties["bite_angle"])
 
+
+                if self.geom == "BD":
+                    properties["cone_angle"] = ConeAngle(elements, coordinates, bidentate[0] + 1).cone_angle
+                else:      
+                    try:
+                        a = [bidentate[0]]
+                        a.extend(ligand_atoms[bidentate[1]])
+                        a = list(np.sort(np.array(a)))
+                    
+                    except Exception:
+                        print('Molecular graph search failed, defaulting to manual search.')
+                        a = list(np.sort(np.array(bidentate)))
+
+                    for id, i in enumerate(a):
+                        if i == bidentate[0]:
+                            diff = id
+                    elements_cone_angle = elements[a]                
+                    coordinates_cone_angle = np.array(coordinates)[a]     
+                    properties["cone_angle"] = ConeAngle(elements_cone_angle, coordinates_cone_angle, diff + 1).cone_angle
+                
+                print(properties["cone_angle"])
+                
+                bv1 = BuriedVolume(elements, coordinates, bidentate[0] + 1, radius=3.5).fraction_buried_volume
+                bv2 = BuriedVolume(elements, coordinates, bidentate[1] + 1, radius=3.5).fraction_buried_volume
+                bv3 = BuriedVolume(elements, coordinates, bidentate[2] + 1, radius=3.5).fraction_buried_volume
+                
+                properties["buried_volume_Rh_3.5A"] = bv1
+                properties["buried_volume_donor_max"] = max(bv2, bv3)
+                properties["buried_volume_donor_min"] = min(bv2, bv3)
+                
+                if bv2 > bv3:
+                    buried_volume_for_quad_oct = BuriedVolume(elements, coordinates, bidentate[0] + 1, z_axis_atoms= bidentate[1] + 1, xz_plane_atoms=[bidentate[2] + 1], radius=3.5).octant_analysis()
+                else:
+                    buried_volume_for_quad_oct = BuriedVolume(elements, coordinates, bidentate[0] + 1, z_axis_atoms = bidentate[2] + 1, xz_plane_atoms=[bidentate[1] + 1], radius=3.5).octant_analysis()
+                quadrants = buried_volume_for_quad_oct.quadrants['percent_buried_volume']
+                octants = buried_volume_for_quad_oct.octants['percent_buried_volume']
+                quadrant_dictionary = {1: 'NE', 2: 'NW', 3: 'SW', 4: 'SE'}
+                octant_dictionary = {0: '+,+,+', 1: '-,+,+', 2: '-,-,+', 3: '+,-,+', 4: '+,-,-', 5: '-,-,-', 6: '-,+,-', 7: '+,+,-'}
+                
+                for quad_index in range(4):
+                    values = list(quadrants.values())
+                    properties[quadrant_dictionary[quad_index + 1] + "_quad"] = values[quad_index]/100
+                
+                for oct_index in range(8):
+                    values = list(octants.values())
+                    properties[octant_dictionary[oct_index] + "_octant"] = values[oct_index]/100
+                
+                print(properties)
+                
+                bv_metal_4 = BuriedVolume(elements, coordinates, bidentate[0] + 1, radius=4).fraction_buried_volume                 
+                bv_metal_5 = BuriedVolume(elements, coordinates, bidentate[0] + 1, radius=5).fraction_buried_volume
+                bv_metal_6 = BuriedVolume(elements, coordinates, bidentate[0] + 1, radius=6).fraction_buried_volume
+                bv_metal_7 = BuriedVolume(elements, coordinates, bidentate[0] + 1, radius=7).fraction_buried_volume
+                
+                properties["buried_volume_Rh_4A"] = bv_metal_4
+                properties["buried_volume_Rh_5A"] = bv_metal_5
+                properties["buried_volume_Rh_6A"] = bv_metal_6
+                properties["buried_volume_Rh_7A"] = bv_metal_7
+
+                
                 # print(BuriedVolume(ce.elements, conformer.coordinates, bidentate[1]).print_report())
                 # BuriedVolume(elements, coordinates, bidentate[1], radius=4).print_report()
 
@@ -435,11 +478,11 @@ class Workflow:
                 properties["HOMO_LUMO_gap"] = lumo - homo
                 
                 for property in properties.keys():
-                    dictionary_for_properties[os.path.basename(os.path.normpath(complex))] = properties
+                    dictionary_for_properties[os.path.basename(os.path.normpath(complex[:-4]))] = properties
 
             # except Exception:
             #     print("Descriptor calculation failed for this complex:", os.path.basename(os.path.normpath(complex)))   
-                         
+                            
         # Iterate through the CREST outputs of different descriptors
         else:
             dictionary_for_properties = {}    
@@ -512,7 +555,7 @@ class Workflow:
                     dictionary_for_properties[os.path.basename(os.path.normpath(complex))] = {property: ce.boltzmann_statistic(property)}
                 
         dataframe = dataframe_from_dictionary(dictionary_for_properties)
-        dataframe.to_excel('descriptors_OH_oct_quads.xlsx')     
+        dataframe.to_excel('mf_BD_Rh_test2.xlsx')     
         
     def run_workflow(self):
         
@@ -546,24 +589,25 @@ if __name__ == "__main__":
 
     # ChemXpaX input
     
-    current_directory = os.path.join(os.getcwd(), "chemspax")  # use path.join()
-    # os.chdir(current_directory)
-    path_to_substituents = os.path.join(current_directory, "substituents_xyz") 
-    path_to_database = os.path.join(path_to_substituents, "central_atom_centroid_database.csv")
-    substituent_df = pd.read_excel('walphos_chemspax.xlsx').dropna()
-    substituent_list = np.array(substituent_df[['R1', 'R2', 'R3', 'R4']])
-    print(substituent_list)
-    names = substituent_df['Name']
+    # current_directory = os.path.join(os.getcwd(), "chemspax")  # use path.join()
+    # # os.chdir(current_directory)
+    # path_to_substituents = os.path.join(current_directory, "substituents_xyz") 
+    # path_to_database = os.path.join(path_to_substituents, "central_atom_centroid_database.csv")
+    # substituent_df = pd.read_excel('new_dataset.xlsx').dropna()
+    # substituent_list = np.array(substituent_df[['R1', 'R2', 'R3', 'R4']])
+    # # print(substituent_list)
+    # names = substituent_df['Name']
 
-    skeleton_list = list(substituent_df['skeleton'])
-    path_to_hand_drawn_skeletons = os.path.join(current_directory, "skeletons")
-    path_to_output = os.path.join(current_directory, "complexes")
+    # skeleton_list = list(substituent_df['Skeleton'])
+    # # print(skeleton_list)
+    # path_to_hand_drawn_skeletons = os.path.join(current_directory, "skeletons")
+    # path_to_output = os.path.join(current_directory, "complexes")
 
-    chemspax_input = {'skeleton_list' : skeleton_list, 
-                    'substituent_list' : substituent_list, 
-                    'path_to_database' : path_to_database, 
-                    'path_to_substituents' : path_to_substituents, 
-                    'path_to_additional_skeletons' : path_to_hand_drawn_skeletons}
+    # chemspax_input = {'skeleton_list' : skeleton_list, 
+    #                 'substituent_list' : substituent_list, 
+    #                 'path_to_database' : path_to_database, 
+    #                 'path_to_substituents' : path_to_substituents, 
+    #                 'path_to_additional_skeletons' : path_to_hand_drawn_skeletons}
 
 
     method = 'gfn2'
@@ -578,7 +622,7 @@ if __name__ == "__main__":
                    'conformer_search' : 'off'}
 
     # print(skeleton_list)
-    workflow = Workflow(chemspax_input = chemspax_input, path_to_workflow = os.getcwd() + '/Workflow')
-    
-    workflow.run_chemspax(names=names ,skeleton_list_=skeleton_list)
+    workflow = Workflow(path_to_workflow = os.getcwd() + '/Workflow', geom='BD')
+    workflow.calculate_descriptors(path_to_outputs=os.getcwd() + '/Workflow/from_log')
+    # workflow.run_chemspax(names=names ,skeleton_list_=skeleton_list)
     
