@@ -3,7 +3,6 @@ from numpy.linalg import norm as cartesian_distance
 from morfeus import read_xyz
 import pandas as pd
 
-
 # Needed data
 
 atom_covalent_max_dist = {'N'  : 2, 
@@ -18,9 +17,12 @@ atom_covalent_max_dist = {'N'  : 2,
 
 
 metal_centers = {'Rh' : {'OH' : 6, 'BD' : 2}, 
-                 'Ir' : {'OH' : 6, 'BD' : 2}, 
-                 'Mn' : {'OH' : 6, 'BD' : 2}, 
-                 'Ru' : {'OH' : 6, 'BD' : 2}}
+                 'Ir' : {'OH' : 6, 'BD' : 4}, 
+                 'Mn' : {'OH' : 6, 'BD' : 4}, 
+                 'Ru' : {'OH' : 6, 'BD' : 4}}
+
+
+donor_atoms = ['P', 'N']
 
 
 def bfs(visited, graph, node):
@@ -74,24 +76,44 @@ def molecular_graph(elements, coords, geom = 'OH'):
         if atom_type in list(metal_centers.keys()):
             nr_of_bonds = metal_centers[atom_type][geom]
 
-            # Arange shortest bonds
-            idx = np.argpartition(interatomic_distances[atom_key], nr_of_bonds + 1)
-            idx = idx[:nr_of_bonds + 1]
+            # find indices of shortest bonds of donor elements
             metal_key = atom_key
-            ligand_start_idx = np.setdiff1d(idx, np.array([atom_key, metal_key]))
-            
-            # ligand_connected_atoms = zip(ligand_start_idx, elements[ligand_start_idx])
-            # print(list(ligand_connected_atoms))
-            # print(ligand_start_idx)
+            bidentate_indices = [metal_key]
+            print('geeeeeom', geom)
+            if geom == 'OH':
+                idx = np.argpartition(interatomic_distances[atom_key], nr_of_bonds + 1)            
+                ligand_start_idx = np.setdiff1d(idx, np.array([atom_key, metal_key]))
+            else:
+                store_donor_atoms = []
+                for ind, el in enumerate(elements):
+                    if el in donor_atoms:
+                        store_donor_atoms.append(ind)
+                if len(store_donor_atoms) == 2: 
+                    ligand_start_idx = np.array(store_donor_atoms)
+                    bidentate_indices.extend(store_donor_atoms)
+                    print(bidentate_indices)
+
+                else:
+                    # goal is to get the 2 shortest donor atoms.
+                    # print(np.array(interatomic_distances[atom_key])[np.array(store_donor_atoms)])
+                    print(store_donor_atoms)
+                    dAtoms_dict = {}
+                    for stored_donor_atom in store_donor_atoms:
+                        dAtoms_dict[stored_donor_atom] = np.array(interatomic_distances[atom_key])[stored_donor_atom]
+                    print(dAtoms_dict)
+                    sorted_dAtoms_dict = {k: v for k, v in sorted(dAtoms_dict.items(), key=lambda item: item[1])}
+                    bidentate_indices.extend([list(sorted_dAtoms_dict.keys())[0], list(sorted_dAtoms_dict.keys())[1]])
+                    ligand_start_idx = bidentate_indices[1:3]
+                    print(bidentate_indices)
             break
-    
+
     store_atoms = []
     store_atoms.extend(ligand_start_idx)
     mol_graph = {}
 
     for (atom_ligand, atom_type) in zip(ligand_start_idx, elements[ligand_start_idx]):      
         
-        if atom_type in list(atom_covalent_max_dist.keys()):
+        if (atom_type in list(atom_covalent_max_dist.keys())) and (atom_type in donor_atoms):
             nr_of_bonds = atom_covalent_max_dist[atom_type] 
             # print(atom_type)
             idx = np.where(np.array(interatomic_distances[atom_ligand]) <= atom_covalent_max_dist[atom_type])
@@ -142,37 +164,94 @@ def molecular_graph(elements, coords, geom = 'OH'):
     ### Breadth first search algorithm (go through all neighbours and store)
     ligands_atoms_idx = {}
     checklist = []
-    for atom_ in ligand_start_idx:
-        visited = []
-        ligands_atoms_idx[atom_] = bfs(visited, mol_graph, atom_)    
-        checklist.extend(ligands_atoms_idx[atom_])
+    try:
+        
+        if geom == 'OH':
+            for atom_ in ligand_start_idx:
+                visited = []
+                ligands_atoms_idx[atom_] = bfs(visited, mol_graph, atom_)    
+                checklist.extend(ligands_atoms_idx[atom_])
 
-    # Plus one because the metal is excluded to find the subgraphs
-    print(f'Length of checklist: ', {len(np.unique(np.array(checklist))) + 1}, 'Nr. of atoms: ', {len(elements)})
-    # print(np.array(adj_matrix).shape)
-    # print(np.unique(np.array(store_atoms).sort))
-    # To find bidentate see if any of the ligands map into each other
-    
-    bidentate_indices = [metal_key]
-    
-    for ligand_index1 in ligand_start_idx:
-        for ligand_index2 in ligand_start_idx:
-            if ligand_index1 != ligand_index2:
-                if ligand_index1 in list(ligands_atoms_idx[ligand_index2]):               
-                    if ligand_index1 not in bidentate_indices:
-                        bidentate_indices.append(ligand_index1)
-                    if ligand_index2 not in bidentate_indices:
-                        bidentate_indices.append(ligand_index2)
-                        break
-    
+            # Plus one because the metal is excluded to find the subgraphs
+            print(f'Length of checklist: ', {len(np.unique(np.array(checklist))) + 1}, 'Nr. of atoms: ', {len(elements)})
+            # print(np.array(adj_matrix).shape)
+            # print(np.unique(np.array(store_atoms).sort))
+            # To find bidentate see if any of the ligands map into each other
+            
+            bidentate_indices = [metal_key]
+            
+            for ligand_index1 in ligand_start_idx:
+                for ligand_index2 in ligand_start_idx:
+                    if ligand_index1 != ligand_index2:
+                        if ligand_index1 in list(ligands_atoms_idx[ligand_index2]):               
+                            if ligand_index1 not in bidentate_indices:
+                                bidentate_indices.append(ligand_index1)
+                            if ligand_index2 not in bidentate_indices:
+                                bidentate_indices.append(ligand_index2)
+                                break
+        
     # for elem in ligands_atoms_idx:
     #     print(elements[elem]) 
-    
+    except Exception:            
+        ligands_atoms_idx = None      
     return ligands_atoms_idx,bidentate_indices
 
 
-# elem, coord = read_xyz('xtbopt.xyz')
-# print(molecular_graph(elem, coord))
+def BFS_SP(graph, start, goal):
+    explored = []
+     
+    # Queue for traversing the
+    # graph in the BFS
+    queue = [[start]]
+     
+    # If the desired node is
+    # reached
+    if start == goal:
+        print("Same Node")
+        return
+     
+    # Loop to traverse the graph
+    # with the help of the queue
+    while queue:
+        path = queue.pop(0)
+        node = path[-1]
+         
+        # Condition to check if the
+        # current node is not visited
+        if node not in explored:
+            neighbours = graph[node]
+             
+            # Loop to iterate over the
+            # neighbours of the node
+            for neighbour in neighbours:
+                new_path = list(path)
+                new_path.append(neighbour)
+                queue.append(new_path)
+                 
+                # Condition to check if the
+                # neighbour node is the goal
+                if neighbour == goal:
+                    print("Shortest path = ", *new_path)
+                    return
+            explored.append(node)
+ 
+    # Condition when the nodes
+    # are not connected
+    print("So sorry, but a connecting"\
+                "path doesn't exist :(")
+    return new_path
 
-# ligands_indices, bidentate = molecular_graph('xtbopt.xyz')
-# print(bidentate, ligands_indices)
+
+def P_P_bridge_path():
+    elem, coord = read_xyz('xtbopt.xyz')
+    
+    _ , bi_PP ,mol_graph = molecular_graph(elem, coord)    
+    
+    P_P_bridge = BFS_SP(mol_graph, bi_PP[1], bi_PP[2])
+    
+    return P_P_bridge
+    
+
+# # ligands_indices, bidentate = molecular_graph('xtbopt.xyz')
+# # print(bidentate, ligands_indices)
+# P_P_bridge_path()
