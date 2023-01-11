@@ -12,7 +12,7 @@ class DFT_descriptors:
         
         
     def donor_lone_pair_occupancy(self, atom_type_min, atom_type_max):
-        print("Extracting donor atoms lone pair orbital occupancy:")
+        print("Extracting donor atoms lone pair orbital occupancy")
         # Count nr of times " NATURAL POPULATIONS:  Natural atomic orbital occupancies" appears and take the last one
         count = 0
         count2 = 0
@@ -50,11 +50,10 @@ class DFT_descriptors:
                 orbital_dictionary[int(orbital[2])][orbital[3] + '_' + orbital[4] + orbital[5]] = float(orbital[6])
         # divided by 2 since 2 electrons form the lone pair and the 3s orbital
         
-        return orbital_dictionary[self.min_donor + 1].values(), orbital_dictionary[self.max_donor + 1]
-
-    
+        return orbital_dictionary[self.min_donor + 1]['S_Val(3S)'], orbital_dictionary[self.max_donor + 1]['S_Val(3S)']
+ 
     def NBO_charge(self):
-        print("Extracting donor atoms and metal natural charge:")
+        print("Extracting donor atoms and metal natural charge")
         # Count nr of times "     Atom  No    Charge         Core      Valence    Rydberg      Total" appears and take the last one
         count = 0
 
@@ -78,17 +77,17 @@ class DFT_descriptors:
             charge = charge.split()
             if charge != []:
                 charge_final_data.append(charge)
-        print(charge_final_data)
 
         for charge in charge_final_data:
             charge_dictionary[int(charge[1])] = {float(charge[2])}
   
         # divided by 2 since 2 electrons form the lone pair and the 3s orbital
         
-        return charge_dictionary[self.min_donor + 1], charge_dictionary[self.max_donor + 1]
+        return charge_dictionary[self.metal + 1], charge_dictionary[self.min_donor + 1], charge_dictionary[self.max_donor + 1]
+
 
     def mulliken_charge(self):
-        print("Extracting Mulliken charge:")
+        print("Extracting Mulliken charge")
         with open(self.log_file) as file: # Use file to refer to the file object
             data = file.readlines()
             for line_index, line in enumerate(data):
@@ -107,7 +106,72 @@ class DFT_descriptors:
     
         return mulliken_final_data[self.metal], mulliken_final_data[self.min_donor], mulliken_final_data[self.max_donor]
 
+
+    def P_orbital_occupation(self):
+        with open(self.log_file) as file: # Use file to refer to the file object
+            data = file.readlines()
+            
+            raw_data_min = []
+            raw_data_max = []
+
+            for line_index, line in enumerate(data):
+                # calculate for the min_buried_volume donor
+                if all(string in line for string in ["BD", f" P{self.min_donor + 1: 4d}"]) or all(string in line for string in ["BD", f" N  {self.min_donor + 1}"]):
+                    raw_data_min.append(data[line_index])
+
+                if all(string in line for string in ["BD", f" P{self.max_donor + 1: 4d}"]) or all(string in line for string in ["BD", f" N{self.max_donor + 1: 4d}"]):
+                    raw_data_max.append(data[line_index])
+
+        final_data_min = []
+        final_data_max = []
+        Rh_P_min_bonding = 0
+        Rh_P_min_antibonding = 0
+        Rh_P_max_bonding = 0
+        Rh_P_max_antibonding = 0
+        
+        for idx, _ in enumerate(reversed(raw_data_max)):
+
+            clean_data_min = raw_data_min[idx].strip()
+            clean_data_min = clean_data_min.split()
+            clean_data_max = raw_data_max[idx].strip()
+            clean_data_max = clean_data_max.split()
+            print(clean_data_max)
+            # print(clean_data)
+            # print(raw_data_max[idx].strip())
+            # print(raw_data_min[idx].strip())
+            if 'Rh' not in clean_data_min:
+                if '-Rh' not in clean_data_min: 
+                    final_data_min.append(float(clean_data_min[1][1:-1]))               
+                else:
+                    if "BD" in clean_data_min:
+                        Rh_P_min_bonding = float(clean_data_min[1][1:-1])
+                    if "BD*(', '1)" in clean_data_min:
+                        Rh_P_min_antibonding = float(clean_data_min[1][1:-1])
+            
+            if 'Rh' not in clean_data_max:
+                if '-Rh' not in clean_data_max: 
+                    final_data_max.append(float(clean_data_max[1][1:-1]))               
+                else:
+                    if "BD" in clean_data_min:
+                        Rh_P_max_bonding = float(clean_data_max[1][1:-1])
+                    if "BD*(', '1)" in clean_data_min:
+                        Rh_P_max_antibonding = float(clean_data_max[1][1:-1])      
+                        
+            if idx == 7:
+                break
+            
+        ### the return contains final_data_min = [bonding orbital 1, bonding orbital 2, bonding orbital 3, antibonding orbital 1, antibonding orbital 2, antibonding orbital 3]
+        ###                     final_data_max = [bonding orbital 1, bonding orbital 2, bonding orbital 3, antibonding orbital 1, antibonding orbital 2, antibonding orbital 3]
+        ###                     metal_min_bv_bonding
+        ###                     metal_min_bv_antibonding
+        ###                     metal_max_bv_bonding
+        ###                     metal_max_bv_antibonding
+        
+        return final_data_min, final_data_max, Rh_P_min_bonding, Rh_P_min_antibonding, Rh_P_max_bonding, Rh_P_max_antibonding
+    
 log_file = "158923-09-2.log"
 DFT = DFT_descriptors(log_file, 80, 21, 26, 43)
 NBO = DFT.NBO_charge()
-print(NBO)
+LPO = DFT.donor_lone_pair_occupancy('P', 'P')
+mulliken = DFT.mulliken_charge()
+print(DFT.P_orbital_occupation())
