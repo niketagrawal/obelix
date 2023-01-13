@@ -151,20 +151,21 @@ def gjf_to_xyz(path, header):
             file.writelines(f)
             file.close()  
 
-# header = ['%nprocshared=32 \n',  
-#           '%mem=32GB \n', 
-#           '#p opt freq pop=nbo def2svpp empiricaldispersion=gd3bj integral=grid=ultrafinegrid pbe1pbe\n', 
-#           'scf=(xqc,maxconventionalcycles=90) nosymm\n',      
-#           '\n', 
-#           'Title Card Required\n'
-#           '\n', 
-#           '1 1 \n']
+
+if __name__ == "__main__":
+    header = ['%nprocshared=32 \n',  
+            '%mem=32GB \n', 
+            '#p opt freq pop=nbo def2svpp empiricaldispersion=gd3bj integral=grid=ultrafinegrid pbe1pbe\n', 
+            'scf=(xqc,maxconventionalcycles=90) nosymm\n',      
+            '\n', 
+            'Title Card Required\n'
+            '\n', 
+            '1 1 \n']
 
 
-# xyz_to_gjf(header=header, 
-#            io_path='data/Rh_dataset/ferrocenes/other')
+    # xyz_to_gjf(header=header, 
+    #            io_path='data/Rh_dataset/ferrocenes/other')
 
 
-# gjf_to_xyz(path='data/Rh_dataset/ferrocenes/gaussian_input_files/gjf', header=header)
-
-# xyz_to_gjf(header=header, io_path='data/Rh_dataset/ferrocenes/gaussian_input_files/gjf')
+    # gjf_to_xyz(path='data/Rh_dataset/ferrocenes/gaussian_input_files/gjf', header=header)
+    xyz_to_gjf(header=header, io_path='../')
