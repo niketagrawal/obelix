@@ -1,4 +1,8 @@
 import re, glob
+import pandas as pd
+import numpy as np
+import os, ast
+import morfeus as mf
 
 
 class DFT_descriptors:
@@ -10,6 +14,7 @@ class DFT_descriptors:
         self.min_donor = min_donor # min donor index
         self.max_donor = max_donor # max donor index
         
+        print(vars(self))
         
     def donor_lone_pair_occupancy(self, atom_type_min, atom_type_max):
         print("Extracting donor atoms lone pair orbital occupancy")
@@ -50,7 +55,20 @@ class DFT_descriptors:
                 orbital_dictionary[int(orbital[2])][orbital[3] + '_' + orbital[4] + orbital[5]] = float(orbital[6])
         # divided by 2 since 2 electrons form the lone pair and the 3s orbital
         
-        return orbital_dictionary[self.min_donor + 1]['S_Val(3S)'], orbital_dictionary[self.max_donor + 1]['S_Val(3S)']
+        returns = []
+        if atom_type_min == 'N':
+            returns.append(orbital_dictionary[self.min_donor + 1]['S_Val(2S)'])
+            
+        else:
+            returns.append(orbital_dictionary[self.min_donor + 1]['S_Val(3S)'])
+            
+        if atom_type_max == 'N':
+            returns.append(orbital_dictionary[self.max_donor + 1]['S_Val(2S)'])
+            
+        else:
+            returns.append(orbital_dictionary[self.max_donor + 1]['S_Val(3S)'])
+            
+        return returns[0], returns[1]
  
     def NBO_charge(self):
         print("Extracting donor atoms and metal natural charge")
@@ -83,7 +101,7 @@ class DFT_descriptors:
   
         # divided by 2 since 2 electrons form the lone pair and the 3s orbital
         
-        return charge_dictionary[self.metal + 1], charge_dictionary[self.min_donor + 1], charge_dictionary[self.max_donor + 1]
+        return list(charge_dictionary[self.metal + 1]), list(charge_dictionary[self.min_donor + 1]), list(charge_dictionary[self.max_donor + 1])
 
 
     def mulliken_charge(self):
@@ -92,7 +110,7 @@ class DFT_descriptors:
             data = file.readlines()
             for line_index, line in enumerate(data):
                 if "Mulliken charges" in line:        
-                    Mulliken_raw_data = data[line_index + 2:line_index + self.nr_of_atoms]
+                    Mulliken_raw_data = data[line_index + 2:line_index + self.nr_of_atoms + 2]
                     break
         file.close()
         
@@ -103,75 +121,188 @@ class DFT_descriptors:
             raw_charge = raw_charge.strip("\r")
             raw_charge = raw_charge.split()
             mulliken_final_data.append(float(raw_charge[-1]))
-    
+        # print(mulliken_final_data)
         return mulliken_final_data[self.metal], mulliken_final_data[self.min_donor], mulliken_final_data[self.max_donor]
 
 
     def P_orbital_occupation(self):
         with open(self.log_file) as file: # Use file to refer to the file object
             data = file.readlines()
-            
-            raw_data_min = []
-            raw_data_max = []
-
+            count = 0
             for line_index, line in enumerate(data):
-                # calculate for the min_buried_volume donor
-                if all(string in line for string in ["BD", f" P{self.min_donor + 1: 4d}"]) or all(string in line for string in ["BD", f" N  {self.min_donor + 1}"]):
-                    raw_data_min.append(data[line_index])
-
-                if all(string in line for string in ["BD", f" P{self.max_donor + 1: 4d}"]) or all(string in line for string in ["BD", f" N{self.max_donor + 1: 4d}"]):
-                    raw_data_max.append(data[line_index])
-
+                if "NBO                        Occupancy    Energy   (geminal,vicinal,remote)" in line:        
+                    count += 1
+                    counting_line = line_index + 1
+            
+            
+        raw_data_metal_min = []
+        raw_data_metal_max = []
         final_data_min = []
         final_data_max = []
-        Rh_P_min_bonding = 0
-        Rh_P_min_antibonding = 0
-        Rh_P_max_bonding = 0
-        Rh_P_max_antibonding = 0
         
-        for idx, _ in enumerate(reversed(raw_data_max)):
-
-            clean_data_min = raw_data_min[idx].strip()
-            clean_data_min = clean_data_min.split()
-            clean_data_max = raw_data_max[idx].strip()
-            clean_data_max = clean_data_max.split()
-            print(clean_data_max)
-            # print(clean_data)
-            # print(raw_data_max[idx].strip())
-            # print(raw_data_min[idx].strip())
-            if 'Rh' not in clean_data_min:
-                if '-Rh' not in clean_data_min: 
-                    final_data_min.append(float(clean_data_min[1][1:-1]))               
-                else:
-                    if "BD" in clean_data_min:
-                        Rh_P_min_bonding = float(clean_data_min[1][1:-1])
-                    if "BD*(', '1)" in clean_data_min:
-                        Rh_P_min_antibonding = float(clean_data_min[1][1:-1])
+        for line_ in data[counting_line:len(data)]: 
             
-            if 'Rh' not in clean_data_max:
-                if '-Rh' not in clean_data_max: 
-                    final_data_max.append(float(clean_data_max[1][1:-1]))               
-                else:
-                    if "BD" in clean_data_min:
-                        Rh_P_max_bonding = float(clean_data_max[1][1:-1])
-                    if "BD*(', '1)" in clean_data_min:
-                        Rh_P_max_antibonding = float(clean_data_max[1][1:-1])      
-                        
-            if idx == 7:
+            if ' (Enter /software/sse/easybuild/prefix/software/Gaussian/16.C.01-avx2-nsc1/g16/l701.exe)' in line_:
+                print("Brok")
                 break
             
-        ### the return contains final_data_min = [bonding orbital 1, bonding orbital 2, bonding orbital 3, antibonding orbital 1, antibonding orbital 2, antibonding orbital 3]
-        ###                     final_data_max = [bonding orbital 1, bonding orbital 2, bonding orbital 3, antibonding orbital 1, antibonding orbital 2, antibonding orbital 3]
-        ###                     metal_min_bv_bonding
-        ###                     metal_min_bv_antibonding
-        ###                     metal_max_bv_bonding
-        ###                     metal_max_bv_antibonding
+            if "BD" in line_:      
+                # remove all non numbers and dot from the lines if line contains BD or BD* 
+                # (generalized as BD since BD* contains BD)
+                line = re.sub('[^\d\.]', ' ', line_)          
+                  
+                line = line.split()
+                print(line)    
+                if str(self.metal + 1) in line:
+                    if str(self.min_donor + 1) in line:
+                        raw_data_metal_min.append(line) 
+                        if len(raw_data_metal_min) == 2:
+                            Rh_P_min_antibonding = float(line[4])
+                        else:
+                            Rh_P_min_bonding = float(line[4])
+                    else:
+                        Rh_P_min_antibonding = None
+                        Rh_P_min_bonding = None
+                    if str(self.max_donor + 1) in line:
+                        raw_data_metal_max.append(line)
+                        if len(raw_data_metal_max) == 2:                    
+                            Rh_P_max_antibonding = float(line[4])
+                        else:
+                            Rh_P_max_bonding = float(line[4])
+                    else:
+                        Rh_P_max_antibonding = None
+                        Rh_P_max_bonding = None                        
+                else:
+                    if str(self.min_donor + 1) in line:
+                        final_data_min.append(float(line[4])) 
+
+                    if str(self.max_donor + 1) in line:
+                        final_data_max.append(float(line[4]))
+        ### the return contains 
+        ### final_data_min = [bonding orbital 1, bonding orbital 2, bonding orbital 3, antibonding orbital 1, antibonding orbital 2, antibonding orbital 3]
+        ### final_data_max = [bonding orbital 1, bonding orbital 2, bonding orbital 3, antibonding orbital 1, antibonding orbital 2, antibonding orbital 3]
+        ### metal_min_bv_bonding
+        ### metal_min_bv_antibonding
+        ### metal_max_bv_bonding
+        ### metal_max_bv_antibonding
+        # print(final_data_min, final_data_max)
         
         return final_data_min, final_data_max, Rh_P_min_bonding, Rh_P_min_antibonding, Rh_P_max_bonding, Rh_P_max_antibonding
+
+        
+log_files = glob.glob(os.getcwd() + '/final_log_files/*.log')
+
+data = pd.read_excel("mf_BD_Rh_test4.xlsx")
+
+dataframe = pd.DataFrame(pd.DataFrame(columns=['filename','LP_occupancy_min','LP_occupancy_max','NBO_charge_Rh', 'NBO_charge_min', 
+                                               'NBO_charge_max','Rh_mulliken_charge', 'min_mulliken_charge', 'max_mulliken_charge',
+                                               'antibond_min_donor_1', 'antibond_min_donor_2', 'antibond_min_donor_3', 'bond_min_donor_1', 'bond_min_donor_2', 'bond_min_donor_3',
+                                               'antibond_max_donor_1', 'antibond_max_donor_2', 'antibond_max_donor_3', 'bond_max_donor_1', 'bond_max_donor_2', 'bond_max_donor_3',
+                                               'Rh_min_donor_bonding', 'Rh_min_donor_antibonding', 'Rh_max_donor_bonding', 'Rh_max_donor_antibonding']))
+dataframe["filename"] = data['cas']
+dataframe.index = data["cas"]
+# for file in log_files:
+
+for file in dataframe["filename"]:
+    log_file = "final_log_files/" + file + ".log"
+    print(f"doing {log_file}")
+    elem, _ = mf.read_xyz("final_log_files/" + file + '.xyz')
+    DFT = DFT_descriptors(log_file, len(elem), int(data[data['cas'] == file]['min_donor_atom_id']), int(data[data['cas'] == file]['max_donor_atom_id']), int(data[data['cas'] == file]['metal_id']) )
+    LPO = DFT.donor_lone_pair_occupancy(data[data['cas'] == file]['min_donor_atom_type'].to_string()[-1], str(data[data['cas'] == file]['max_donor_atom_type'].to_string()[-1]))
+    NBO_chrg = DFT.NBO_charge()
+    mul_chrg = DFT.mulliken_charge()
+
+    # try:
+    DFT_b_ab = DFT.P_orbital_occupation()
+    DFT_min_sort = np.sort(np.array(DFT_b_ab[0]))
+    DFT_max_sort = np.sort(np.array(DFT_b_ab[1]))
     
-log_file = "158923-09-2.log"
-DFT = DFT_descriptors(log_file, 80, 21, 26, 43)
-NBO = DFT.NBO_charge()
-LPO = DFT.donor_lone_pair_occupancy('P', 'P')
-mulliken = DFT.mulliken_charge()
-print(DFT.P_orbital_occupation())
+    
+
+    if len(DFT_max_sort) == 6:
+        if len(DFT_min_sort) == 6:
+            dataframe.loc[file] = pd.Series({'LP_occupancy_min'     : LPO[0], 
+                                            'LP_occupancy_max'      : LPO[1],
+                                            'NBO_charge_Rh'         : np.array(NBO_chrg)[0, 0],
+                                            'NBO_charge_min'        : np.array(NBO_chrg)[1, 0],
+                                            'NBO_charge_max'        : np.array(NBO_chrg)[2, 0],
+                                            'Rh_mulliken_charge'    : mul_chrg[0],
+                                            'min_mulliken_charge'   : mul_chrg[1],
+                                            'max_mulliken_charge'   : mul_chrg[2],
+                                            'antibond_min_donor_1'  : DFT_min_sort[0],
+                                            'antibond_min_donor_2'  : DFT_min_sort[1],
+                                            'antibond_min_donor_3'  : DFT_min_sort[2],
+                                            'antibond_max_donor_1'  : DFT_max_sort[0],
+                                            'antibond_max_donor_2'  : DFT_max_sort[1],
+                                            'antibond_max_donor_3'  : DFT_max_sort[2],
+                                            'bond_min_donor_1'      : DFT_min_sort[3],
+                                            'bond_min_donor_2'      : DFT_min_sort[4],
+                                            'bond_min_donor_3'      : DFT_min_sort[5],
+                                            'bond_max_donor_1'      : DFT_max_sort[3],
+                                            'bond_max_donor_2'      : DFT_max_sort[4],
+                                            'bond_max_donor_3'      : DFT_max_sort[5],
+                                            'Rh_min_donor_bonding'  : DFT_b_ab[2], 
+                                            'Rh_min_donor_antibonding' : DFT_b_ab[3], 
+                                            'Rh_max_donor_bonding'  : DFT_b_ab[4], 
+                                            'Rh_max_donor_antibonding' : DFT_b_ab[5]
+                                            })
+        else:
+            print(log_file + '_____1')
+
+            exit()
+
+# return final_data_min, final_data_max, Rh_P_min_bonding, Rh_P_min_antibonding, Rh_P_max_bonding, Rh_P_max_antibonding
+    else:
+        print(log_file + '_____2')
+
+        exit()
+
+        dataframe.loc[file] = pd.Series({'LP_occupancy_min'     : LPO[0], 
+                                         'LP_occupancy_max'      : LPO[1],
+                                            'NBO_charge_Rh'         : np.array(NBO_chrg)[0, 0],
+                                            'NBO_charge_min'        : np.array(NBO_chrg)[1, 0],
+                                            'NBO_charge_max'        : np.array(NBO_chrg)[2, 0],
+                                            'Rh_mulliken_charge'    : mul_chrg[0],
+                                            'min_mulliken_charge'   : mul_chrg[1],
+                                            'max_mulliken_charge'   : mul_chrg[2],
+                                            'antibond_min_donor_1'  : None,
+                                            'antibond_min_donor_2'  : None,
+                                            'antibond_min_donor_3'  : None,
+                                            'antibond_max_donor_1'  : None,
+                                            'antibond_max_donor_2'  : None,
+                                            'antibond_max_donor_3'  : None,
+                                            'bond_min_donor_1'      : None,
+                                            'bond_min_donor_2'      : None,
+                                            'bond_min_donor_3'      : None,
+                                            'bond_max_donor_1'      : None,
+                                            'bond_max_donor_2'      : None,
+                                            'bond_max_donor_3'      : None
+                                            })
+    # except Exception:
+                
+    #     dataframe.loc[file] = pd.Series({'LP_occupancy_min'     : LPO[0], 
+    #                                     'LP_occupancy_max'      : LPO[1],
+    #                                     'NBO_charge_Rh'         : np.array(NBO_chrg)[0, 0],
+    #                                     'NBO_charge_min'        : np.array(NBO_chrg)[1, 0],
+    #                                     'NBO_charge_max'        : np.array(NBO_chrg)[2, 0],
+    #                                     'Rh_mulliken_charge'    : mul_chrg[0],
+    #                                     'min_mulliken_charge'   : mul_chrg[1],
+    #                                     'max_mulliken_charge'   : mul_chrg[2],
+    #                                     'antibond_min_donor_1'  : None,
+    #                                     'antibond_min_donor_2'  : None,
+    #                                     'antibond_min_donor_3'  : None,
+    #                                     'antibond_max_donor_1'  : None,
+    #                                     'antibond_max_donor_2'  : None,
+    #                                     'antibond_max_donor_3'  : None,
+    #                                     'bond_min_donor_1'      : None,
+    #                                     'bond_min_donor_2'      : None,
+    #                                     'bond_min_donor_3'      : None,
+    #                                     'bond_max_donor_1'      : None,
+    #                                     'bond_max_donor_2'      : None,
+    #                                     'bond_max_donor_3'      : None,
+    #                                     })
+
+dataframe.to_excel("DFT_descriptors_test_i5.xlsx")
+# save_data = np.array()
+
+# print(pd.read_excel("mf_BD_Rh_test3.xlsx"))
