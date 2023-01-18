@@ -249,13 +249,9 @@ for file in dataframe["filename"]:
         else:
             print(log_file + '_____1')
 
-            exit()
-
 # return final_data_min, final_data_max, Rh_P_min_bonding, Rh_P_min_antibonding, Rh_P_max_bonding, Rh_P_max_antibonding
     else:
         print(log_file + '_____2')
-
-        exit()
 
         dataframe.loc[file] = pd.Series({'LP_occupancy_min'     : LPO[0], 
                                          'LP_occupancy_max'      : LPO[1],
