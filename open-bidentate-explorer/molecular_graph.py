@@ -17,9 +17,9 @@ atom_covalent_max_dist = {'N'  : 2,
 
 
 metal_centers = {'Rh' : {'OH' : 6, 'BD' : 2}, 
-                 'Ir' : {'OH' : 6, 'BD' : 4}, 
-                 'Mn' : {'OH' : 6, 'BD' : 4}, 
-                 'Ru' : {'OH' : 6, 'BD' : 4}}
+                 'Ir' : {'OH' : 6, 'BD' : 2}, 
+                 'Mn' : {'OH' : 6, 'BD' : 2}, 
+                 'Ru' : {'OH' : 6, 'BD' : 2}}
 
 
 donor_atoms = ['P', 'N']
@@ -46,7 +46,7 @@ def molecular_graph(elements, coords, geom = 'OH'):
     # elements, coords = read_xyz(xyz)
     
     nr_of_atoms = len(elements)
-    
+    print(nr_of_atoms)
     # init dictionary 
     elem_dict = {}
     
@@ -54,7 +54,6 @@ def molecular_graph(elements, coords, geom = 'OH'):
     
     for index, elem in enumerate(elements):
         elem_dict[index] = {elem: coords[index]}
-
     # Find atom type like this: atom_type = elem_dict[atom_index].keys() 
     
     # atom_type = elem_dict[16].keys()
@@ -69,17 +68,18 @@ def molecular_graph(elements, coords, geom = 'OH'):
             atom_type2 = list(elem_dict[atom_key2].keys())[0]
             interatomic_distances[atom_key1].append(cartesian_distance(elem_dict[atom_key1][atom_type1] - elem_dict[atom_key2][atom_type2]))
 
-    for atom_key in range(0, nr_of_atoms + 1):                
-
-        atom_type = list(elem_dict[atom_key].keys())[0]
+    
+    for atom_key in range(0, nr_of_atoms + 1):  
+        atom_type = list(elem_dict[atom_key].keys())
+        atom_type = atom_type[0]
 
         if atom_type in list(metal_centers.keys()):
             nr_of_bonds = metal_centers[atom_type][geom]
 
             # find indices of shortest bonds of donor elements
-            metal_key = atom_key
+            metal_key = int(atom_key)
             bidentate_indices = [metal_key]
-            print('geeeeeom', geom)
+            # print('geeeeeom', geom)
             if geom == 'OH':
                 idx = np.argpartition(interatomic_distances[atom_key], nr_of_bonds + 1)            
                 ligand_start_idx = np.setdiff1d(idx, np.array([atom_key, metal_key]))
@@ -92,7 +92,7 @@ def molecular_graph(elements, coords, geom = 'OH'):
                     ligand_start_idx = np.array(store_donor_atoms)
                     bidentate_indices.extend(store_donor_atoms)
                     print(bidentate_indices)
-
+                    break
                 else:
                     # goal is to get the 2 shortest donor atoms.
                     # print(np.array(interatomic_distances[atom_key])[np.array(store_donor_atoms)])
@@ -193,7 +193,8 @@ def molecular_graph(elements, coords, geom = 'OH'):
     # for elem in ligands_atoms_idx:
     #     print(elements[elem]) 
     except Exception:            
-        ligands_atoms_idx = None      
+        # ligands_atoms_idx = None      
+        print("failed")
     return ligands_atoms_idx,bidentate_indices
 
 
