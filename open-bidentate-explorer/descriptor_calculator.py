@@ -9,6 +9,7 @@ import morfeus
 from morfeus import read_xyz, BiteAngle, ConeAngle, BuriedVolume, Dispersion, SASA
 from morfeus.conformer import ConformerEnsemble
 from morfeus.io import read_cclib, write_xyz
+from morfeus.utils import convert_elements
 import numpy as np
 import pandas as pd
 
@@ -110,6 +111,16 @@ class Descriptors:
                                                       z_axis_atoms=bidentate_2_idx,
                                                       xz_plane_atoms=[bidentate_1_idx],
                                                       radius=3.5).octant_analysis()
+
+        # write indices and elements of metal center, max donor, and min donor to dictionary
+        dictionary[f"index_{self.central_atom}"] = metal_idx
+        dictionary["index_donor_max"] = bidentate_max_donor_idx
+        dictionary["index_donor_min"] = bidentate_min_donor_idx
+        element_symbols = convert_elements(elements, output='symbols')
+        dictionary[f"element_{self.central_atom}"] = element_symbols[metal_idx - 1]
+        dictionary["element_donor_max"] = element_symbols[bidentate_max_donor_idx - 1]
+        dictionary["element_donor_min"] = element_symbols[bidentate_min_donor_idx - 1]
+
         quadrants = buried_volume_for_quad_oct.quadrants['percent_buried_volume']
         octants = buried_volume_for_quad_oct.octants['percent_buried_volume']
         quadrant_dictionary = {1: 'NE', 2: 'NW', 3: 'SW', 4: 'SE'}
@@ -172,7 +183,7 @@ class Descriptors:
         lumo = instance_electronic.get_lumo()
         dictionary[f"HOMO_LUMO_gap_{calculation_method}"] = lumo - homo
         
-        return dictionary
+        return dictionary, metal_idx, bidentate_max_donor_idx, bidentate_min_donor_idx
 
     def calculate_morfeus_descriptors(self, geom_type, solvent=None, printout=False):
         if self.output_type.lower() == 'xyz':
@@ -189,7 +200,7 @@ class Descriptors:
                 properties['filename_tud'] = filename
 
                 elements, coordinates = read_xyz(metal_ligand_complex)
-                properties = self._calculate_steric_electronic_desc_morfeus(geom_type=geom_type, solvent=solvent, dictionary=properties, elements=elements, coordinates=coordinates)
+                properties, metal_idx, bidentate_max_donor_idx, bidentate_min_donor_idx = self._calculate_steric_electronic_desc_morfeus(geom_type=geom_type, solvent=solvent, dictionary=properties, elements=elements, coordinates=coordinates)
                 dictionary_for_properties[os.path.basename(os.path.normpath(metal_ligand_complex[:-4]))] = properties
 
             new_descriptor_df = dataframe_from_dictionary(dictionary_for_properties)
@@ -222,10 +233,22 @@ class Descriptors:
                     ce.sort()
                     for conformer in ce:
                         elements, coordinates = ce.elements, conformer.coordinates
-                        conformer.properties = self._calculate_steric_electronic_desc_morfeus(geom_type=geom_type, solvent=solvent, dictionary=conformer.properties, elements=elements, coordinates=coordinates)
+                        conformer.properties, metal_idx, bidentate_max_donor_idx, bidentate_min_donor_idx = self._calculate_steric_electronic_desc_morfeus(geom_type=geom_type, solvent=solvent, dictionary=conformer.properties, elements=elements, coordinates=coordinates)
                     # all descriptors calculated, now we can write the filaname and boltzman statistics to the dictionary
                     conformer_properties['filename_tud'] = os.path.basename(os.path.normpath(complex))
-                    for key in ce.get_properties().keys():
+
+                    columns_to_exclude = [f"index_{self.central_atom}", "index_donor_max", "index_donor_min", f"element_{self.central_atom}", "element_donor_max", "element_donor_min"]
+                    for key in [k for k in ce.get_properties().keys() if k in columns_to_exclude]:
+                        # check if indexing property is the same across all conformers, then select property of first
+                        # conformer
+                        for property in ce.get_properties()[key]:
+                            if property != ce.get_properties()[key][0]:
+                                print(f"BE AWARE: Indexing property {key} is not the same across all conformers. Taking property "
+                                      f"of first conformer for {os.path.basename(os.path.normpath(complex))}.")
+                        conformer_properties[key] = ce.get_properties()[key][0]
+
+                    # boltzmann averaging
+                    for key in [k for k in ce.get_properties().keys() if k not in columns_to_exclude]:
                         conformer_properties[f"{key}_boltzmann_average"] = ce.boltzmann_statistic(key)
                         conformer_properties[f"{key}_boltzmann_std"] = ce.boltzmann_statistic(key, statistic='std')
                         conformer_properties[f"{key}_boltzmann_variance"] = ce.boltzmann_statistic(key, statistic='var')
@@ -259,17 +282,10 @@ class Descriptors:
             properties['filename_tud'] = filename
 
             elements, coordinates = read_cclib(metal_ligand_complex)
-            properties = self._calculate_steric_electronic_desc_morfeus(geom_type=geom_type, solvent=solvent, dictionary=properties, elements=elements, coordinates=coordinates)
+            properties, metal_idx, bidentate_max_donor_idx, bidentate_min_donor_idx = self._calculate_steric_electronic_desc_morfeus(geom_type=geom_type, solvent=solvent, dictionary=properties, elements=elements, coordinates=coordinates)
 
             # calculate DFT descriptors from Gaussian log file
-            # find indices of bidentate ligands and metal
-            ligand_atoms, bidentate = self._find_bidentate_ligand(elements, coordinates, geom_type)
-            # first index is the metal, second index is the bidentate ligand 1, third index is the bidentate ligand 2
-            # morfeus indices start at 1, so add 1 to the indices
-            metal_idx = bidentate[0] + 1
-            bidentate_1_idx = bidentate[1] + 1
-            bidentate_2_idx = bidentate[2] + 1
-
+            # get indices of bidentate ligands and metal for descriptor calculation class
 
             # write xyz for log file
             if extract_xyz_from_log:
