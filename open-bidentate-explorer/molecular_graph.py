@@ -85,7 +85,6 @@ def molecular_graph(elements, coords, geom = 'OH'):
             atom_type2 = list(elem_dict[atom_key2].keys())[0]
             interatomic_distances[atom_key1].append(cartesian_distance(elem_dict[atom_key1][atom_type1] - elem_dict[atom_key2][atom_type2]))
 
-    
     for atom_key in range(0, nr_of_atoms + 1):
         atom_type = list(elem_dict[atom_key].keys())
         atom_type = atom_type[0]
