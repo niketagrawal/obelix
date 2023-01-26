@@ -83,34 +83,39 @@ class Descriptors:
             print('Cone angle calculation failed, defaulting to None. For complex:', complex)
             dictionary["cone_angle"] = None
 
-        # print(properties["cone_angle"])
+        # determine max or min donor based on xTB charge of the donor atoms
+        xtb_functional = 2  # indicate whether GFN1 or GFN2 is used for electronic descriptors
+        if xtb_functional == 1:
+            calculation_method = 'gfn1_xtb'
+        else:
+            calculation_method = 'gfn2_xtb'
 
-        bv1 = BuriedVolume(elements, coordinates, metal_idx, radius=3.5).fraction_buried_volume
-        bv2 = BuriedVolume(elements, coordinates, bidentate_1_idx, radius=3.5).fraction_buried_volume
-        bv3 = BuriedVolume(elements, coordinates, bidentate_2_idx, radius=3.5).fraction_buried_volume
+        xtb = morfeus.XTB(elements, coordinates, solvent=solvent)
+        atomic_charges = xtb.get_charges()  # determine min/max donor based on xTB charge of the donor atoms
+        charge_bidentate_1 = atomic_charges[bidentate_1_idx]
+        charge_bidentate_2 = atomic_charges[bidentate_2_idx]
 
-        # unit: fraction of volume occupied by atoms within 3.5A of the metal
-        dictionary[f"buried_volume_{self.central_atom}_3.5A"] = bv1
-        dictionary["buried_volume_donor_max"] = max(bv2, bv3)
-        dictionary["buried_volume_donor_min"] = min(bv2, bv3)
-
-        if bv2 > bv3:
-            # this means that bidentate 1 is max donor
-            # ToDo: is there a better way to assign this? manual? charge-based?
+        if charge_bidentate_1 > charge_bidentate_2:
+            # this means that bidentate 1 is max donor (charge is less negative, so stronger donor)
             bidentate_max_donor_idx = bidentate_1_idx
             bidentate_min_donor_idx = bidentate_2_idx
-            buried_volume_for_quad_oct = BuriedVolume(elements, coordinates, metal_idx,
-                                                      z_axis_atoms=bidentate_1_idx,
-                                                      xz_plane_atoms=[bidentate_2_idx],
-                                                      radius=3.5).octant_analysis()
         else:
             # this means that bidentate 2 is max donor
             bidentate_max_donor_idx = bidentate_2_idx
             bidentate_min_donor_idx = bidentate_1_idx
-            buried_volume_for_quad_oct = BuriedVolume(elements, coordinates, metal_idx,
-                                                      z_axis_atoms=bidentate_2_idx,
-                                                      xz_plane_atoms=[bidentate_1_idx],
-                                                      radius=3.5).octant_analysis()
+
+        bv_metal_center = BuriedVolume(elements, coordinates, metal_idx, radius=3.5).fraction_buried_volume
+        bv_max_donor = BuriedVolume(elements, coordinates, bidentate_1_idx, radius=3.5).fraction_buried_volume
+        bv_min_donor = BuriedVolume(elements, coordinates, bidentate_2_idx, radius=3.5).fraction_buried_volume
+        # unit: fraction of volume occupied by atoms within 3.5A of the metal
+        dictionary[f"buried_volume_{self.central_atom}_3.5A"] = bv_metal_center
+        dictionary["buried_volume_donor_max"] = bv_max_donor
+        dictionary["buried_volume_donor_min"] = bv_min_donor
+
+        buried_volume_for_quad_oct = BuriedVolume(elements, coordinates, metal_idx,
+                                                  z_axis_atoms=bidentate_max_donor_idx,
+                                                  xz_plane_atoms=[bidentate_min_donor_idx],
+                                                  radius=3.5).octant_analysis()
 
         # write indices and elements of metal center, max donor, and min donor to dictionary
         dictionary[f"index_{self.central_atom}"] = metal_idx
@@ -149,13 +154,6 @@ class Descriptors:
         # BuriedVolume(elements, coordinates, bidentate[1], radius=4).print_report()
 
         # calculate dispersion, SASA and electronic descriptors using morfeus
-        xtb_functional = 2  # indicate whether GFN1 or GFN2 is used for electronic descriptors
-        if xtb_functional == 1:
-            calculation_method = 'gfn1_xtb'
-        else:
-            calculation_method = 'gfn2_xtb'
-
-        instance_electronic = morfeus.XTB(elements, coordinates, solvent=solvent)
         # dispersion P_int unit: kcal^0.5 mol^-0.5
         dictionary[f"dispersion_p_int_{self.central_atom}_{calculation_method}"] = \
             Dispersion(elements, coordinates).atom_p_int[metal_idx]
@@ -166,21 +164,21 @@ class Descriptors:
         # SASA unit: A^2
         dictionary[f"sasa_{calculation_method}"] = SASA(elements, coordinates).area
 
-        dictionary[f"ip_{calculation_method}"] = instance_electronic.get_ip(corrected=True)  # unit: eV
-        dipole = instance_electronic.get_dipole()
+        dictionary[f"ip_{calculation_method}"] = xtb.get_ip(corrected=True)  # unit: eV
+        dipole = xtb.get_dipole()
         dictionary[f"dipole_{calculation_method}"] = np.sqrt(dipole.dot(dipole))  # unit: Debye dipole moment
-        dictionary[f"ea_{calculation_method}"] = instance_electronic.get_ea()  # unit: eV
-        dictionary[f"electrofugality_{calculation_method}"] = instance_electronic.get_global_descriptor(
+        dictionary[f"ea_{calculation_method}"] = xtb.get_ea()  # unit: eV
+        dictionary[f"electrofugality_{calculation_method}"] = xtb.get_global_descriptor(
             variety='electrofugality', corrected=True)  # unit: eV
-        dictionary[f"nucleofugality_{calculation_method}"] = instance_electronic.get_global_descriptor(
+        dictionary[f"nucleofugality_{calculation_method}"] = xtb.get_global_descriptor(
             variety='nucleofugality', corrected=True)  # unit: eV
-        dictionary[f"nucleophilicity_{calculation_method}"] = instance_electronic.get_global_descriptor(
+        dictionary[f"nucleophilicity_{calculation_method}"] = xtb.get_global_descriptor(
             variety='nucleophilicity', corrected=True)  # unit: eV
-        dictionary[f"electrophilicity_{calculation_method}"] = instance_electronic.get_global_descriptor(
+        dictionary[f"electrophilicity_{calculation_method}"] = xtb.get_global_descriptor(
             variety='electrophilicity', corrected=True)  # unit: eV
 
-        homo = instance_electronic.get_homo()
-        lumo = instance_electronic.get_lumo()
+        homo = xtb.get_homo()
+        lumo = xtb.get_lumo()
         dictionary[f"HOMO_LUMO_gap_{calculation_method}"] = lumo - homo
         
         return dictionary, metal_idx, bidentate_max_donor_idx, bidentate_min_donor_idx
