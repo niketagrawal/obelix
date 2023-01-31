@@ -61,14 +61,14 @@ def molecular_graph(elements, coords, geom = 'OH'):
         # for index, element in enumerate(elements):
         #     new_elements_mapping.append(periodic_table[element - 1])
         # elements = np.array(new_elements_mapping)
-
+    elements = np.array(elements)
     nr_of_atoms = len(elements)
-    print(nr_of_atoms)
+    # print(nr_of_atoms)
     # init dictionary 
     elem_dict = {}
     
     # Populate dictionary -> index of atom  : {atom type : atom coords}
-    
+
     for index, elem in enumerate(elements):
         elem_dict[index] = {elem: coords[index]}
     # Find atom type like this: atom_type = elem_dict[atom_index].keys() 
@@ -107,20 +107,20 @@ def molecular_graph(elements, coords, geom = 'OH'):
                 if len(store_donor_atoms) == 2: 
                     ligand_start_idx = np.array(store_donor_atoms)
                     bidentate_indices.extend(store_donor_atoms)
-                    print(bidentate_indices)
+                    # print(bidentate_indices)
                     break
                 else:
                     # goal is to get the 2 shortest donor atoms.
                     # print(np.array(interatomic_distances[atom_key])[np.array(store_donor_atoms)])
-                    print(store_donor_atoms)
+                    # print(store_donor_atoms)
                     dAtoms_dict = {}
                     for stored_donor_atom in store_donor_atoms:
                         dAtoms_dict[stored_donor_atom] = np.array(interatomic_distances[atom_key])[stored_donor_atom]
-                    print(dAtoms_dict)
+                    # print(dAtoms_dict)
                     sorted_dAtoms_dict = {k: v for k, v in sorted(dAtoms_dict.items(), key=lambda item: item[1])}
                     bidentate_indices.extend([list(sorted_dAtoms_dict.keys())[0], list(sorted_dAtoms_dict.keys())[1]])
                     ligand_start_idx = bidentate_indices[1:3]
-                    print(bidentate_indices)
+                    # print(bidentate_indices)
             break
 
     store_atoms = []
@@ -128,7 +128,6 @@ def molecular_graph(elements, coords, geom = 'OH'):
     mol_graph = {}
 
     for (atom_ligand, atom_type) in zip(ligand_start_idx, elements[ligand_start_idx]):      
-        
         if (atom_type in list(atom_covalent_max_dist.keys())) and (atom_type in donor_atoms):
             nr_of_bonds = atom_covalent_max_dist[atom_type] 
             # print(atom_type)

@@ -1,3 +1,50 @@
+# openbabe-based method, example reading from a log file
+import os, glob
+from openbabel import openbabel
+import numpy as np
+from morfeus.io import read_cclib, get_xyz_string
+from morfeus.utils import convert_elements
+
+
+def get_bonded_atoms(xyz_string, atom_index):
+    """Use openbabel's methods to find the coordinates of all atoms that are bonded to a given atom
+    :param source_mol_file:
+    :param atom_index:
+    :return: numpy array of atoms bonded to a given atom
+    """
+    # initalize openbabel classes
+    obconversion = openbabel.OBConversion()
+    obconversion.SetInFormat("xyz")
+    mol = openbabel.OBMol()
+    obconversion.ReadString(mol, xyz_string)
+
+    # make atom object for atom we want
+    atom = mol.GetAtom(atom_index + 1)  # for obmol get functions indexing starts from 1
+
+    index_list = []
+    for neighbour_atom in openbabel.OBAtomAtomIter(atom):
+        atomic_num = neighbour_atom.GetAtomicNum()
+        index = neighbour_atom.GetIdx()
+        index_list.append([atomic_num, index])
+
+    # ToDo: convert obmol to rdkit and use methods there to determine correct bidentate cycle?
+    # rdkit_mol = openbabel.OBMolToMol(mol)
+    # or
+    # rdkit_mol = Chem.MolFromMolBlock(conversion.WriteString(mol))
+    return index_list
+
+
+complexes_to_calc_descriptors = glob.glob(os.path.join(os.getcwd(), '*.log'))
+for complex in complexes_to_calc_descriptors:
+    elements, coordinates = read_cclib(complex)
+    elements = convert_elements(elements, output='symbols')
+    coordinates = np.array(coordinates).reshape(-1, len(elements), 3)
+    xyz_string = ""
+    for coord in coordinates:
+        xyz_string = get_xyz_string(elements, coord)
+    print(get_bonded_atoms(xyz_string, 38))
+
+# RDkit and mace-dependent method
 import mace
 from rdkit import Chem
 '''Find bidentate indices in metal-ligand complex based on smallest set of rings containing at least two mapped atoms'''

@@ -5,6 +5,18 @@ import pandas as pd
 import glob, os
 
 
+def calculate_distance(a, b):
+    """
+    This function calculates the distance between two points in 3D space.
+    Args:
+        a : array of floats
+        b : array of floats
+    Return:
+        distance : float
+    """
+    distance = np.sqrt((a[0]-b[0])**2 + (a[1]-b[1])**2 + (a[2]-b[2])**2)
+    return distance
+
 def add_code_to_structure():
     N = 10
     code_name = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(N))
