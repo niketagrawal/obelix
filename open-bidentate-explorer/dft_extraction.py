@@ -24,7 +24,7 @@ class DFTExtractor(object):
         self.meta_data = self.data.metadata
         # use morfeus parser
         self.elements, self.coordinates = read_cclib(log_file)
-        self.coordinates = coordinates[-1]  # morfeus returns a list of trajectory, we only want the last one
+        self.coordinates = self.coordinates[-1]  # morfeus returns a list of trajectory, we only want the last one
         # idx's come from morfeus, so they start at 1, subtract 1 to get the correct index for cclib
         self.metal_center_idx = metal_center_idx - 1
         self.min_donor_idx = min_donor_idx - 1

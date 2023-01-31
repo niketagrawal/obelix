@@ -218,36 +218,56 @@ class Descriptors:
         dictionary[f"anti_orbital_occupation_max_donor_{self.central_atom}_dft"] = max_donor_metal_anti_orbital_occupation
         # donor with any other element
         min_donor_other_element_index_list, min_donor_other_orbital_occupation_list = dft.calculate_min_donor_other_orbital_occupation()
-        for i, (element_and_index, occupation) in enumerate(zip(min_donor_other_element_index_list, min_donor_other_orbital_occupation_list)):
-            other_element = element_and_index[0]
-            other_element_index = element_and_index[1]
-            dictionary[f"orbital_occupation_min_donor_other_atom_{i + 1}_dft"] = occupation
-            dictionary[f"orbital_occupation_min_donor_other_atom_{i + 1}_element_dft"] = other_element
-            dictionary[f"orbital_occupation_min_donor_other_atom_{i + 1}_index_dft"] = other_element_index
+        if not min_donor_other_element_index_list is None and not min_donor_other_orbital_occupation_list is None:
+            for i, (element_and_index, occupation) in enumerate(zip(min_donor_other_element_index_list, min_donor_other_orbital_occupation_list)):
+                other_element = element_and_index[0]
+                other_element_index = element_and_index[1]
+                dictionary[f"orbital_occupation_min_donor_other_atom_{i + 1}_dft"] = occupation
+                dictionary[f"orbital_occupation_min_donor_other_atom_{i + 1}_element_dft"] = other_element
+                dictionary[f"orbital_occupation_min_donor_other_atom_{i + 1}_index_dft"] = other_element_index
+        else:
+            dictionary[f"orbital_occupation_min_donor_other_atom_1_dft"] = None
+            dictionary[f"orbital_occupation_min_donor_other_atom_1_element_dft"] = None
+            dictionary[f"orbital_occupation_min_donor_other_atom_1_index_dft"] = None
 
         min_donor_other_element_index_anti_bonding_list, min_donor_other_anti_orbital_occupation_list = dft.calculate_min_donor_other_anti_orbital_occupation()
-        for i, (element_and_index, occupation) in enumerate(zip(min_donor_other_element_index_anti_bonding_list, min_donor_other_anti_orbital_occupation_list)):
-            other_element = element_and_index[0]
-            other_element_index = element_and_index[1]
-            dictionary[f"anti_orbital_occupation_min_donor_other_atom_{i + 1}_dft"] = occupation
-            dictionary[f"anti_orbital_occupation_min_donor_other_atom_{i + 1}_element_dft"] = other_element
-            dictionary[f"anti_orbital_occupation_min_donor_other_atom_{i + 1}_index_dft"] = other_element_index
+        if not min_donor_other_element_index_anti_bonding_list is None and not min_donor_other_anti_orbital_occupation_list is None:
+            for i, (element_and_index, occupation) in enumerate(zip(min_donor_other_element_index_anti_bonding_list, min_donor_other_anti_orbital_occupation_list)):
+                other_element = element_and_index[0]
+                other_element_index = element_and_index[1]
+                dictionary[f"anti_orbital_occupation_min_donor_other_atom_{i + 1}_dft"] = occupation
+                dictionary[f"anti_orbital_occupation_min_donor_other_atom_{i + 1}_element_dft"] = other_element
+                dictionary[f"anti_orbital_occupation_min_donor_other_atom_{i + 1}_index_dft"] = other_element_index
+        else:
+            dictionary[f"anti_orbital_occupation_min_donor_other_atom_1_dft"] = None
+            dictionary[f"anti_orbital_occupation_min_donor_other_atom_1_element_dft"] = None
+            dictionary[f"anti_orbital_occupation_min_donor_other_atom_1_index_dft"] = None
 
         max_donor_other_element_index_list, max_donor_other_orbital_occupation_list = dft.calculate_max_donor_other_orbital_occupation()
-        for i, (element_and_index, occupation) in enumerate(zip(max_donor_other_element_index_list, max_donor_other_orbital_occupation_list)):
-            other_element = element_and_index[0]
-            other_element_index = element_and_index[1]
-            dictionary[f"orbital_occupation_max_donor_other_atom_{i + 1}_dft"] = occupation
-            dictionary[f"orbital_occupation_max_donor_other_atom_{i + 1}_element_dft"] = other_element
-            dictionary[f"orbital_occupation_max_donor_other_atom_{i + 1}_index_dft"] = other_element_index
+        if not max_donor_other_element_index_list is None and not max_donor_other_orbital_occupation_list is None:
+            for i, (element_and_index, occupation) in enumerate(zip(max_donor_other_element_index_list, max_donor_other_orbital_occupation_list)):
+                other_element = element_and_index[0]
+                other_element_index = element_and_index[1]
+                dictionary[f"orbital_occupation_max_donor_other_atom_{i + 1}_dft"] = occupation
+                dictionary[f"orbital_occupation_max_donor_other_atom_{i + 1}_element_dft"] = other_element
+                dictionary[f"orbital_occupation_max_donor_other_atom_{i + 1}_index_dft"] = other_element_index
+        else:
+            dictionary[f"orbital_occupation_max_donor_other_atom_1_dft"] = None
+            dictionary[f"orbital_occupation_max_donor_other_atom_1_element_dft"] = None
+            dictionary[f"orbital_occupation_max_donor_other_atom_1_index_dft"] = None
 
         max_donor_other_element_index_anti_bonding_list, max_donor_other_anti_orbital_occupation_list = dft.calculate_max_donor_other_anti_orbital_occupation()
-        for i, (element_and_index, occupation) in enumerate(zip(max_donor_other_element_index_anti_bonding_list, max_donor_other_anti_orbital_occupation_list)):
-            other_element = element_and_index[0]
-            other_element_index = element_and_index[1]
-            dictionary[f"anti_orbital_occupation_max_donor_other_atom_{i + 1}_dft"] = occupation
-            dictionary[f"anti_orbital_occupation_max_donor_other_atom_{i + 1}_element_dft"] = other_element
-            dictionary[f"anti_orbital_occupation_max_donor_other_atom_{i + 1}_index_dft"] = other_element_index
+        if not max_donor_other_element_index_anti_bonding_list is None and not max_donor_other_anti_orbital_occupation_list is None:
+            for i, (element_and_index, occupation) in enumerate(zip(max_donor_other_element_index_anti_bonding_list, max_donor_other_anti_orbital_occupation_list)):
+                other_element = element_and_index[0]
+                other_element_index = element_and_index[1]
+                dictionary[f"anti_orbital_occupation_max_donor_other_atom_{i + 1}_dft"] = occupation
+                dictionary[f"anti_orbital_occupation_max_donor_other_atom_{i + 1}_element_dft"] = other_element
+                dictionary[f"anti_orbital_occupation_max_donor_other_atom_{i + 1}_index_dft"] = other_element_index
+        else:
+            dictionary[f"anti_orbital_occupation_max_donor_other_atom_1_dft"] = None
+            dictionary[f"anti_orbital_occupation_max_donor_other_atom_1_element_dft"] = None
+            dictionary[f"anti_orbital_occupation_max_donor_other_atom_1_index_dft"] = None
 
         # dipole moment
         dipole_moment = dft.calculate_dipole_moment()
@@ -393,7 +413,7 @@ class Descriptors:
 
             # write xyz for log file
             if extract_xyz_from_log:
-                xyz_filename = filename + '_DFT.xyz'
+                xyz_filename = metal_ligand_complex[:-4] + '_DFT.xyz'
                 write_xyz(os.path.join(self.path_to_workflow, xyz_filename), elements, coordinates)
 
             # for property in properties.keys():
