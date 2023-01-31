@@ -20,11 +20,16 @@ class DFTExtractor(object):
         # use cclib parser
         self.parser = ccopen(log_file)
         self.data = self.parser.parse()
-        self.atom_charges_dict = self.data.atomcharges
         self.meta_data = self.data.metadata
-        # use morfeus parser
+        if not self.check_normal_termination():
+            print(f"Warning: {log_file} did not terminate normally!")
+
+        self.atom_charges_dict = self.data.atomcharges
+        # use morfeus parser (in case it's needed)
         self.elements, self.coordinates = read_cclib(log_file)
-        self.coordinates = self.coordinates[-1]  # morfeus returns a list of trajectory, we only want the last one
+        if not len(self.coordinates[-1]) == 3:  # if this is true, there is only 1 coordinates array
+            self.coordinates = self.coordinates[-1]  # else morfeus descriptors are calculated for last geometry in log file
+        self.elements = np.array(self.elements)
         # idx's come from morfeus, so they start at 1, subtract 1 to get the correct index for cclib
         self.metal_center_idx = metal_center_idx - 1
         self.min_donor_idx = min_donor_idx - 1
@@ -33,8 +38,6 @@ class DFTExtractor(object):
         self.metal_center_element = self.elements[self.metal_center_idx]
         self.min_donor_element = self.elements[self.min_donor_idx]
         self.max_donor_element = self.elements[self.max_donor_idx]
-        if not self.check_normal_termination():
-            print(f"Warning: {log_file} did not terminate normally!")
 
         # read the log file for extraction
         with open(log_file) as f:
