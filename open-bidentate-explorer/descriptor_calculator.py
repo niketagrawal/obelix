@@ -42,7 +42,7 @@ class Descriptors:
     def _buried_volume_quadrant_analysis(elements, coordinates, dictionary, metal_idx, z_axis_atoms, xz_plane_atoms):
         buried_volume_for_quad_oct = BuriedVolume(elements, coordinates, metal_idx,
                                                   z_axis_atoms=z_axis_atoms,
-                                                  xz_plane_atoms=[xz_plane_atoms],
+                                                  xz_plane_atoms=xz_plane_atoms,
                                                   radius=3.5).octant_analysis()
 
         quadrants = buried_volume_for_quad_oct.quadrants['percent_buried_volume']
@@ -73,8 +73,8 @@ class Descriptors:
         dictionary["distance_pi_bond_1"] = distance_pi_bond_1
         dictionary["distance_pi_bond_1_element_1"] = elements[-6]
         dictionary["distance_pi_bond_1_element_2"] = elements[-9]
-        dictionary["distance_pi_bond_1_element_1_idx"] = np.where(np.array(elements) == elements[-6])[0][0] + 1
-        dictionary["distance_pi_bond_1_element_2_idx"] = np.where(np.array(elements) == elements[-9])[0][0] + 1
+        dictionary["distance_pi_bond_1_element_1_idx"] = np.where(np.array(coordinates) == coordinates_c1)[0][0] + 1
+        dictionary["distance_pi_bond_1_element_2_idx"] = np.where(np.array(coordinates) == coordinates_c2)[0][0] + 1
 
         coordinates_c3 = coordinates[-7]
         coordinates_c4 = coordinates[-10]
@@ -82,8 +82,8 @@ class Descriptors:
         dictionary["distance_pi_bond_2"] = distance_pi_bond_2
         dictionary["distance_pi_bond_2_element_1"] = elements[-7]
         dictionary["distance_pi_bond_2_element_2"] = elements[-10]
-        dictionary["distance_pi_bond_2_element_1_idx"] = np.where(np.array(elements) == elements[-7])[0][0] + 1
-        dictionary["distance_pi_bond_2_element_2_idx"] = np.where(np.array(elements) == elements[-10])[0][0] + 1
+        dictionary["distance_pi_bond_2_element_1_idx"] = np.where(np.array(coordinates) == coordinates_c3)[0][0] + 1
+        dictionary["distance_pi_bond_2_element_2_idx"] = np.where(np.array(coordinates) == coordinates_c4)[0][0] + 1
 
         return dictionary
 
@@ -298,14 +298,15 @@ class Descriptors:
         return dictionary, metal_idx, bidentate_max_donor_idx, bidentate_min_donor_idx
 
     def _calculate_dft_descriptors_from_log(self, log_file, metal_idx, bidentate_max_donor_idx, bidentate_min_donor_idx, dictionary, metal_adduct):
-        dft = DFTExtractor(log_file, metal_idx, bidentate_max_donor_idx, bidentate_min_donor_idx)
+        dft = DFTExtractor(log_file, metal_idx, bidentate_min_donor_idx, bidentate_max_donor_idx, metal_adduct)
         successful_dft_optimization = dft.check_normal_termination()
         dictionary["optimization_success_dft"] = successful_dft_optimization
         if successful_dft_optimization:
             if metal_adduct == "nbd":
                 # quadrant analysis
-                z_axis_atom_index = dft.check_nbd_back_carbon() + 1 # +1 because the index is 0-based
+                z_axis_atom_index = dft.check_nbd_back_carbon()
                 if z_axis_atom_index is not None:  # if the NBD carbon is found it is safe to proceed
+                    z_axis_atom_index += 1 # the index in the log file is 0-based, but the index in morfeus is 1-based
                     xz_plane_atom_indices = [bidentate_min_donor_idx, bidentate_max_donor_idx, metal_idx]
                     dictionary.update(self._buried_volume_quadrant_analysis(dft.elements, dft.coordinates, dictionary, metal_idx, z_axis_atom_index, xz_plane_atom_indices))
 
