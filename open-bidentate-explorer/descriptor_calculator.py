@@ -563,12 +563,13 @@ if __name__ == "__main__":
     # descriptors.calculate_morfeus_descriptors(geom_type='BD')
     # descriptors.descriptor_df.to_csv('descriptors.csv', index=False)
 
-    conformer_descriptors = Descriptors(central_atom='Rh', path_to_workflow=os.path.join(os.getcwd(), 'Workflow'), output_type='gaussian')
-    conformer_descriptors.calculate_dft_descriptors_from_log(geom_type='BD', solvent=None, extract_xyz_from_log=True, printout=False)
-    conformer_descriptors.descriptor_df.to_csv('DFT_descriptors.csv', index=False)
+    # conformer_descriptors = Descriptors(central_atom='Rh', path_to_workflow=os.path.join(os.getcwd(), 'Workflow'), output_type='crest')
     # conformer_descriptors.calculate_morfeus_descriptors(geom_type='BD')
-    # # conformer_descriptors.descriptor_df.to_csv('conformer_descriptors.csv', index=False)
+    # conformer_descriptors.descriptor_df.to_csv('conformer_descriptors.csv', index=False)
     # conformer_descriptors.set_output_type('xyz')
     # conformer_descriptors.calculate_morfeus_descriptors(geom_type='BD')
     # conformer_descriptors.descriptor_df.to_csv('conformer_descriptors', index=False)
 
+    dft_descriptors = Descriptors(central_atom='Rh', path_to_workflow=os.path.join(os.getcwd(), 'Workflow'), output_type='gaussian')
+    dft_descriptors.calculate_dft_descriptors_from_log(geom_type='BD', solvent=None, extract_xyz_from_log=True, printout=False, metal_adduct='nbd')
+    dft_descriptors.descriptor_df.to_csv('DFT_descriptors.csv', index=False)
