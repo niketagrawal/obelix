@@ -3,7 +3,66 @@ from rdkit import Chem
 import numpy as np
 import pandas as pd
 import glob, os
+from openbabel import openbabel
 
+
+def get_bonded_atoms(xyz_string, atom_index, search_this_atomic_num=None):
+    """Use openbabel's methods to find the coordinates of all atoms that are bonded to a given atom
+    :param XYZ file in string format:
+    :param atom_index:
+    :return: numpy array of atoms bonded to a given atom
+    """
+    # initalize openbabel classes
+    obconversion = openbabel.OBConversion()
+    obconversion.SetInFormat("xyz")
+    mol = openbabel.OBMol()
+    obconversion.ReadString(mol, xyz_string)
+
+    # make atom object for atom we want
+    atom = mol.GetAtom(atom_index + 1)  # for obmol get functions indexing starts from 1
+
+    index_list = []
+    for neighbour_atom in openbabel.OBAtomAtomIter(atom):
+        if search_this_atomic_num is not None:
+            if neighbour_atom.GetAtomicNum() != search_this_atomic_num:
+                continue
+        atomic_num = neighbour_atom.GetAtomicNum()
+        index = neighbour_atom.GetIdx()
+        index_list.append([atomic_num, index])
+
+    return index_list
+
+
+def calculate_dihedral(coordinates_1, coordinates_2, coordinates_3, coordinates_4):
+    """Praxeolitic formula
+    1 sqrt, 1 cross product source: https://stackoverflow.com/a/34245697"""
+
+    p0 = coordinates_1
+    p1 = coordinates_2
+    p2 = coordinates_3
+    p3 = coordinates_4
+
+    b0 = -1.0 * (p1 - p0)
+    b1 = p2 - p1
+    b2 = p3 - p2
+
+    # normalize b1 so that it does not influence magnitude of vector
+    # rejections that come next
+    b1 /= np.linalg.norm(b1)
+
+    # vector rejections
+    # v = projection of b0 onto plane perpendicular to b1
+    #   = b0 minus component that aligns with b1
+    # w = projection of b2 onto plane perpendicular to b1
+    #   = b2 minus component that aligns with b1
+    v = b0 - np.dot(b0, b1) * b1
+    w = b2 - np.dot(b2, b1) * b1
+
+    # angle between v and w in a plane is the torsion angle
+    # v and w may not be normalized but that's fine since tan is y/x
+    x = np.dot(v, w)
+    y = np.dot(np.cross(b1, v), w)
+    return np.degrees(np.arctan2(y, x))
 
 def calculate_distance(a, b):
     """

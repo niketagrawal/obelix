@@ -7,6 +7,7 @@ import os
 import glob
 import re
 import numpy as np
+from tools.utilities import get_bonded_atoms
 from morfeus.io import read_cclib, get_xyz_string, read_xyz
 from morfeus.utils import convert_elements
 import cclib
@@ -14,8 +15,14 @@ from cclib.parser import ccopen
 
 
 class DFTExtractor(object):
-    def __init__(self, log_file, metal_center_idx, min_donor_idx, max_donor_idx):
+    def __init__(self, log_file, metal_center_idx, min_donor_idx, max_donor_idx, metal_adduct='pristine'):
         self.log_file = log_file
+
+        supported_metal_adducts = ['pristine', 'acetonitrile', 'nbd']  # norbornadiene is placed at bottom of xyz file, so it is a useful pointer for quadrant analysis
+        if metal_adduct.lower() not in supported_metal_adducts:
+            raise ValueError(
+                f"Metal adduct {metal_adduct} not supported. Please choose from {supported_metal_adducts}.")
+        self.metal_adduct = metal_adduct.lower()
 
         # use cclib parser
         self.parser = ccopen(log_file)
@@ -30,6 +37,16 @@ class DFTExtractor(object):
         if not len(self.coordinates[-1]) == 3:  # if this is true, there is only 1 coordinates array
             self.coordinates = self.coordinates[-1]  # else morfeus descriptors are calculated for last geometry in log file
         self.elements = np.array(self.elements)
+
+        # get index of nbd C in back of molecule which we use as indicator for z-axis
+        if self.metal_adduct == 'nbd':
+            self.carbon_back_nbd_idx = np.where(self.coordinates == self.coordinates[-15])[0][0]
+            # we need the xyz string to get the hydrogens bonded to this carbon
+            self.xyz_string = ""
+            coordinates = np.array(self.coordinates).reshape(-1, len(self.elements), 3)
+            for coord in coordinates:
+                self.xyz_string = get_xyz_string(convert_elements(self.elements, 'symbols'), coord)
+
         # idx's come from morfeus, so they start at 1, subtract 1 to get the correct index for cclib
         self.metal_center_idx = metal_center_idx - 1
         self.min_donor_idx = min_donor_idx - 1
@@ -46,6 +63,26 @@ class DFTExtractor(object):
     def check_normal_termination(self):
         success = self.meta_data['success']
         return success
+
+    def check_nbd_back_carbon(self):
+        # ToDo: build some more checks in here before returning the idx
+        if self.metal_adduct == 'nbd':
+            if len(self.get_hydrogens_bonded_to_carbon_back_nbd()) == 2:
+                return self.carbon_back_nbd_idx
+        return None
+
+    def get_hydrogens_bonded_to_carbon_back_nbd(self):
+        if self.metal_adduct == 'nbd':
+            # get the hydrogen indices
+            hydrogen_indices = get_bonded_atoms(self.xyz_string, int(self.carbon_back_nbd_idx), 1)  # 1 is the hydrogen atom
+            # this gives a list of atomic number and index, we only want the index
+            if len(hydrogen_indices) == 2:
+                return [hydrogen_indices[0][1] - 1, hydrogen_indices[1][1] - 1]
+            else:
+                print(f"Warning: {self.log_file} does not have 2 hydrogens bonded to the carbon in the back of the nbd molecule. This is needed for dihedral angle calculation. Skipping this molecule.")
+                return None
+        else:
+            return None
 
     def extract_time(self):
         wall_time = self.meta_data['wall_time']
@@ -411,11 +448,13 @@ if __name__ == '__main__':
         elements = np.array(elements)
         geom_type = 'BD'
         ligand_atoms, bidentate = molecular_graph(elements=elements, coords=coordinates, geom=geom_type)
-        dft = DFTExtractor(complex, bidentate[0] + 1, bidentate[1] + 1, bidentate[2] + 1)
+        dft = DFTExtractor(complex, bidentate[0] + 1, bidentate[1] + 1, bidentate[2] + 1, metal_adduct='nbd')
+        print(dft.check_nbd_back_carbon())
+        print(dft.get_hydrogens_bonded_to_carbon_back_nbd())
         # print(dft.extract_thermodynamic_descriptors())
         # print(dft.calculate_min_donor_metal_orbital_occupation(), dft.calculate_min_donor_metal_anti_orbital_occupation())
         # print(dft.calculate_max_donor_metal_orbital_occupation(), dft.calculate_max_donor_metal_anti_orbital_occupation())
-        print(dft.calculate_min_donor_other_orbital_occupation())
+        # print(dft.calculate_min_donor_other_orbital_occupation())
         # print(dft.calculate_max_donor_other_orbital_occupation())
         # print(dft.calculate_min_donor_other_anti_orbital_occupation())
         # print(dft.calculate_max_donor_other_anti_orbital_occupation())
