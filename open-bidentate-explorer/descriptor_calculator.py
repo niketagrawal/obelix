@@ -39,10 +39,11 @@ class Descriptors:
         return ligand_atoms, bidentate
 
     @staticmethod
-    def _buried_volume_quadrant_analysis(elements, coordinates, dictionary, metal_idx, z_axis_atoms, xz_plane_atoms):
+    def _buried_volume_quadrant_analysis(elements, coordinates, dictionary, metal_idx, z_axis_atoms, xz_plane_atoms, excluded_atoms=None):
         buried_volume_for_quad_oct = BuriedVolume(elements, coordinates, metal_idx,
                                                   z_axis_atoms=z_axis_atoms,
                                                   xz_plane_atoms=xz_plane_atoms,
+                                                  excluded_atoms=excluded_atoms,
                                                   radius=3.5).octant_analysis()
 
         quadrants = buried_volume_for_quad_oct.quadrants['percent_buried_volume']
@@ -189,7 +190,7 @@ class Descriptors:
         cone_angle_elements = elements
         cone_angle_coordinates = coordinates
         # if metal adduct is NBD, we can delete all auxillary ligands and calculate the cone angle
-        if metal_adduct == 'NBD':
+        if metal_adduct.lower() == 'nbd':
             # ToDo try this with a substructure search
             cone_angle_elements = elements[:-15]
             cone_angle_coordinates = coordinates[:-15]
@@ -246,8 +247,11 @@ class Descriptors:
             bidentate_max_donor_idx = bidentate_2_idx
             bidentate_min_donor_idx = bidentate_1_idx
 
-        # if the metal adduct is NBD we can calculate dihedral angles and C=C bond lengths
-        if metal_adduct == 'nbd':
+        # by default no atoms are excluded from buried volume analysis
+        excluded_atoms = None
+
+        # if the metal adduct is NBD we can do buried volume quadrant analysis, calculate dihedral angles and C=C bond lengths
+        if metal_adduct.lower() == 'nbd':
             # C=C bond distance (indicator of amount of pi donation to metal center)
             dictionary.update(self._calculate_c_c_distance_nbd(elements, coordinates, dictionary))
 
@@ -263,6 +267,18 @@ class Descriptors:
                                                                          coordinates, carbon_back_nbd_idx,
                                                                          hydrogens_bonded_to_carbon_back_nbd))
 
+            # quadrant analysis
+            # z_axis_atom_index = carbon_back_nbd_idx
+            # if z_axis_atom_index is not None:  # if the NBD carbon is found it is safe to proceed
+            z_axis_atom_index = [bidentate_min_donor_idx, bidentate_max_donor_idx]  # the index in the log file is 0-based, but the index in morfeus is 1-based
+            xz_plane_atom_indices = [bidentate_max_donor_idx]
+            # exclude all nbd atoms from the quadrant analysis
+            # last 15 atoms are the nbd atoms, but indexing in morfeus is 1-based
+            nbd_indices = list(range(len(elements) - 15, len(elements) + 1))
+            excluded_atoms = nbd_indices
+            dictionary.update(
+                self._buried_volume_quadrant_analysis(elements, coordinates, dictionary, metal_idx,
+                                                      z_axis_atom_index, xz_plane_atom_indices, excluded_atoms))
         # write indices and elements of metal center, max donor, and min donor to dictionary
         dictionary[f"index_{self.central_atom}"] = metal_idx
         dictionary["index_donor_max"] = bidentate_max_donor_idx
@@ -277,18 +293,18 @@ class Descriptors:
         dictionary[f"distance_{self.central_atom}_min_donor_{self.output_type.lower()}"] = calculate_distance(coordinates[metal_idx - 1], coordinates[bidentate_min_donor_idx - 1])
 
         # calculate buried volume descriptors
-        bv_metal_center = BuriedVolume(elements, coordinates, metal_idx, radius=3.5).fraction_buried_volume
-        bv_max_donor = BuriedVolume(elements, coordinates, bidentate_1_idx, radius=3.5).fraction_buried_volume
-        bv_min_donor = BuriedVolume(elements, coordinates, bidentate_2_idx, radius=3.5).fraction_buried_volume
+        bv_metal_center = BuriedVolume(elements, coordinates, metal_idx, radius=3.5, excluded_atoms=excluded_atoms).fraction_buried_volume
+        bv_max_donor = BuriedVolume(elements, coordinates, bidentate_1_idx, radius=3.5, excluded_atoms=excluded_atoms).fraction_buried_volume
+        bv_min_donor = BuriedVolume(elements, coordinates, bidentate_2_idx, radius=3.5, excluded_atoms=excluded_atoms).fraction_buried_volume
         # unit: fraction of volume occupied by atoms within 3.5A of the atom
         dictionary[f"buried_volume_{self.central_atom}_3.5A"] = bv_metal_center
         dictionary["buried_volume_donor_max"] = bv_max_donor
         dictionary["buried_volume_donor_min"] = bv_min_donor
 
-        bv_metal_4 = BuriedVolume(elements, coordinates, metal_idx, radius=4).fraction_buried_volume
-        bv_metal_5 = BuriedVolume(elements, coordinates, metal_idx, radius=5).fraction_buried_volume
-        bv_metal_6 = BuriedVolume(elements, coordinates, metal_idx, radius=6).fraction_buried_volume
-        bv_metal_7 = BuriedVolume(elements, coordinates, metal_idx, radius=7).fraction_buried_volume
+        bv_metal_4 = BuriedVolume(elements, coordinates, metal_idx, radius=4, excluded_atoms=excluded_atoms).fraction_buried_volume
+        bv_metal_5 = BuriedVolume(elements, coordinates, metal_idx, radius=5, excluded_atoms=excluded_atoms).fraction_buried_volume
+        bv_metal_6 = BuriedVolume(elements, coordinates, metal_idx, radius=6, excluded_atoms=excluded_atoms).fraction_buried_volume
+        bv_metal_7 = BuriedVolume(elements, coordinates, metal_idx, radius=7, excluded_atoms=excluded_atoms).fraction_buried_volume
 
         dictionary[f"buried_volume_{self.central_atom}_4A"] = bv_metal_4
         dictionary[f"buried_volume_{self.central_atom}_5A"] = bv_metal_5
@@ -333,15 +349,18 @@ class Descriptors:
         successful_dft_optimization = dft.check_normal_termination()
         dictionary["optimization_success_dft"] = successful_dft_optimization
         if successful_dft_optimization:
-            if metal_adduct == "nbd":
-                # quadrant analysis
-                z_axis_atom_index = dft.check_nbd_back_carbon()
-                if z_axis_atom_index is not None:  # if the NBD carbon is found it is safe to proceed
-                    z_axis_atom_index += 1  # the index in the log file is 0-based, but the index in morfeus is 1-based
-                    xz_plane_atom_indices = [bidentate_min_donor_idx, bidentate_max_donor_idx, metal_idx]
-                    dictionary.update(self._buried_volume_quadrant_analysis(dft.elements, dft.coordinates, dictionary, metal_idx, z_axis_atom_index, xz_plane_atom_indices))
+            # if metal_adduct.lower() == "nbd":
+                # these are calculated in _calculate_steric_electronic_desc_morfeus already
+                # # quadrant analysis
+                # z_axis_atom_index = dft.check_nbd_back_carbon()
+                # if z_axis_atom_index is not None:  # if the NBD carbon is found it is safe to proceed
+                #     z_axis_atom_index += 1  # the index in the log file is 0-based, but the index in morfeus is 1-based
+                #     xz_plane_atom_indices = [bidentate_min_donor_idx, bidentate_max_donor_idx, metal_idx]
+                #     # exclude all nbd atoms from the quadrant analysis
+                #     # last 15 atoms are the nbd atoms, but indexing in morfeus is 1-based
+                #     nbd_indices = list(range(len(dft.elements) - 15, len(dft.elements) + 1))
+                #     dictionary.update(self._buried_volume_quadrant_analysis(dft.elements, dft.coordinates, dictionary, metal_idx, z_axis_atom_index, xz_plane_atom_indices, nbd_indices))
 
-                    # these are calculated in _calculate_steric_electronic_desc_morfeus already
                     # # C=C bond distance (indicator of amount of pi donation to metal center)
                     # dictionary.update(self._calculate_c_c_distance_nbd(dft.elements, dft.coordinates, dictionary))
                     #
