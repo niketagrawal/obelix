@@ -14,6 +14,35 @@ import cclib
 from cclib.parser import ccopen
 
 
+class NBDComplex(object):
+    def __init__(self, elements, coordinates, filename):
+        self.elements = elements
+        self.coordinates = coordinates
+        self.filename = filename
+        self.carbon_back_nbd_idx = np.where(self.coordinates == self.coordinates[-15])[0][0]
+        # we need the xyz string to get the hydrogens bonded to this carbon
+        self.xyz_string = ""
+        coordinates = np.array(self.coordinates).reshape(-1, len(self.elements), 3)
+        for coord in coordinates:
+            self.xyz_string = get_xyz_string(convert_elements(self.elements, 'symbols'), coord)
+
+    def check_nbd_back_carbon(self):
+        # ToDo: build some more checks in here before returning the idx
+        if len(self.get_hydrogens_bonded_to_carbon_back_nbd()) == 2:
+            return self.carbon_back_nbd_idx
+        return None
+
+    def get_hydrogens_bonded_to_carbon_back_nbd(self):
+        # get the hydrogen indices
+        hydrogen_indices = get_bonded_atoms(self.xyz_string, int(self.carbon_back_nbd_idx), 1)  # 1 is the hydrogen atom
+        # this gives a list of atomic number and index, we only want the index
+        if len(hydrogen_indices) == 2:
+            return [hydrogen_indices[0][1] - 1, hydrogen_indices[1][1] - 1]
+        else:
+            print(f"Warning: {self.filename} does not have 2 hydrogens bonded to the carbon in the back of the nbd molecule. This is needed for dihedral angle calculation. Skipping this molecule.")
+            return None
+
+
 class DFTExtractor(object):
     def __init__(self, log_file, metal_center_idx, min_donor_idx, max_donor_idx, metal_adduct='pristine'):
         self.log_file = log_file
@@ -40,12 +69,8 @@ class DFTExtractor(object):
 
         # get index of nbd C in back of molecule which we use as indicator for z-axis
         if self.metal_adduct == 'nbd':
-            self.carbon_back_nbd_idx = np.where(self.coordinates == self.coordinates[-15])[0][0]
-            # we need the xyz string to get the hydrogens bonded to this carbon
-            self.xyz_string = ""
-            coordinates = np.array(self.coordinates).reshape(-1, len(self.elements), 3)
-            for coord in coordinates:
-                self.xyz_string = get_xyz_string(convert_elements(self.elements, 'symbols'), coord)
+            self.nbd_complex = NBDComplex(self.elements, self.coordinates, log_file)
+            self.carbon_back_nbd_idx = self.nbd_complex.carbon_back_nbd_idx
 
         # idx's come from morfeus, so they start at 1, subtract 1 to get the correct index for cclib
         self.metal_center_idx = metal_center_idx - 1
@@ -67,22 +92,11 @@ class DFTExtractor(object):
     def check_nbd_back_carbon(self):
         # ToDo: build some more checks in here before returning the idx
         if self.metal_adduct == 'nbd':
-            if len(self.get_hydrogens_bonded_to_carbon_back_nbd()) == 2:
-                return self.carbon_back_nbd_idx
-        return None
+            return self.nbd_complex.check_nbd_back_carbon()
 
     def get_hydrogens_bonded_to_carbon_back_nbd(self):
         if self.metal_adduct == 'nbd':
-            # get the hydrogen indices
-            hydrogen_indices = get_bonded_atoms(self.xyz_string, int(self.carbon_back_nbd_idx), 1)  # 1 is the hydrogen atom
-            # this gives a list of atomic number and index, we only want the index
-            if len(hydrogen_indices) == 2:
-                return [hydrogen_indices[0][1] - 1, hydrogen_indices[1][1] - 1]
-            else:
-                print(f"Warning: {self.log_file} does not have 2 hydrogens bonded to the carbon in the back of the nbd molecule. This is needed for dihedral angle calculation. Skipping this molecule.")
-                return None
-        else:
-            return None
+            return self.nbd_complex.get_hydrogens_bonded_to_carbon_back_nbd()
 
     def extract_time(self):
         wall_time = self.meta_data['wall_time']

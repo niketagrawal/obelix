@@ -3,33 +3,25 @@ from numpy.linalg import norm as cartesian_distance
 from morfeus import read_xyz
 from morfeus.utils import convert_elements
 import pandas as pd
+import periodictable
 
 # Needed data
-periodic_table = ['H', 'He', 'Li', 'Be', 'B', 'C', 'N', 'O', 'F', 'Ne',
-                 'Na', 'Mg', 'Al', 'Si', 'P', 'S', 'Cl', 'Ar',
-                 'K', 'Ca', 'Sc', 'Ti', 'V', 'Cr', 'Mn', 'Fe', 'Co', 'Ni', 'Cu', 'Zn', 'Ga', 'Ge', 'As', 'Se', 'Br', 'Kr',
-                 'Rb', 'Sr', 'Y', 'Zr', 'Nb', 'Mo', 'Tc', 'Ru', 'Rh', 'Pd', 'Ag', 'Cd', 'In', 'Sn', 'Sb', 'Te', 'I', 'Xe',
-                 'Cs', 'Ba', 'La', 'Ce', 'Pr', 'Nd', 'Pm', 'Sm', 'Eu', 'Gd', 'Tb', 'Dy', 'Ho', 'Er', 'Tm', 'Yb', 'Lu', 'Hf',
-                 'Ta', 'W', 'Re', 'Os', 'Ir', 'Pt', 'Au', 'Hg', 'Tl', 'Pb', 'Bi', 'Po', 'At',
-                 'Rn', 'Fr', 'Ra', 'Ac', 'Th', 'Pa', 'U', 'Np', 'Pu', 'Am', 'Cm', 'Bk', 'Cf', 'Es', 'Fm', 'Md', 'No', 'Lr',
-                 'Rf', 'Db', 'Sg', 'Bh', 'Hs', 'Mt', 'Ds', 'Rg', 'Cn', 'Nh', 'Fl', 'Mc', 'Lv',
-                 'Ts', 'Og']
+periodic_table = [element.symbol for element in periodictable.elements]
 
-atom_covalent_max_dist = {'N'  : 2, 
-                          'P'  : 2, 
-                          'S'  : 2.2, 
-                          'C'  : 2.1, 
-                          'O'  : 1.8,
-                          'H'  : 1.15,
-                          'Fe' : 2.1,
-                          'F'  : 1.5, 
-                          'Cl' : 2}
-
+atom_covalent_max_dist = {}
+for element in periodictable.elements:
+    if element.interatomic_distance is not None:
+        # to be sure that the distance is not too small, we use the interatomic distance
+        atom_covalent_max_dist[element.symbol] = element.interatomic_distance
+    else:
+        # if the interatomic distance is not available, we use a default value
+        atom_covalent_max_dist[element.symbol] = 2.5
 
 metal_centers = {'Rh' : {'OH' : 6, 'BD' : 2}, 
                  'Ir' : {'OH' : 6, 'BD' : 2}, 
                  'Mn' : {'OH' : 6, 'BD' : 2}, 
-                 'Ru' : {'OH' : 6, 'BD' : 2}}
+                 'Ru' : {'OH' : 6, 'BD' : 2},
+                 'Pd' : {'OH' : 6, 'BD' : 2}}
 
 
 donor_atoms = ['P', 'N']
