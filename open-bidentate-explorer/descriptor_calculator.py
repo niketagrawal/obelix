@@ -186,9 +186,17 @@ class Descriptors:
             print('Bite angle calculation failed, defaulting to None.')
             dictionary["bite_angle"] = None
 
+        cone_angle_elements = elements
+        cone_angle_coordinates = coordinates
+        # if metal adduct is NBD, we can delete all auxillary ligands and calculate the cone angle
+        if metal_adduct == 'NBD':
+            # ToDo try this with a substructure search
+            cone_angle_elements = elements[:-15]
+            cone_angle_coordinates = coordinates[:-15]
+
         if geom_type == "BD" or geom_type == "SP":
             try:
-                dictionary["cone_angle"] = ConeAngle(elements, coordinates, metal_idx).cone_angle
+                dictionary["cone_angle"] = ConeAngle(cone_angle_elements, cone_angle_coordinates, metal_idx).cone_angle
             except Exception:
                 print('Cone angle calculation failed, defaulting to None.')
                 dictionary["cone_angle"] = None
@@ -206,8 +214,8 @@ class Descriptors:
             for id, i in enumerate(a):
                 if i == bidentate[0]:
                     diff = id
-            elements_cone_angle = elements[a]
-            coordinates_cone_angle = np.array(coordinates)[a]
+            elements_cone_angle = cone_angle_elements[a]
+            coordinates_cone_angle = np.array(cone_angle_coordinates)[a]
             if diff is not None:
                 try:
                     dictionary["cone_angle"] = ConeAngle(elements_cone_angle, coordinates_cone_angle,
