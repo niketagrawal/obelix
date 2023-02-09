@@ -179,53 +179,6 @@ class Descriptors:
         bidentate_1_idx = bidentate[1] + 1
         bidentate_2_idx = bidentate[2] + 1
 
-        # calculate steric descriptors
-        try:
-            dictionary["bite_angle"] = BiteAngle(coordinates, metal_idx, bidentate_1_idx,
-                                                 bidentate_2_idx).angle  # unit: degrees
-        except Exception:
-            print('Bite angle calculation failed, defaulting to None.')
-            dictionary["bite_angle"] = None
-
-        cone_angle_elements = elements
-        cone_angle_coordinates = coordinates
-        # if metal adduct is NBD, we can delete all auxillary ligands and calculate the cone angle
-        if metal_adduct.lower() == 'nbd':
-            # ToDo try this with a substructure search
-            cone_angle_elements = elements[:-15]
-            cone_angle_coordinates = coordinates[:-15]
-
-        if geom_type == "BD" or geom_type == "SP":
-            try:
-                dictionary["cone_angle"] = ConeAngle(cone_angle_elements, cone_angle_coordinates, metal_idx).cone_angle
-            except Exception:
-                print('Cone angle calculation failed, defaulting to None.')
-                dictionary["cone_angle"] = None
-        else:
-            try:
-                a = [bidentate[0]]
-                a.extend(ligand_atoms[bidentate[1]])
-                a = list(np.sort(np.array(a)))
-
-            except Exception:
-                print('Molecular graph search failed, defaulting to manual search.')
-                a = list(np.sort(np.array(bidentate)))
-
-            diff = None
-            for id, i in enumerate(a):
-                if i == bidentate[0]:
-                    diff = id
-            elements_cone_angle = cone_angle_elements[a]
-            coordinates_cone_angle = np.array(cone_angle_coordinates)[a]
-            if diff is not None:
-                try:
-                    dictionary["cone_angle"] = ConeAngle(elements_cone_angle, coordinates_cone_angle,
-                                                        diff + 1).cone_angle
-                except Exception:
-                    # unit: degrees
-                    print('Cone angle calculation failed, defaulting to None. For complex:', complex)
-                    dictionary["cone_angle"] = None
-
         # determine max or min donor based on xTB charge of the donor atoms
         xtb_functional = 2  # indicate whether GFN1 or GFN2 is used for electronic descriptors
         if xtb_functional == 1:
@@ -247,8 +200,20 @@ class Descriptors:
             bidentate_max_donor_idx = bidentate_2_idx
             bidentate_min_donor_idx = bidentate_1_idx
 
-        # by default no atoms are excluded from buried volume analysis
+        # write indices and elements of metal center, max donor, and min donor to dictionary
+        dictionary[f"index_{self.central_atom}"] = metal_idx
+        dictionary["index_donor_max"] = bidentate_max_donor_idx
+        dictionary["index_donor_min"] = bidentate_min_donor_idx
+        element_symbols = convert_elements(elements, output='symbols')
+        dictionary[f"element_{self.central_atom}"] = element_symbols[metal_idx - 1]
+        dictionary["element_donor_max"] = element_symbols[bidentate_max_donor_idx - 1]
+        dictionary["element_donor_min"] = element_symbols[bidentate_min_donor_idx - 1]
+
+        # by default no atoms are excluded from buried volume analysis and all elements are taken for cone angle analysis
         excluded_atoms = None
+        cone_angle_elements = elements
+        cone_angle_coordinates = coordinates
+        cone_angle_correct = True  # whether we can proceed with the cone angle calculation later or not
 
         # if the metal adduct is NBD we can do buried volume quadrant analysis, calculate dihedral angles and C=C bond lengths
         if metal_adduct.lower() == 'nbd':
@@ -259,7 +224,9 @@ class Descriptors:
             # dihedral angles
             carbon_back_nbd_idx = nbd_complex.check_nbd_back_carbon()
             hydrogens_bonded_to_carbon_back_nbd = nbd_complex.get_hydrogens_bonded_to_carbon_back_nbd()
+            # if this is not the case, it means that the NBD is not in the correct orientation in the complex
             if carbon_back_nbd_idx is not None and hydrogens_bonded_to_carbon_back_nbd is not None:
+                print('NBD found at end of xyz file, calculating stuff the easy way')
                 dictionary.update(
                     self._calculate_dihedral_angles_nbd_and_metal_donors(dictionary, metal_idx,
                                                                          bidentate_max_donor_idx,
@@ -267,26 +234,96 @@ class Descriptors:
                                                                          coordinates, carbon_back_nbd_idx,
                                                                          hydrogens_bonded_to_carbon_back_nbd))
 
-            # quadrant analysis
-            # z_axis_atom_index = carbon_back_nbd_idx
-            # if z_axis_atom_index is not None:  # if the NBD carbon is found it is safe to proceed
-            z_axis_atom_index = [bidentate_min_donor_idx, bidentate_max_donor_idx]  # the index in the log file is 0-based, but the index in morfeus is 1-based
-            xz_plane_atom_indices = [bidentate_max_donor_idx]
-            # exclude all nbd atoms from the quadrant analysis
-            # last 15 atoms are the nbd atoms, but indexing in morfeus is 1-based
-            nbd_indices = list(range(len(elements) - 15, len(elements) + 1))
-            excluded_atoms = nbd_indices
-            dictionary.update(
-                self._buried_volume_quadrant_analysis(elements, coordinates, dictionary, metal_idx,
-                                                      z_axis_atom_index, xz_plane_atom_indices, excluded_atoms))
-        # write indices and elements of metal center, max donor, and min donor to dictionary
-        dictionary[f"index_{self.central_atom}"] = metal_idx
-        dictionary["index_donor_max"] = bidentate_max_donor_idx
-        dictionary["index_donor_min"] = bidentate_min_donor_idx
-        element_symbols = convert_elements(elements, output='symbols')
-        dictionary[f"element_{self.central_atom}"] = element_symbols[metal_idx - 1]
-        dictionary["element_donor_max"] = element_symbols[bidentate_max_donor_idx - 1]
-        dictionary["element_donor_min"] = element_symbols[bidentate_min_donor_idx - 1]
+                # quadrant analysis
+                # z_axis_atom_index = carbon_back_nbd_idx
+                # if z_axis_atom_index is not None:  # if the NBD carbon is found it is safe to proceed
+                z_axis_atom_index = [bidentate_min_donor_idx, bidentate_max_donor_idx]  # the index in the log file is 0-based, but the index in morfeus is 1-based
+                xz_plane_atom_indices = [bidentate_max_donor_idx]
+                # exclude all nbd atoms from the quadrant analysis
+                # last 15 atoms are the nbd atoms, but indexing in morfeus is 1-based
+                nbd_indices = list(range(len(elements) - 15, len(elements) + 1))
+                excluded_atoms = nbd_indices
+                dictionary.update(
+                    self._buried_volume_quadrant_analysis(elements, coordinates, dictionary, metal_idx,
+                                                          z_axis_atom_index, xz_plane_atom_indices, excluded_atoms))
+
+                # if everything with NBD is fine, we can delete all auxillary ligands and calculate the cone angle
+                cone_angle_correct = True
+                cone_angle_elements = elements[:-15]
+                cone_angle_coordinates = coordinates[:-15]
+
+            elif carbon_back_nbd_idx is None and hydrogens_bonded_to_carbon_back_nbd is None:
+                print('NBD not found at end of xyz file, calculating stuff the hard way')
+                carbon_back_nbd_and_hydrogens_idx = nbd_complex.find_central_carbon_and_hydrogens_nbd_openbabel()
+                if carbon_back_nbd_and_hydrogens_idx is not None:
+                    carbon_back_nbd_idx = carbon_back_nbd_and_hydrogens_idx[0]
+                    hydrogens_bonded_to_carbon_back_nbd = [carbon_back_nbd_and_hydrogens_idx[1], carbon_back_nbd_and_hydrogens_idx[2]]
+                    # try molsimplify + openbabel approach for identifying the NBD
+                    dictionary.update(
+                        self._calculate_dihedral_angles_nbd_and_metal_donors(dictionary, metal_idx,
+                                                                             bidentate_max_donor_idx,
+                                                                             bidentate_min_donor_idx, elements,
+                                                                             coordinates, carbon_back_nbd_idx,
+                                                                             hydrogens_bonded_to_carbon_back_nbd))
+
+                    # quadrant analysis
+                    # z_axis_atom_index = carbon_back_nbd_idx
+                    # if z_axis_atom_index is not None:  # if the NBD carbon is found it is safe to proceed
+                    z_axis_atom_index = [bidentate_min_donor_idx,
+                                         bidentate_max_donor_idx]  # the index in the log file is 0-based, but the index in morfeus is 1-based
+                    xz_plane_atom_indices = [bidentate_max_donor_idx]
+                    # exclude all nbd atoms from the quadrant analysis
+                    # last 15 atoms are the nbd atoms, but indexing in morfeus is 1-based
+                    nbd_indices = list(range(len(elements) - 15, len(elements) + 1))
+                    excluded_atoms = nbd_indices
+                    dictionary.update(
+                        self._buried_volume_quadrant_analysis(elements, coordinates, dictionary, metal_idx,
+                                                              z_axis_atom_index, xz_plane_atom_indices, excluded_atoms))
+            cone_angle_correct = False  # ToDo: fix nbd_complex.find_nbd_openbabel() such that we can remove NBD for cone angle calculation
+
+
+        # calculate steric descriptors
+        try:
+            dictionary["bite_angle"] = BiteAngle(coordinates, metal_idx, bidentate_1_idx,
+                                                 bidentate_2_idx).angle  # unit: degrees
+        except Exception:
+            print('Bite angle calculation failed, defaulting to None.')
+            dictionary["bite_angle"] = None
+        if cone_angle_correct:
+            if geom_type == "BD" or geom_type == "SP":
+                try:
+                    dictionary["cone_angle"] = ConeAngle(cone_angle_elements, cone_angle_coordinates,
+                                                         metal_idx).cone_angle
+                except Exception:
+                    print('Cone angle calculation failed, defaulting to None.')
+                    dictionary["cone_angle"] = None
+            else:
+                try:
+                    a = [bidentate[0]]
+                    a.extend(ligand_atoms[bidentate[1]])
+                    a = list(np.sort(np.array(a)))
+
+                except Exception:
+                    print('Molecular graph search failed, defaulting to manual search.')
+                    a = list(np.sort(np.array(bidentate)))
+
+                diff = None
+                for id, i in enumerate(a):
+                    if i == bidentate[0]:
+                        diff = id
+                elements_cone_angle = cone_angle_elements[a]
+                coordinates_cone_angle = np.array(cone_angle_coordinates)[a]
+                if diff is not None:
+                    try:
+                        dictionary["cone_angle"] = ConeAngle(elements_cone_angle, coordinates_cone_angle,
+                                                             diff + 1).cone_angle
+                    except Exception:
+                        # unit: degrees
+                        print('Cone angle calculation failed, defaulting to None. For complex:', complex)
+                        dictionary["cone_angle"] = None
+
+        else:
+            dictionary["cone_angle"] = None
 
         # calculate distances between metal and donors, units: angstrom
         dictionary[f"distance_{self.central_atom}_max_donor_{self.output_type.lower()}"] = calculate_distance(coordinates[metal_idx - 1], coordinates[bidentate_max_donor_idx - 1])

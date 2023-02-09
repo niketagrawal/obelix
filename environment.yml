@@ -24,4 +24,4 @@ dependencies:
   - typing-extensions
   - epic-mace==0.4.0
   - --editable "./open-bidentate-explorer/install/chemspax/"
-  
+  - -editable --no-deps "./open-bidentate-explorer/install/molSimplify/"

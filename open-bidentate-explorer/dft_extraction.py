@@ -12,6 +12,12 @@ from morfeus.io import read_cclib, get_xyz_string, read_xyz
 from morfeus.utils import convert_elements
 import cclib
 from cclib.parser import ccopen
+import rdkit
+from rdkit import Chem
+from rdkit.Chem import AllChem
+from openbabel import openbabel
+
+from molSimplify.Classes.mol3D import mol3D
 
 
 class NBDComplex(object):
@@ -26,10 +32,101 @@ class NBDComplex(object):
         for coord in coordinates:
             self.xyz_string = get_xyz_string(convert_elements(self.elements, 'symbols'), coord)
 
+    def find_nbd_indices_openbabel(self):
+        # ToDo: fix this function such that it returns correct indices
+        # Create an Open Babel molecule object from the XYZ string
+        # mol = openbabel.OBMol()
+        # openbabel.OBConversion().ReadString(mol, self.xyz_string)
+        # use molsimplify to load the molecule
+        mol = mol3D()
+        mol.readfromstring(self.xyz_string)
+        mol.convert2OBMol()
+        mol = mol.OBMol
+
+        # Define the SMILES string for norbornadiene
+        norbornadiene_smiles = "C1C2CCC1CC2"
+
+        # Generate the Open Babel molecule object for norbornadiene
+        norbornadiene = openbabel.OBMol()
+        openbabel.OBConversion().ReadString(norbornadiene, norbornadiene_smiles)
+
+        # Find all instances of norbornadiene in the molecule
+        norbornadiene_smarts = openbabel.OBSmartsPattern()
+        norbornadiene_smarts.Init(norbornadiene_smiles)
+        matches = norbornadiene_smarts.Match(mol)
+
+        if matches:
+            for match in norbornadiene_smarts.GetUMapList():
+                return [m - 1 for m in match]
+        else:
+            # Define different SMILES string for norbornadiene
+            norbornadiene_smiles = "C1C2C=CC1C=C2"
+
+            # Generate the Open Babel molecule object for norbornadiene
+            norbornadiene = openbabel.OBMol()
+            openbabel.OBConversion().ReadString(norbornadiene, norbornadiene_smiles)
+
+            # Find all instances of norbornadiene in the molecule
+            norbornadiene_smarts = openbabel.OBSmartsPattern()
+            norbornadiene_smarts.Init(norbornadiene_smiles)
+            matches = norbornadiene_smarts.Match(mol)
+            if matches:
+                for match in norbornadiene_smarts.GetUMapList():
+                    return [m - 1 for m in match]
+
+    def find_central_carbon_and_hydrogens_nbd_openbabel(self):
+        # Create an Open Babel molecule object from the XYZ string
+        # mol = openbabel.OBMol()
+        # openbabel.OBConversion().ReadString(mol, self.xyz_string)
+        # use molsimplify to load the molecule
+        mol = mol3D()
+        mol.readfromstring(self.xyz_string)
+        mol.convert2OBMol()
+        mol = mol.OBMol
+
+        # Define the SMILES string for norbornadiene
+        norbornadiene_smiles = "C1C2CCC1CC2"
+
+        # Generate the Open Babel molecule object for norbornadiene
+        norbornadiene = openbabel.OBMol()
+        openbabel.OBConversion().ReadString(norbornadiene, norbornadiene_smiles)
+
+        # Find all instances of norbornadiene in the molecule
+        norbornadiene_smarts = openbabel.OBSmartsPattern()
+        norbornadiene_smarts.Init(norbornadiene_smiles)
+        matches = norbornadiene_smarts.Match(mol)
+
+        if matches:
+            for match in norbornadiene_smarts.GetUMapList():
+                for m_index in match:
+                    hydrogen_indices = get_bonded_atoms(self.xyz_string, m_index - 1, 1)
+                    if len(hydrogen_indices) == 2:
+                        return [m_index - 1, hydrogen_indices[0][1] - 1, hydrogen_indices[1][1] - 1]
+        else:
+            # Define different SMILES string for norbornadiene
+            norbornadiene_smiles = "C1C2C=CC1C=C2"
+
+            # Generate the Open Babel molecule object for norbornadiene
+            norbornadiene = openbabel.OBMol()
+            openbabel.OBConversion().ReadString(norbornadiene, norbornadiene_smiles)
+
+            # Find all instances of norbornadiene in the molecule
+            norbornadiene_smarts = openbabel.OBSmartsPattern()
+            norbornadiene_smarts.Init(norbornadiene_smiles)
+            matches = norbornadiene_smarts.Match(mol)
+            if matches:
+                for match in norbornadiene_smarts.GetUMapList():
+                    for m_index in match:
+                        hydrogen_indices = get_bonded_atoms(self.xyz_string, m_index - 1, 1)
+                        if len(hydrogen_indices) == 2:
+                            return [m_index - 1, hydrogen_indices[0][1] - 1, hydrogen_indices[1][1] - 1]
+
     def check_nbd_back_carbon(self):
         # ToDo: build some more checks in here before returning the idx
-        if len(self.get_hydrogens_bonded_to_carbon_back_nbd()) == 2:
-            return self.carbon_back_nbd_idx
+        hydrogens_bonded_to_carbon_back_nbd = self.get_hydrogens_bonded_to_carbon_back_nbd()
+        if hydrogens_bonded_to_carbon_back_nbd is not None:
+            if len(hydrogens_bonded_to_carbon_back_nbd) == 2:
+                return self.carbon_back_nbd_idx
         return None
 
     def get_hydrogens_bonded_to_carbon_back_nbd(self):
@@ -463,8 +560,12 @@ if __name__ == '__main__':
         geom_type = 'BD'
         ligand_atoms, bidentate = molecular_graph(elements=elements, coords=coordinates, geom=geom_type)
         dft = DFTExtractor(complex, bidentate[0] + 1, bidentate[1] + 1, bidentate[2] + 1, metal_adduct='nbd')
-        print(dft.check_nbd_back_carbon())
-        print(dft.get_hydrogens_bonded_to_carbon_back_nbd())
+        # print(dft.check_nbd_back_carbon())
+        # print(dft.get_hydrogens_bonded_to_carbon_back_nbd())
+        nbd_complex = NBDComplex(elements, coordinates, complex)
+        # print(nbd_complex.find_central_carbon_nbd_rdkit())
+        print(nbd_complex.find_central_carbon_and_hydrogens_nbd_openbabel())
+        print(nbd_complex.find_nbd_indices_openbabel())
         # print(dft.extract_thermodynamic_descriptors())
         # print(dft.calculate_min_donor_metal_orbital_occupation(), dft.calculate_min_donor_metal_anti_orbital_occupation())
         # print(dft.calculate_max_donor_metal_orbital_occupation(), dft.calculate_max_donor_metal_anti_orbital_occupation())
