@@ -17,7 +17,7 @@ from rdkit import Chem
 from rdkit.Chem import AllChem
 from openbabel import openbabel
 
-from molSimplify.Classes.mol3D import mol3D
+# from molSimplify.Classes.mol3D import mol3D  # ToDo: method for finding NBD indices using molsimplify
 
 
 class NBDComplex(object):
@@ -35,13 +35,13 @@ class NBDComplex(object):
     def find_nbd_indices_openbabel(self):
         # ToDo: fix this function such that it returns correct indices
         # Create an Open Babel molecule object from the XYZ string
-        # mol = openbabel.OBMol()
-        # openbabel.OBConversion().ReadString(mol, self.xyz_string)
+        mol = openbabel.OBMol()
+        openbabel.OBConversion().ReadString(mol, self.xyz_string)
         # use molsimplify to load the molecule
-        mol = mol3D()
-        mol.readfromstring(self.xyz_string)
-        mol.convert2OBMol()
-        mol = mol.OBMol
+        # mol = mol3D()
+        # mol.readfromstring(self.xyz_string)
+        # mol.convert2OBMol()
+        # mol = mol.OBMol
 
         # Define the SMILES string for norbornadiene
         norbornadiene_smiles = "C1C2CCC1CC2"
@@ -76,13 +76,13 @@ class NBDComplex(object):
 
     def find_central_carbon_and_hydrogens_nbd_openbabel(self):
         # Create an Open Babel molecule object from the XYZ string
-        # mol = openbabel.OBMol()
-        # openbabel.OBConversion().ReadString(mol, self.xyz_string)
+        mol = openbabel.OBMol()
+        openbabel.OBConversion().ReadString(mol, self.xyz_string)
         # use molsimplify to load the molecule
-        mol = mol3D()
-        mol.readfromstring(self.xyz_string)
-        mol.convert2OBMol()
-        mol = mol.OBMol
+        # mol = mol3D()
+        # mol.readfromstring(self.xyz_string)
+        # mol.convert2OBMol()
+        # mol = mol.OBMol
 
         # Define the SMILES string for norbornadiene
         norbornadiene_smiles = "C1C2CCC1CC2"

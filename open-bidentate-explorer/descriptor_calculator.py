@@ -12,6 +12,7 @@ from morfeus.io import read_cclib, write_xyz
 from morfeus.utils import convert_elements
 import numpy as np
 import pandas as pd
+from tqdm import tqdm
 
 from molecular_graph import molecular_graph
 from tools.utilities import dataframe_from_dictionary, calculate_distance, calculate_dihedral
@@ -67,6 +68,7 @@ class Descriptors:
         """
         Calculate the distance between the double bonds that pi coordinate to the metal in a NBD geometry
         """
+        elements = convert_elements(elements, 'symbols')
         # indexing for all nbd structures is the same, so we can use the same indices for all
         coordinates_c1 = coordinates[-6]
         coordinates_c2 = coordinates[-9]
@@ -90,6 +92,7 @@ class Descriptors:
 
     @ staticmethod
     def _calculate_dihedral_angles_nbd_and_metal_donors(dictionary, metal_idx, bidentate_max_donor_idx, bidentate_min_donor_idx, elements, coordinates, central_carbon_nbd_idx, hydrogens_bonded_to_carbon_back_nbd_idxs):
+        elements = convert_elements(elements, 'symbols')
         metal_idx = metal_idx - 1
         bidentate_min_donor_idx = bidentate_min_donor_idx - 1
         bidentate_max_donor_idx = bidentate_max_donor_idx - 1
@@ -272,10 +275,7 @@ class Descriptors:
                     z_axis_atom_index = [bidentate_min_donor_idx,
                                          bidentate_max_donor_idx]  # the index in the log file is 0-based, but the index in morfeus is 1-based
                     xz_plane_atom_indices = [bidentate_max_donor_idx]
-                    # exclude all nbd atoms from the quadrant analysis
-                    # last 15 atoms are the nbd atoms, but indexing in morfeus is 1-based
-                    nbd_indices = list(range(len(elements) - 15, len(elements) + 1))
-                    excluded_atoms = nbd_indices
+                    # exclude all nbd atoms from the quadrant analysis # ToDo: fix nbd_complex.find_nbd_openbabel() such that we can remove NBD for quadrant analysis
                     dictionary.update(
                         self._buried_volume_quadrant_analysis(elements, coordinates, dictionary, metal_idx,
                                                               z_axis_atom_index, xz_plane_atom_indices, excluded_atoms))
@@ -518,7 +518,7 @@ class Descriptors:
             dictionary_for_properties = {}
 
             # try:
-            for metal_ligand_complex in complexes_to_calc_descriptors:
+            for metal_ligand_complex in tqdm(complexes_to_calc_descriptors):
                 properties = {}
 
                 base_with_extension = os.path.basename(metal_ligand_complex)
@@ -545,7 +545,7 @@ class Descriptors:
         elif self.output_type.lower() == 'crest':
             complexes_to_calc_descriptors = glob.glob(os.path.join(self.path_to_workflow, 'CREST', '*'))
             dictionary_for_conformer_properties = {}
-            for complex in complexes_to_calc_descriptors:
+            for complex in tqdm(complexes_to_calc_descriptors):
                 conformer_properties = {}
                 ce = None
                 filename = os.path.basename(os.path.normpath(complex))
@@ -608,7 +608,7 @@ class Descriptors:
         dictionary_for_properties = {}
 
         # first calculate morfeus descriptors in same way as for xyz files using cclib
-        for metal_ligand_complex in complexes_to_calc_descriptors:
+        for metal_ligand_complex in tqdm(complexes_to_calc_descriptors):
             properties = {}
             base_with_extension = os.path.basename(metal_ligand_complex)
             split_base = os.path.splitext(base_with_extension)
