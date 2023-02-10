@@ -21,6 +21,9 @@ from openbabel import openbabel
 
 
 class NBDComplex(object):
+    """
+    Class for representing a M-NBD complex.
+    """
     def __init__(self, elements, coordinates, filename):
         self.elements = elements
         self.coordinates = coordinates
@@ -33,6 +36,14 @@ class NBDComplex(object):
             self.xyz_string = get_xyz_string(convert_elements(self.elements, 'symbols'), coord)
 
     def find_nbd_indices_openbabel(self):
+        """
+        NBD is normally at the bottom of the xyz/log file and has 15 atoms. But if this is not the case we
+        want to find the indices of the NBD atoms. This substructure search is done using Open Babel.
+        openbabel or RDKit representaiton of the M-NBD complex unfortunately does not work, so molsimplify can be used
+        in the future. This is WIP.
+
+        :return:
+        """
         # ToDo: fix this function such that it returns correct indices
         # Create an Open Babel molecule object from the XYZ string
         mol = openbabel.OBMol()
@@ -75,6 +86,15 @@ class NBDComplex(object):
                     return [m - 1 for m in match]
 
     def find_central_carbon_and_hydrogens_nbd_openbabel(self):
+        """
+        NBD is normally at the bottom of the xyz/log file and has 15 atoms. But if this is not the case we
+        want to find the indices of the NBD atoms. This substructure search is done using Open Babel. In this
+        substructre we can then find the central carbon and the two hydrogens bonded to it.
+        openbabel or RDKit representaiton of the M-NBD complex unfortunately does not work, so molsimplify can be used
+        in the future. This is WIP.
+
+        :return:
+        """
         # Create an Open Babel molecule object from the XYZ string
         mol = openbabel.OBMol()
         openbabel.OBConversion().ReadString(mol, self.xyz_string)
@@ -122,6 +142,11 @@ class NBDComplex(object):
                             return [m_index - 1, hydrogen_indices[0][1] - 1, hydrogen_indices[1][1] - 1]
 
     def check_nbd_back_carbon(self):
+        """
+        Check if the carbon atom at the back of the NBD is bonded to two hydrogens. If so, return the index of the carbon
+
+        :return:
+        """
         # ToDo: build some more checks in here before returning the idx
         hydrogens_bonded_to_carbon_back_nbd = self.get_hydrogens_bonded_to_carbon_back_nbd()
         if hydrogens_bonded_to_carbon_back_nbd is not None:
@@ -130,6 +155,11 @@ class NBDComplex(object):
         return None
 
     def get_hydrogens_bonded_to_carbon_back_nbd(self):
+        """
+        Get the indices of the two hydrogens bonded to the carbon in the back of the NBD molecule.
+
+        :return:
+        """
         # get the hydrogen indices
         hydrogen_indices = get_bonded_atoms(self.xyz_string, int(self.carbon_back_nbd_idx), 1)  # 1 is the hydrogen atom
         # this gives a list of atomic number and index, we only want the index
@@ -141,6 +171,10 @@ class NBDComplex(object):
 
 
 class DFTExtractor(object):
+    """
+    Extracts data from a Gaussian log file using cclib. This class is used to extract the data from the log file and
+    return the values. These are then correctly formatted and parsed in descriptor_calculator.py
+    """
     def __init__(self, log_file, metal_center_idx, min_donor_idx, max_donor_idx, metal_adduct='pristine'):
         self.log_file = log_file
 

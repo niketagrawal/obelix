@@ -36,11 +36,31 @@ class Descriptors:
 
     @staticmethod
     def _find_bidentate_ligand(elements, coordinates, geom_type):
+        """
+        Graph-based approach used to find the bidentate ligand in a complex. This method returns all auxillary ligand
+        atoms and the bidentate ligand atoms. For now we only use the bidentate ligand atoms.
+
+        :param elements:
+        :param coordinates:
+        :param geom_type:
+        :return:
+        """
         ligand_atoms, bidentate = molecular_graph(elements=elements, coords=coordinates, geom=geom_type)
         return ligand_atoms, bidentate
 
     @staticmethod
     def _buried_volume_quadrant_analysis(elements, coordinates, dictionary, metal_idx, z_axis_atoms, xz_plane_atoms, excluded_atoms=None):
+        """
+        Calculate the buried volume for the 4 quadrants and 8 octants (positive Z direction) of the bidentate ligand.
+        :param elements:
+        :param coordinates:
+        :param dictionary:
+        :param metal_idx:
+        :param z_axis_atoms:
+        :param xz_plane_atoms:
+        :param excluded_atoms:
+        :return:
+        """
         buried_volume_for_quad_oct = BuriedVolume(elements, coordinates, metal_idx,
                                                   z_axis_atoms=z_axis_atoms,
                                                   xz_plane_atoms=xz_plane_atoms,
@@ -66,7 +86,13 @@ class Descriptors:
     @ staticmethod
     def _calculate_c_c_distance_nbd(elements, coordinates, dictionary):
         """
-        Calculate the distance between the double bonds that pi coordinate to the metal in a NBD geometry
+        Calculate the distance between the double bonds that pi coordinate to the metal in a NBD geometry.
+        In this case the NBD geometry was predefined and the indices are known. (always at the bottom of the file)
+
+        :param elements:
+        :param coordinates:
+        :param dictionary:
+        :return:
         """
         elements = convert_elements(elements, 'symbols')
         # indexing for all nbd structures is the same, so we can use the same indices for all
@@ -92,6 +118,20 @@ class Descriptors:
 
     @ staticmethod
     def _calculate_dihedral_angles_nbd_and_metal_donors(dictionary, metal_idx, bidentate_max_donor_idx, bidentate_min_donor_idx, elements, coordinates, central_carbon_nbd_idx, hydrogens_bonded_to_carbon_back_nbd_idxs):
+        """
+        Calculate the H-C-M-P dihedral angles for the NBD geometry. In this case the NBD geometry was predefined and the
+        indices are known. (always at the bottom of the file)
+
+        :param dictionary:
+        :param metal_idx:
+        :param bidentate_max_donor_idx:
+        :param bidentate_min_donor_idx:
+        :param elements:
+        :param coordinates:
+        :param central_carbon_nbd_idx:
+        :param hydrogens_bonded_to_carbon_back_nbd_idxs:
+        :return:
+        """
         elements = convert_elements(elements, 'symbols')
         metal_idx = metal_idx - 1
         bidentate_min_donor_idx = bidentate_min_donor_idx - 1
@@ -157,6 +197,13 @@ class Descriptors:
         return dictionary
 
     def _merge_descriptor_dfs(self, old_descriptor_df, new_descriptor_df):
+        """
+        When self.descriptor_df is not None, the new descriptor df needs to be merged with the old one
+
+        :param old_descriptor_df:
+        :param new_descriptor_df:
+        :return:
+        """
         old_descriptor_df = old_descriptor_df.merge(new_descriptor_df, on=['filename_tud',
                                                                             f"index_{self.central_atom}",
                                                                             "index_donor_max",
@@ -168,13 +215,30 @@ class Descriptors:
 
     def set_output_type(self, new_output_type):
         """
-        Set the output type of the descriptor calculator. This is used to determine how to read the files
+        Set the output type of the descriptor calculator. In this way you can calculate descriptors on CREST output
+        first and the xtb xyz's afterwards (or other way around).
+
+        :param new_output_type:
+        :return:
         """
         if new_output_type not in self.supported_output_types:
             raise ValueError(f'Output type {new_output_type} not supported. Please choose from {self.supported_output_types}.')
         self.output_type = new_output_type
 
     def _calculate_steric_electronic_desc_morfeus(self, geom_type, solvent, dictionary, elements, coordinates, filename, metal_adduct='pristine'):
+        """
+        Calculate all steric and electronic descriptors that can be calculated using Morfeus. For NBD ligands,
+        there are additional descriptors that can be calculated.
+
+        :param geom_type:
+        :param solvent:
+        :param dictionary:
+        :param elements:
+        :param coordinates:
+        :param filename:
+        :param metal_adduct:
+        :return:
+        """
         ligand_atoms, bidentate = self._find_bidentate_ligand(elements, coordinates, geom_type)
         # first index is the metal, second index is the bidentate ligand 1, third index is the bidentate ligand 2
         # morfeus indices start at 1, so add 1 to the indices
@@ -376,6 +440,17 @@ class Descriptors:
         return dictionary, metal_idx, bidentate_max_donor_idx, bidentate_min_donor_idx
 
     def _calculate_dft_descriptors_from_log(self, log_file, metal_idx, bidentate_max_donor_idx, bidentate_min_donor_idx, dictionary, metal_adduct):
+        """
+        Calculate descriptors from DFT log file using the DFTExtractor class.
+
+        :param log_file:
+        :param metal_idx:
+        :param bidentate_max_donor_idx:
+        :param bidentate_min_donor_idx:
+        :param dictionary:
+        :param metal_adduct:
+        :return:
+        """
         dft = DFTExtractor(log_file, metal_idx, bidentate_min_donor_idx, bidentate_max_donor_idx, metal_adduct)
         successful_dft_optimization = dft.check_normal_termination()
         dictionary["optimization_success_dft"] = successful_dft_optimization
@@ -507,6 +582,16 @@ class Descriptors:
         return dictionary
 
     def calculate_morfeus_descriptors(self, geom_type, solvent=None, printout=False, metal_adduct='pristine'):
+        """
+        Function that creates the dictionary for descriptor calculation using Morfeus and performs the right actions
+        based on the output type. For CREST ensembles, the descriptors are boltzmann weighted and averaged.
+
+        :param geom_type:
+        :param solvent:
+        :param printout:
+        :param metal_adduct:
+        :return:
+        """
         if self.output_type.lower() == 'xyz':
             complexes_to_calc_descriptors = glob.glob(os.path.join(self.path_to_workflow, '*.xyz'))
             dictionary_for_properties = {}
@@ -593,6 +678,18 @@ class Descriptors:
             raise ValueError(f'Output type {self.output_type()} not supported. Please choose from {self.supported_output_types}.')
 
     def calculate_dft_descriptors_from_log(self, geom_type, solvent=None, extract_xyz_from_log=False, printout=False, metal_adduct='pristine'):
+        """
+        Function that creates the dictionary and descriptor dataframe for the DFT descriptors. These descriptors are calculated
+        from the log files of the DFT calculations. The log files are parsed using the cclib package. The descriptors are
+        calculated using either the Morfeus package or extracted from the log files.
+
+        :param geom_type:
+        :param solvent:
+        :param extract_xyz_from_log:
+        :param printout:
+        :param metal_adduct:
+        :return:
+        """
         supported_metal_adducts = ['pristine', 'acetonitrile', 'nbd']  # norbornadiene is placed at bottom of xyz file, so it is a useful pointer for quadrant analysis
         if metal_adduct.lower() not in supported_metal_adducts:
             raise ValueError(f"Metal adduct {metal_adduct} not supported. Please choose from {supported_metal_adducts}.")
@@ -648,17 +745,20 @@ class Descriptors:
 
 
 if __name__ == "__main__":
-    # descriptors = Descriptors(central_atom='Rh', path_to_workflow=os.path.join(os.getcwd(), 'Workflow'), output_type='xyz')
-    # descriptors.calculate_morfeus_descriptors(geom_type='BD')
-    # descriptors.descriptor_df.to_csv('descriptors.csv', index=False)
+    # example descriptor calculation for xyz files with NBD adduct in obelix/Workflow folder
+    descriptors = Descriptors(central_atom='Rh', path_to_workflow=os.path.join(os.getcwd(), 'Workflow'), output_type='xyz')
+    descriptors.calculate_morfeus_descriptors(geom_type='BD', solvent=None, printout=False, metal_adduct='nbd')
+    descriptors.descriptor_df.to_csv('descriptors.csv', index=False)
 
+    # the descriptors can also be calculated for 2 output types and merged into one dataframe as per example below
     # conformer_descriptors = Descriptors(central_atom='Rh', path_to_workflow=os.path.join(os.getcwd(), 'Workflow'), output_type='crest')
-    # conformer_descriptors.calculate_morfeus_descriptors(geom_type='BD')
+    # conformer_descriptors.calculate_morfeus_descriptors(geom_type='BD', solvent=None, printout=False, metal_adduct='pristine')
     # conformer_descriptors.descriptor_df.to_csv('conformer_descriptors.csv', index=False)
     # conformer_descriptors.set_output_type('xyz')
-    # conformer_descriptors.calculate_morfeus_descriptors(geom_type='BD')
+    # conformer_descriptors.calculate_morfeus_descriptors(geom_type='BD', solvent=None, printout=False, metal_adduct='pristine')
     # conformer_descriptors.descriptor_df.to_csv('conformer_descriptors', index=False)
 
+    # example descriptor calculation for log files with NBD adduct
     dft_descriptors = Descriptors(central_atom='Rh', path_to_workflow=os.path.join(os.getcwd(), 'Workflow'), output_type='gaussian')
     dft_descriptors.calculate_dft_descriptors_from_log(geom_type='BD', solvent=None, extract_xyz_from_log=True, printout=False, metal_adduct='nbd')
     dft_descriptors.descriptor_df.to_csv('DFT_descriptors.csv', index=False)
