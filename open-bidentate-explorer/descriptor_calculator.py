@@ -213,7 +213,13 @@ class Descriptors:
         dictionary["element_donor_min"] = element_symbols[bidentate_min_donor_idx - 1]
 
         # by default no atoms are excluded from buried volume analysis and all elements are taken for cone angle analysis
+        # parameters for quadrant analysis
         excluded_atoms = None
+        z_axis_atom_index = [bidentate_min_donor_idx,
+                             bidentate_max_donor_idx]  # the index in the log file is 0-based, but the index in morfeus is 1-based
+        xz_plane_atom_indices = [bidentate_max_donor_idx]
+
+        # parameters for cone angle
         cone_angle_elements = elements
         cone_angle_coordinates = coordinates
         cone_angle_correct = True  # whether we can proceed with the cone angle calculation later or not
@@ -237,18 +243,11 @@ class Descriptors:
                                                                          coordinates, carbon_back_nbd_idx,
                                                                          hydrogens_bonded_to_carbon_back_nbd))
 
-                # quadrant analysis
-                # z_axis_atom_index = carbon_back_nbd_idx
-                # if z_axis_atom_index is not None:  # if the NBD carbon is found it is safe to proceed
-                z_axis_atom_index = [bidentate_min_donor_idx, bidentate_max_donor_idx]  # the index in the log file is 0-based, but the index in morfeus is 1-based
-                xz_plane_atom_indices = [bidentate_max_donor_idx]
+                # quadrant analysis parameters
                 # exclude all nbd atoms from the quadrant analysis
                 # last 15 atoms are the nbd atoms, but indexing in morfeus is 1-based
                 nbd_indices = list(range(len(elements) - 15, len(elements) + 1))
                 excluded_atoms = nbd_indices
-                dictionary.update(
-                    self._buried_volume_quadrant_analysis(elements, coordinates, dictionary, metal_idx,
-                                                          z_axis_atom_index, xz_plane_atom_indices, excluded_atoms))
 
                 # if everything with NBD is fine, we can delete all auxillary ligands and calculate the cone angle
                 cone_angle_correct = True
@@ -269,18 +268,13 @@ class Descriptors:
                                                                              coordinates, carbon_back_nbd_idx,
                                                                              hydrogens_bonded_to_carbon_back_nbd))
 
-                    # quadrant analysis
-                    # z_axis_atom_index = carbon_back_nbd_idx
-                    # if z_axis_atom_index is not None:  # if the NBD carbon is found it is safe to proceed
-                    z_axis_atom_index = [bidentate_min_donor_idx,
-                                         bidentate_max_donor_idx]  # the index in the log file is 0-based, but the index in morfeus is 1-based
-                    xz_plane_atom_indices = [bidentate_max_donor_idx]
-                    # exclude all nbd atoms from the quadrant analysis # ToDo: fix nbd_complex.find_nbd_openbabel() such that we can remove NBD for quadrant analysis
-                    dictionary.update(
-                        self._buried_volume_quadrant_analysis(elements, coordinates, dictionary, metal_idx,
-                                                              z_axis_atom_index, xz_plane_atom_indices, excluded_atoms))
-            cone_angle_correct = False  # ToDo: fix nbd_complex.find_nbd_openbabel() such that we can remove NBD for cone angle calculation
+                    # quadrant analysis parameters
+                    # ToDo: fix nbd_complex.find_nbd_openbabel() such that we can remove NBD for quadrant analysis
+                cone_angle_correct = False  # ToDo: fix nbd_complex.find_nbd_openbabel() such that we can remove NBD for cone angle calculation
 
+        dictionary.update(
+            self._buried_volume_quadrant_analysis(elements, coordinates, dictionary, metal_idx,
+                                                  z_axis_atom_index, xz_plane_atom_indices, excluded_atoms))
 
         # calculate steric descriptors
         try:
