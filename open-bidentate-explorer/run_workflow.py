@@ -12,7 +12,7 @@ import subprocess
 import morfeus as mf
 from morfeus.conformer import ConformerEnsemble
 from morfeus import BiteAngle, ConeAngle, BuriedVolume, Dispersion, SASA, read_xyz
-from xtb.utils import get_method
+# from xtb.utils import get_method
 import pandas as pd
 from openbabel import openbabel
 from molecular_graph import molecular_graph
@@ -146,12 +146,13 @@ class MACE:
             
 
 class Workflow:
-    def __init__(self, mace_input = [], chemspax_input = [], crest_input = [], path_to_workflow = [], geom='SP'):
+    def __init__(self, mace_input=[], chemspax_input=[], crest_input=[], path_to_workflow=[], descriptor_calculator_input=[], geom='SP'):
         
         self.mace_input = mace_input
         self.chemspax_input = chemspax_input
         self.crest_input = crest_input
         self.path_to_workflow = path_to_workflow
+        self.descriptor_calculator_input = descriptor_calculator_input
 
         self.bidentate_1_index = None
         self.bidentate_2_index = None
@@ -161,12 +162,15 @@ class Workflow:
         print('Workflow is initializing. Converting your dict. input to variables.')
         print('')
         self.geom = geom
+        self.solvent = None
         if mace_input != []:  
           self.mace_ligands, self.auxiliary_ligands, self.geom, self.central_atom, self.names_of_xyz, self.substrate = self.initialize_mace()
         if chemspax_input != []:        
           self.substituent_list, self.path_to_database, self.path_to_substituents = self.initialize_chemspax()
         if crest_input != []:
           self.method, self.charge_of_complex, self.multiplicity, self.solvent, self.conf_search = self.initialize_crest()
+        if descriptor_calculator_input != []:
+            self.descriptor_central_atom, self.descriptor_metal_adduct, self.descriptor_output_type, self.extract_xyz_from_log, self.descriptor_printout, self.descriptor_solvent = self.initialize_descriptor_calculator()
               
     def initialize_mace(self):
         print('Reading MACE inputs')
@@ -198,7 +202,18 @@ class Workflow:
         solvent = self.crest_input['solvent']
         conf_search = self.crest_input['conformer_search']
         return method, charge_of_complex, multiplicity, solvent, conf_search
-        
+
+    def initialize_descriptor_calculator(self):
+        print('Reading Descriptor Calculator inputs.')
+        descriptor_central_atom = self.descriptor_calculator_input['central_atom']
+        descriptor_metal_adduct = self.descriptor_calculator_input['metal_adduct']
+        descriptor_output_type = self.descriptor_calculator_input['output_type']
+        extract_xyz_from_log = self.descriptor_calculator_input['extract_xyz_from_log']
+        descriptor_printout = self.descriptor_calculator_input['descriptor_printout']
+        descriptor_solvent = self.descriptor_calculator_input['solvent']
+
+        return descriptor_central_atom, descriptor_metal_adduct, descriptor_output_type, extract_xyz_from_log, descriptor_printout, descriptor_solvent
+
     def prepare_folder_structure(self):
         
         print('Preparing the folder structure')
@@ -353,20 +368,41 @@ class Workflow:
         
         os.chdir(self.path_to_workflow)
             
-    def calculate_descriptors(self, solvent=None, output_type='xyz'):
-        
+    def calculate_descriptors(self):
         """
-        
-        This function calculates descriptors using the Descriptor class
-        
+        This function uses the Descriptor class to calculate descriptors for xyz, CREST or log files. The output_type
+        is used to determine which descriptors are calculated. The extract_xyz_from_log is used to extract the xyz
+        coordinates from the log file. The printout is used to print the descriptors to the screen.
+
+        By default, self.path_to_workflow is used as the path for the files to be read in.
+        (so obelix/Workflow)
+
+        :param metal_adduct: pristine, nbd are fully supported, acetonitrile is WIP
+        :param output_type: xyz, crest or gaussian
+        :param extract_xyz_from_log: True or False (only used for descriptors from gaussian output)
+        :param printout: True or False (prints the descriptors to the screen)
+        :return: dataframe of descriptors, calculated and loaded in the Descriptor class
         """
-        descriptor_calculator = Descriptors(central_atom=self.central_atom, path_to_workflow=self.path_to_workflow, output_type=output_type)
-        if output_type == 'xyz' or output_type == 'crest':
-            descriptor_calculator.calculate_morfeus_descriptors(geom_type=self.geom, solvent=self.solvent)
+        geom_type = self.geom
+        # fix the SP and BD confusion (they essentially mean the same thing, the structure is in SP coordination)
+        if self.geom == 'SP':
+            geom_type = 'BD'
+
+        if self.descriptor_output_type == 'xyz' or self.descriptor_output_type == 'crest':
+            descriptor_calculator = Descriptors(central_atom=self.descriptor_central_atom, path_to_workflow=self.path_to_workflow,
+                                                output_type=self.descriptor_output_type)
+
+            descriptor_calculator.calculate_morfeus_descriptors(geom_type=geom_type, solvent=self.descriptor_solvent,
+                                                                printout=self.descriptor_printout, metal_adduct=self.descriptor_metal_adduct)
             return descriptor_calculator.descriptor_df
 
-        elif output_type == 'gaussian':
-            pass
+        elif self.descriptor_output_type == 'gaussian':
+            descriptor_calculator = Descriptors(central_atom=self.descriptor_central_atom, path_to_workflow=self.path_to_workflow,
+                                                output_type=self.descriptor_output_type)
+
+            descriptor_calculator.calculate_dft_descriptors_from_log(geom_type=geom_type, solvent=self.descriptor_solvent,
+                                                                     extract_xyz_from_log=self.extract_xyz_from_log,
+                                                                     printout=self.descriptor_printout, metal_adduct=self.descriptor_metal_adduct)
         else:
             raise ValueError('Output type not recognized')
 
@@ -434,8 +470,22 @@ if __name__ == "__main__":
                    'solvent' : solvent,
                    'conformer_search' : 'off'}
 
+    descriptor_central_atom = 'Rh'
+    descriptor_metal_adduct = 'pristine'
+    descriptor_output_type = 'xyz'
+    extract_xyz_from_log = True
+    descriptor_printout = False
+
+    descriptor_input = {'central_atom': descriptor_central_atom,
+                        'metal_adduct': descriptor_metal_adduct,
+                        'output_type': descriptor_output_type,
+                        'extract_xyz_from_log': extract_xyz_from_log,
+                        'descriptor_printout': descriptor_printout,
+                        'solvent': solvent}
+
     # print(skeleton_list)
-    workflow = Workflow(path_to_workflow = os.getcwd() + '/Workflow', geom='BD')
-    workflow.calculate_descriptors(path_to_outputs=os.getcwd() + '/Workflow/from_log')
+    workflow = Workflow(path_to_workflow = os.getcwd() + '/Workflow', geom='BD', descriptor_calculator_input=descriptor_input)
+    descriptor_df = workflow.calculate_descriptors()
+    descriptor_df.to_csv('descriptor_df_test.csv', index=False)
     # workflow.run_chemspax(names=names ,skeleton_list_=skeleton_list)
     

@@ -3,33 +3,25 @@ from numpy.linalg import norm as cartesian_distance
 from morfeus import read_xyz
 from morfeus.utils import convert_elements
 import pandas as pd
+import periodictable
 
 # Needed data
-periodic_table = ['H', 'He', 'Li', 'Be', 'B', 'C', 'N', 'O', 'F', 'Ne',
-                 'Na', 'Mg', 'Al', 'Si', 'P', 'S', 'Cl', 'Ar',
-                 'K', 'Ca', 'Sc', 'Ti', 'V', 'Cr', 'Mn', 'Fe', 'Co', 'Ni', 'Cu', 'Zn', 'Ga', 'Ge', 'As', 'Se', 'Br', 'Kr',
-                 'Rb', 'Sr', 'Y', 'Zr', 'Nb', 'Mo', 'Tc', 'Ru', 'Rh', 'Pd', 'Ag', 'Cd', 'In', 'Sn', 'Sb', 'Te', 'I', 'Xe',
-                 'Cs', 'Ba', 'La', 'Ce', 'Pr', 'Nd', 'Pm', 'Sm', 'Eu', 'Gd', 'Tb', 'Dy', 'Ho', 'Er', 'Tm', 'Yb', 'Lu', 'Hf',
-                 'Ta', 'W', 'Re', 'Os', 'Ir', 'Pt', 'Au', 'Hg', 'Tl', 'Pb', 'Bi', 'Po', 'At',
-                 'Rn', 'Fr', 'Ra', 'Ac', 'Th', 'Pa', 'U', 'Np', 'Pu', 'Am', 'Cm', 'Bk', 'Cf', 'Es', 'Fm', 'Md', 'No', 'Lr',
-                 'Rf', 'Db', 'Sg', 'Bh', 'Hs', 'Mt', 'Ds', 'Rg', 'Cn', 'Nh', 'Fl', 'Mc', 'Lv',
-                 'Ts', 'Og']
+periodic_table = [element.symbol for element in periodictable.elements]
 
-atom_covalent_max_dist = {'N'  : 2, 
-                          'P'  : 2, 
-                          'S'  : 2.2, 
-                          'C'  : 2.1, 
-                          'O'  : 1.8,
-                          'H'  : 1.15,
-                          'Fe' : 2.1,
-                          'F'  : 1.5, 
-                          'Cl' : 2}
-
+atom_covalent_max_dist = {}
+for element in periodictable.elements:
+    if element.interatomic_distance is not None:
+        # to be sure that the distance is not too small, we use the interatomic distance
+        atom_covalent_max_dist[element.symbol] = element.interatomic_distance
+    else:
+        # if the interatomic distance is not available, we use a default value
+        atom_covalent_max_dist[element.symbol] = 2.5
 
 metal_centers = {'Rh' : {'OH' : 6, 'BD' : 2}, 
                  'Ir' : {'OH' : 6, 'BD' : 2}, 
                  'Mn' : {'OH' : 6, 'BD' : 2}, 
-                 'Ru' : {'OH' : 6, 'BD' : 2}}
+                 'Ru' : {'OH' : 6, 'BD' : 2},
+                 'Pd' : {'OH' : 6, 'BD' : 2}}
 
 
 donor_atoms = ['P', 'N']
@@ -61,14 +53,14 @@ def molecular_graph(elements, coords, geom = 'OH'):
         # for index, element in enumerate(elements):
         #     new_elements_mapping.append(periodic_table[element - 1])
         # elements = np.array(new_elements_mapping)
-
+    elements = np.array(elements)
     nr_of_atoms = len(elements)
-    print(nr_of_atoms)
+    # print(nr_of_atoms)
     # init dictionary 
     elem_dict = {}
     
     # Populate dictionary -> index of atom  : {atom type : atom coords}
-    
+
     for index, elem in enumerate(elements):
         elem_dict[index] = {elem: coords[index]}
     # Find atom type like this: atom_type = elem_dict[atom_index].keys() 
@@ -107,20 +99,20 @@ def molecular_graph(elements, coords, geom = 'OH'):
                 if len(store_donor_atoms) == 2: 
                     ligand_start_idx = np.array(store_donor_atoms)
                     bidentate_indices.extend(store_donor_atoms)
-                    print(bidentate_indices)
+                    # print(bidentate_indices)
                     break
                 else:
                     # goal is to get the 2 shortest donor atoms.
                     # print(np.array(interatomic_distances[atom_key])[np.array(store_donor_atoms)])
-                    print(store_donor_atoms)
+                    # print(store_donor_atoms)
                     dAtoms_dict = {}
                     for stored_donor_atom in store_donor_atoms:
                         dAtoms_dict[stored_donor_atom] = np.array(interatomic_distances[atom_key])[stored_donor_atom]
-                    print(dAtoms_dict)
+                    # print(dAtoms_dict)
                     sorted_dAtoms_dict = {k: v for k, v in sorted(dAtoms_dict.items(), key=lambda item: item[1])}
                     bidentate_indices.extend([list(sorted_dAtoms_dict.keys())[0], list(sorted_dAtoms_dict.keys())[1]])
                     ligand_start_idx = bidentate_indices[1:3]
-                    print(bidentate_indices)
+                    # print(bidentate_indices)
             break
 
     store_atoms = []
@@ -128,7 +120,6 @@ def molecular_graph(elements, coords, geom = 'OH'):
     mol_graph = {}
 
     for (atom_ligand, atom_type) in zip(ligand_start_idx, elements[ligand_start_idx]):      
-        
         if (atom_type in list(atom_covalent_max_dist.keys())) and (atom_type in donor_atoms):
             nr_of_bonds = atom_covalent_max_dist[atom_type] 
             # print(atom_type)
