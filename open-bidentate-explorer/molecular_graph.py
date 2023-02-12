@@ -1,30 +1,180 @@
-import numpy as np 
-from numpy.linalg import norm as cartesian_distance
-from morfeus import read_xyz
-from morfeus.utils import convert_elements
-import pandas as pd
-import periodictable
+import re
+from itertools import combinations
+from math import sqrt
 
-# Needed data
-periodic_table = [element.symbol for element in periodictable.elements]
+import numpy as np
 
-atom_covalent_max_dist = {}
-for element in periodictable.elements:
-    if element.interatomic_distance is not None:
-        # to be sure that the distance is not too small, we use the interatomic distance
-        atom_covalent_max_dist[element.symbol] = element.interatomic_distance
-    else:
-        # if the interatomic distance is not available, we use a default value
-        atom_covalent_max_dist[element.symbol] = 2.5
+atomic_radii = dict(
+    Ac=1.88,
+    Ag=1.59,
+    Al=1.35,
+    Am=1.51,
+    As=1.21,
+    Au=1.50,
+    B=0.83,
+    Ba=1.34,
+    Be=0.35,
+    Bi=1.54,
+    Br=1.21,
+    C=0.68,
+    Ca=0.99,
+    Cd=1.69,
+    Ce=1.83,
+    Cl=0.99,
+    Co=1.33,
+    Cr=1.35,
+    Cs=1.67,
+    Cu=1.52,
+    D=0.23,
+    Dy=1.75,
+    Er=1.73,
+    Eu=1.99,
+    F=0.64,
+    Fe=1.34,
+    Ga=1.22,
+    Gd=1.79,
+    Ge=1.17,
+    H=0.23,
+    Hf=1.57,
+    Hg=1.70,
+    Ho=1.74,
+    I=1.40,
+    In=1.63,
+    Ir=1.32,
+    K=1.33,
+    La=1.87,
+    Li=0.68,
+    Lu=1.72,
+    Mg=1.10,
+    Mn=1.35,
+    Mo=1.47,
+    N=0.68,
+    Na=0.97,
+    Nb=1.48,
+    Nd=1.81,
+    Ni=1.50,
+    Np=1.55,
+    O=0.68,
+    Os=1.37,
+    P=1.05,
+    Pa=1.61,
+    Pb=1.54,
+    Pd=1.50,
+    Pm=1.80,
+    Po=1.68,
+    Pr=1.82,
+    Pt=1.50,
+    Pu=1.53,
+    Ra=1.90,
+    Rb=1.47,
+    Re=1.35,
+    Rh=1.45,
+    Ru=1.40,
+    S=1.02,
+    Sb=1.46,
+    Sc=1.44,
+    Se=1.22,
+    Si=1.20,
+    Sm=1.80,
+    Sn=1.46,
+    Sr=1.12,
+    Ta=1.43,
+    Tb=1.76,
+    Tc=1.35,
+    Te=1.47,
+    Th=1.79,
+    Ti=1.47,
+    Tl=1.55,
+    Tm=1.72,
+    U=1.58,
+    V=1.33,
+    W=1.37,
+    Y=1.78,
+    Yb=1.94,
+    Zn=1.45,
+    Zr=1.56,
+)
 
-metal_centers = {'Rh' : {'OH' : 6, 'BD' : 2}, 
-                 'Ir' : {'OH' : 6, 'BD' : 2}, 
-                 'Mn' : {'OH' : 6, 'BD' : 2}, 
-                 'Ru' : {'OH' : 6, 'BD' : 2},
-                 'Pd' : {'OH' : 6, 'BD' : 2}}
 
+class MolGraph:
+    """Represents a molecular graph."""
 
-donor_atoms = ['P', 'N']
+    __slots__ = [
+        "elements",
+        "x",
+        "y",
+        "z",
+        "adj_list",
+        "atomic_radii",
+        "bond_lengths",
+        "adj_matrix",
+    ]
+
+    def __init__(self):
+        self.elements = []
+        self.x = []
+        self.y = []
+        self.z = []
+        self.adj_list = {}
+        self.atomic_radii = []
+        self.bond_lengths = {}
+        self.adj_matrix = None
+
+    def read_xyz(self, file_path: str) -> None:
+        """Reads an XYZ file, searches for elements and their cartesian coordinates
+        and adds them to corresponding arrays."""
+        pattern = re.compile(
+            r"([A-Za-z]{1,3})\s*(-?\d+(?:\.\d+)?)\s*(-?\d+(?:\.\d+)?)\s*(-?\d+(?:\.\d+)?)"
+        )
+        with open(file_path) as file:
+            for element, x, y, z in pattern.findall(file.read()):
+                self.elements.append(element)
+                self.x.append(float(x))
+                self.y.append(float(y))
+                self.z.append(float(z))
+        self.atomic_radii = [atomic_radii[element] for element in self.elements]
+        self._generate_adjacency_list()
+
+    def _generate_adjacency_list(self):
+        """Generates an adjacency list from atomic cartesian coordinates."""
+
+        node_ids = range(len(self.elements))
+        xyz = np.stack((self.x, self.y, self.z), axis=-1)
+        distances = xyz[:, np.newaxis, :] - xyz
+        distances = np.sqrt(np.einsum("ijk,ijk->ij", distances, distances))
+
+        atomic_radii = np.array(self.atomic_radii)
+        distance_bond = (atomic_radii[:, np.newaxis] + atomic_radii) * 1.3
+
+        adj_matrix = np.logical_and(0.1 < distances, distance_bond > distances).astype(int)
+
+        for i, j in zip(*np.nonzero(adj_matrix)):
+            self.adj_list.setdefault(i, set()).add(j)
+            self.adj_list.setdefault(j, set()).add(i)
+            self.bond_lengths[frozenset([i, j])] = round(distance_bond[i, j], 5)
+
+        self.adj_matrix = adj_matrix
+
+    def edges(self):
+        """Creates an iterator with all graph edges."""
+        edges = set()
+        for node, neighbours in self.adj_list.items():
+            for neighbour in neighbours:
+                edge = frozenset([node, neighbour])
+                if edge in edges:
+                    continue
+                edges.add(edge)
+                yield node, neighbour
+
+    def __len__(self):  
+        return len(self.elements)
+
+    def __getitem__(self, position):
+        return self.elements[position], (
+            self.x[position],
+            self.y[position],
+            self.z[position],
+        )
 
 
 def bfs(visited, graph, node):
@@ -39,227 +189,40 @@ def bfs(visited, graph, node):
             if neighbour not in visited:
                 visited.append(neighbour)
                 queue.append(neighbour)
+                
     return visited
 
+mg = MolGraph()
+# Read the data from the .xyz file
 
-def molecular_graph(elements, coords, geom = 'OH'):
+mg.read_xyz('molecular_graph_test.xyz')
+metal_center_bonds = mg.adj_list
+metal_center_id = 39
+
+def extract_ligands(metal_center_id, graph):
+    metal_center_bonds_ = graph[metal_center_id]
+
+    del graph[metal_center_id]
     
-    # Read xyz - coord, type with morfeus
-    # elements, coords = read_xyz(xyz)
-    if str(elements[0]).isdigit():
-        # convert numerical values to strings
-        elements = convert_elements(elements, output='symbols')
-        # new_elements_mapping = []
-        # for index, element in enumerate(elements):
-        #     new_elements_mapping.append(periodic_table[element - 1])
-        # elements = np.array(new_elements_mapping)
-    elements = np.array(elements)
-    nr_of_atoms = len(elements)
-    # print(nr_of_atoms)
-    # init dictionary 
-    elem_dict = {}
+    for key, bonds_to_atom in zip(graph.keys(), graph.values()):    
+        graph[key] = list(bonds_to_atom)
     
-    # Populate dictionary -> index of atom  : {atom type : atom coords}
+        for bond_id, bond in enumerate(bonds_to_atom):
+            if bond == metal_center_id:
+                graph[key].pop(bond_id)
+                
+    store_ligands = []
 
-    for index, elem in enumerate(elements):
-        elem_dict[index] = {elem: coords[index]}
-    # Find atom type like this: atom_type = elem_dict[atom_index].keys() 
-    
-    # atom_type = elem_dict[16].keys()
-    # test_bond = atom_covalent_max_dist[list(atom_type)[0]]
+    for node in metal_center_bonds_:
+        store_ligands.append(list(np.sort(bfs([], graph, node))))
 
-    interatomic_distances = {}
-    
-    for atom_key1 in range(0, nr_of_atoms):
-        interatomic_distances[atom_key1] = []
-        for atom_key2 in range(0, nr_of_atoms):
-            atom_type1 = list(elem_dict[atom_key1].keys())[0]
-            atom_type2 = list(elem_dict[atom_key2].keys())[0]
-            interatomic_distances[atom_key1].append(cartesian_distance(elem_dict[atom_key1][atom_type1] - elem_dict[atom_key2][atom_type2]))
-
-    for atom_key in range(0, nr_of_atoms + 1):
-        atom_type = list(elem_dict[atom_key].keys())
-        atom_type = atom_type[0]
-
-        if atom_type in list(metal_centers.keys()):
-            nr_of_bonds = metal_centers[atom_type][geom]
-
-            # find indices of shortest bonds of donor elements
-            metal_key = int(atom_key)
-            bidentate_indices = [metal_key]
-            # print('geeeeeom', geom)
-            if geom == 'OH':
-                idx = np.argpartition(interatomic_distances[atom_key], nr_of_bonds + 1)            
-                ligand_start_idx = np.setdiff1d(idx, np.array([atom_key, metal_key]))
-            else:
-                store_donor_atoms = []
-                for ind, el in enumerate(elements):
-                    if el in donor_atoms:
-                        store_donor_atoms.append(ind)
-                if len(store_donor_atoms) == 2: 
-                    ligand_start_idx = np.array(store_donor_atoms)
-                    bidentate_indices.extend(store_donor_atoms)
-                    # print(bidentate_indices)
-                    break
-                else:
-                    # goal is to get the 2 shortest donor atoms.
-                    # print(np.array(interatomic_distances[atom_key])[np.array(store_donor_atoms)])
-                    # print(store_donor_atoms)
-                    dAtoms_dict = {}
-                    for stored_donor_atom in store_donor_atoms:
-                        dAtoms_dict[stored_donor_atom] = np.array(interatomic_distances[atom_key])[stored_donor_atom]
-                    # print(dAtoms_dict)
-                    sorted_dAtoms_dict = {k: v for k, v in sorted(dAtoms_dict.items(), key=lambda item: item[1])}
-                    bidentate_indices.extend([list(sorted_dAtoms_dict.keys())[0], list(sorted_dAtoms_dict.keys())[1]])
-                    ligand_start_idx = bidentate_indices[1:3]
-                    # print(bidentate_indices)
-            break
-
-    store_atoms = []
-    store_atoms.extend(ligand_start_idx)
-    mol_graph = {}
-
-    for (atom_ligand, atom_type) in zip(ligand_start_idx, elements[ligand_start_idx]):      
-        if (atom_type in list(atom_covalent_max_dist.keys())) and (atom_type in donor_atoms):
-            nr_of_bonds = atom_covalent_max_dist[atom_type] 
-            # print(atom_type)
-            idx = np.where(np.array(interatomic_distances[atom_ligand]) <= atom_covalent_max_dist[atom_type])
-            # print('idx', idx)
-            idx = idx[:len(idx) + 1]
-
-            # bond_distances = np.array(interatomic_distances[atom_ligand])[idx]                           
-            bonded_atoms = list(np.setdiff1d(idx, np.array([atom_ligand, metal_key])))
-            # bonded_atoms.append(metal_key)
-            store_atoms.extend(bonded_atoms)
-            mol_graph[atom_ligand] = bonded_atoms
-    
-    ligandMetal = list(ligand_start_idx)
-    ligandMetal.append(metal_key)
-    # print('Ligand_metal', ligandMetal)
-    
-    for atom_key in range(0, nr_of_atoms):
-        if atom_key not in ligandMetal:
-            atom_type = elements[atom_key]
-            nr_of_bonds = atom_covalent_max_dist[atom_type] 
-             
-            idx = np.where(np.array(interatomic_distances[atom_key]) <= atom_covalent_max_dist[atom_type])
-            idx = idx[:len(idx) + 1]
-
-            # bond_distances = np.array(interatomic_distances[atom_ligand])[idx]                           
-            bonded_atoms = list(np.setdiff1d(idx, np.array([atom_key])))
-            
-            # for id_atom, atom in enumerate(bonded_atoms):
-            #     if atom in store_atoms:
-            #         del bonded_atoms[id_atom]
-                    
-            store_atoms.extend(bonded_atoms)
-            mol_graph[atom_key] = bonded_atoms
-            
-    mol_graph[metal_key] = ligand_start_idx
-
-    # ### Adjacency Matrix (fingerprint)
-    # keys=sorted(mol_graph.keys())
-    # size=len(keys)
-
-    # adj_matrix = [ [0]*size for i in range(size) ]
-
-    # for a,b in [(keys.index(a), keys.index(b)) for a, row in mol_graph.items() for b in row]:
-    #     adj_matrix[a][b] = 1
-    # plt.spy(adj_matrix)
-    # plt.savefig('spy.png')  
-    
-    ### Breadth first search algorithm (go through all neighbours and store)
-    ligands_atoms_idx = {}
-    checklist = []
-    try:
-        
-        if geom == 'OH':
-            for atom_ in ligand_start_idx:
-                visited = []
-                ligands_atoms_idx[atom_] = bfs(visited, mol_graph, atom_)    
-                checklist.extend(ligands_atoms_idx[atom_])
-
-            # Plus one because the metal is excluded to find the subgraphs
-            print(f'Length of checklist: ', {len(np.unique(np.array(checklist))) + 1}, 'Nr. of atoms: ', {len(elements)})
-            # print(np.array(adj_matrix).shape)
-            # print(np.unique(np.array(store_atoms).sort))
-            # To find bidentate see if any of the ligands map into each other
-            
-            bidentate_indices = [metal_key]
-            
-            for ligand_index1 in ligand_start_idx:
-                for ligand_index2 in ligand_start_idx:
-                    if ligand_index1 != ligand_index2:
-                        if ligand_index1 in list(ligands_atoms_idx[ligand_index2]):               
-                            if ligand_index1 not in bidentate_indices:
-                                bidentate_indices.append(ligand_index1)
-                            if ligand_index2 not in bidentate_indices:
-                                bidentate_indices.append(ligand_index2)
-                                break
-        
-    # for elem in ligands_atoms_idx:
-    #     print(elements[elem]) 
-    except Exception:            
-        # ligands_atoms_idx = None      
-        print("failed")
-    return ligands_atoms_idx,bidentate_indices
+    clean_ligands = []
+    # print(store_ligands)
+    for ligand in store_ligands:
+        if ligand not in clean_ligands:
+            clean_ligands.append(ligand)
+    print(clean_ligands)
+    return clean_ligands
 
 
-def BFS_SP(graph, start, goal):
-    explored = []
-     
-    # Queue for traversing the
-    # graph in the BFS
-    queue = [[start]]
-     
-    # If the desired node is
-    # reached
-    if start == goal:
-        print("Same Node")
-        return
-     
-    # Loop to traverse the graph
-    # with the help of the queue
-    while queue:
-        path = queue.pop(0)
-        node = path[-1]
-         
-        # Condition to check if the
-        # current node is not visited
-        if node not in explored:
-            neighbours = graph[node]
-             
-            # Loop to iterate over the
-            # neighbours of the node
-            for neighbour in neighbours:
-                new_path = list(path)
-                new_path.append(neighbour)
-                queue.append(new_path)
-                 
-                # Condition to check if the
-                # neighbour node is the goal
-                if neighbour == goal:
-                    print("Shortest path = ", *new_path)
-                    return
-            explored.append(node)
- 
-    # Condition when the nodes
-    # are not connected
-    print("So sorry, but a connecting"\
-                "path doesn't exist :(")
-    return new_path
-
-
-def P_P_bridge_path():
-    elem, coord = read_xyz('xtbopt.xyz')
-    
-    _ , bi_PP ,mol_graph = molecular_graph(elem, coord)    
-    
-    P_P_bridge = BFS_SP(mol_graph, bi_PP[1], bi_PP[2])
-    
-    return P_P_bridge
-    
-
-# # ligands_indices, bidentate = molecular_graph('xtbopt.xyz')
-# # print(bidentate, ligands_indices)
-# P_P_bridge_path()
+extract_ligands(metal_center_id, metal_center_bonds)
