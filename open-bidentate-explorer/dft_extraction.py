@@ -503,10 +503,26 @@ class DFTExtractor(object):
 
     def extract_thermodynamic_descriptors(self):
         # extract energy, enthalpy, entropy, free energy in hartree
-        sum_electronic_and_free_energy = self.data.freeenergy
-        sum_electronic_and_enthalpy = self.data.enthalpy
-        zero_point_correction = self.data.zpve
-        entropy = self.data.entropy
+        try:
+            sum_electronic_and_free_energy = self.data.freeenergy
+        except:
+            print("Free energy not found in DFT log file")
+            sum_electronic_and_free_energy = None
+        try:
+            sum_electronic_and_enthalpy = self.data.enthalpy
+        except:
+            print("Enthalpy not found in DFT log file")
+            sum_electronic_and_enthalpy = None
+        try:
+            zero_point_correction = self.data.zpve
+        except:
+            print("Zero point correction not found in DFT log file")
+            zero_point_correction = None
+        try:
+            entropy = self.data.entropy
+        except:
+            print("Entropy not found in DFT log file")
+            entropy = None
         return sum_electronic_and_free_energy, sum_electronic_and_enthalpy, zero_point_correction, entropy
 
     def calculate_min_donor_metal_orbital_occupation(self):
@@ -542,7 +558,11 @@ class DFTExtractor(object):
         return other_element_index_list, other_element_occupancy
 
     def calculate_donor_lone_pair_occupancy(self):
-        min_donor_occupancy, max_donor_occupancy = self.extract_donor_lone_pair_occupancy(self.min_donor_element, self.max_donor_element)
+        try:
+            min_donor_occupancy, max_donor_occupancy = self.extract_donor_lone_pair_occupancy(self.min_donor_element, self.max_donor_element)
+        except:
+            print("Lone pair occupancy not found in DFT log file")
+            min_donor_occupancy, max_donor_occupancy = None, None
         return min_donor_occupancy, max_donor_occupancy
 
     def calculate_dipole_moment(self):
@@ -584,7 +604,8 @@ if __name__ == '__main__':
     for complex in complexes_to_calc_descriptors:
         # dft = DFTExtractor(complex, 39, 5, 28)
         elements, coordinates = read_cclib(complex)
-        coordinates = coordinates[-1]
+        if not len(coordinates[-1]) == 3:  # if this is true, there is only 1 coordinates array
+            coordinates = coordinates[-1]
         # coordinates = np.array(coordinates).reshape(-1, len(coordinates), 3)
         # coordinates = coordinates[0]
         # # coordinates = np.array([np.array(coord) for coord in coordinates])
@@ -613,6 +634,3 @@ if __name__ == '__main__':
         # print(dft.calculate_natural_charges())
         # print(dft.calculate_mulliken_charges())
         # print(dft.calculate_electronic_descriptors())
-
-
-
