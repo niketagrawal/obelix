@@ -192,14 +192,7 @@ def bfs(visited, graph, node):
                 
     return visited
 
-mg = MolGraph()
-# Read the data from the .xyz file
-
-mg.read_xyz('molecular_graph_test.xyz')
-metal_center_bonds = mg.adj_list
-metal_center_id = 39
-
-def extract_ligands(metal_center_id, graph):
+def molecular_graph(metal_center_id, graph):
     metal_center_bonds_ = graph[metal_center_id]
 
     del graph[metal_center_id]
@@ -221,8 +214,29 @@ def extract_ligands(metal_center_id, graph):
     for ligand in store_ligands:
         if ligand not in clean_ligands:
             clean_ligands.append(ligand)
-    print(clean_ligands)
-    return clean_ligands
+    
+    ligand_sizes = []
+    
+    for ligand in clean_ligands:
+        ligand_sizes.append(len(ligand))
+    
+    index_max_ligand = np.argmax(ligand_sizes)
+
+    bidentate_ligand = clean_ligands[index_max_ligand]
+    
+    bidentate = []
+    for bond_to_metal in metal_center_bonds_:
+        if bond_to_metal in bidentate_ligand:
+            bidentate.append(bond_to_metal)
+    print(bidentate)
+    return bidentate, clean_ligands
 
 
-extract_ligands(metal_center_id, metal_center_bonds)
+
+mg = MolGraph()
+# Read the data from the .xyz file
+
+mg.read_xyz('molecular_graph_test.xyz')
+metal_center_bonds = mg.adj_list
+
+molecular_graph(39, metal_center_bonds)
