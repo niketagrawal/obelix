@@ -17,7 +17,7 @@
 
 # -- Project information -----------------------------------------------------
 
-project = u"test_python_project"
+project = u"obelix"
 copyright = u"2022, TU Delft"
 author = u"Adarsh Kalikadien"
 
@@ -61,7 +61,7 @@ todo_include_todos = False
 
 # -- Use autoapi.extension to run sphinx-apidoc -------
 
-autoapi_dirs = ['../test_python_project']
+autoapi_dirs = ['../obelix']
 
 # -- Options for HTML output ----------------------------------------------
 

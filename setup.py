@@ -7,16 +7,16 @@
 from setuptools import setup, find_packages
 
 setup(
-    name='open-bidentate-explorer',
+    name='obelix',
     version='0.1.0',
-    packages=find_packages(include=['open-bidentate-explorer', 'open-bidentate-explorer.*']),
-    url='github.com/epics-group/open-bidentate-explorer',
+    packages=find_packages(include=['obelix', 'obelix.*']),
+    url='github.com/epics-group/obelix',
     license='GPLv3',
     author='Adarsh Kalikadien',
     author_email='a.v.kalikadien@tudelft.nl',
-    description='A Python tool for bias-free automated catalyst structure generation and analysis',
+    description='An automated worklfow for generation & analysis of bidentate ligand containing complexes ',
     setup_requires=['pytest-runner'],
     tests_require=['pytest'],
-    package_data={'open-bidentate-explorer': ['data/']},
+    package_data={'obelix': ['data/']},
     long_description=open('docs/README.md').read(),
 )
