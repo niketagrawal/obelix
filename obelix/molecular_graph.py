@@ -5,6 +5,9 @@ from morfeus.utils import convert_elements
 from morfeus.io import read_cclib
 import operator
 
+
+### Temporary two solutions for storing the atomic radii.
+
 atomic_radii = {}
 for element in periodictable.elements:
     atomic_radii[element.symbol] = element.covalent_radius
@@ -102,7 +105,10 @@ atomic_radii = dict(
 
 
 class MolGraph:
-    """Represents a molecular graph."""
+    """
+    This is a molecular graph class, containing several functionalities: 
+    finding the adjancecy matrix, adjancecy list. Class modified from /xyz2graph/xyz2graph.py.
+    """
 
     __slots__ = [
         "elements",
@@ -126,20 +132,10 @@ class MolGraph:
         self.adj_matrix = None
 
     def read_xyz_coord_from_mf(self, elements, coordinates) -> None:
-        """Reads an XYZ file, searches for elements and their cartesian coordinates
+        """Reads elements and coordinates from morfeus, searches for elements and their cartesian coordinates
         and adds them to corresponding arrays."""
-        # pattern = re.compile(
-        #     r"([A-Za-z]{1,3})\s*(-?\d+(?:\.\d+)?)\s*(-?\d+(?:\.\d+)?)\s*(-?\d+(?:\.\d+)?)"
-        # )
-        # with open(file_path) as file:
-        #     for element, x, y, z in pattern.findall(file.read()):
-        #         self.elements.append(element)
-        #         self.x.append(float(x))
-        #         self.y.append(float(y))
-        #         self.z.append(float(z))
-        
-        for element in elements:
-            self.elements.append(element)
+
+        self.elements = elements[:]
         
         self.x = coordinates[:, 0]
         self.y = coordinates[:, 1]
@@ -168,29 +164,18 @@ class MolGraph:
 
         self.adj_matrix = adj_matrix
 
-    def edges(self):
-        """Creates an iterator with all graph edges."""
-        edges = set()
-        for node, neighbours in self.adj_list.items():
-            for neighbour in neighbours:
-                edge = frozenset([node, neighbour])
-                if edge in edges:
-                    continue
-                edges.add(edge)
-                yield node, neighbour
-
-    def __len__(self):  
-        return len(self.elements)
-
-    def __getitem__(self, position):
-        return self.elements[position], (
-            self.x[position],
-            self.y[position],
-            self.z[position],
-        )
-
 
 def bfs(visited, graph, node):
+    """
+    This function is a classic breadth-first traversal algorithm. It is applied to find all the subgraphs
+    when the metal center is removed.
+
+    :param visited:
+    :param graph:
+    :param node:
+    
+    :return visited: 
+    """
     queue = []
     
     visited.append(node)
@@ -207,12 +192,22 @@ def bfs(visited, graph, node):
 
 
 def molecular_graph(elements, coordinates):
+    """
+    This function is applied to find the molecular graph of a TM complex.
+    This function returns the indices of all atoms making the investigated and the indices forming the bite angle.
+
+    :param elements:
+    :param coordinates:
+
+    :return ligand, bidentate:
+    """
     metal_centers = ['Rh', 'Ru', 'Mn', 'Pd', 
                      'Ir', 'Pt', 'Co']
 
     periodic_table = [element.symbol for element in periodictable.elements]
     
-    ### Check conversi
+    ### Check if elements coming from morfeus are given as numbers.
+    # If not, make conversion using the periodic table package.
     
     if str(elements[0]).isdigit():
         elements = list(elements)
@@ -220,6 +215,7 @@ def molecular_graph(elements, coordinates):
             elements[elem_id] = periodic_table[element]
         elements = np.array(elements)
     
+    ### Call to the MolGraph() functionality 
     mg = MolGraph()
     mg.read_xyz_coord_from_mf(elements=elements,coordinates=coordinates)
     graph = mg.adj_list
@@ -244,8 +240,9 @@ def molecular_graph(elements, coordinates):
     for node in metal_center_bonds_:
         store_ligands.append(list(np.sort(bfs([], graph, node))))
 
+    # Remove duplicates and store in new list --> clean_ligands
     clean_ligands = []
-    # print(store_ligands)
+
     for ligand in store_ligands:
         if ligand not in clean_ligands:
             clean_ligands.append(ligand)
@@ -253,7 +250,6 @@ def molecular_graph(elements, coordinates):
     
     # store the size of the ligands in a list
     ligand_sizes = []
-    
     
     for ligand in clean_ligands:
         ligand_sizes.append(len(ligand))
@@ -282,12 +278,17 @@ def molecular_graph(elements, coordinates):
         # check atom type
         new_bidentate = [metal_center_id]
         
+        ### Check whether the atom is P, N or S and rewrite the bidentate list with only these types
+        
         for ligating_atom in bidentate:
             if (elements[ligating_atom] == 'N') or (elements[ligating_atom] == 'P') or (elements[ligating_atom] == 'S'):
                 new_bidentate.append(ligating_atom)
+    
+        ### Check two closest donors to the metal center.
+        
         if len(new_bidentate) == 2:
             return ligand, new_bidentate
-        
+    
         else:
             dict_distances = {}
             new_bidentate = new_bidentate[1:]
@@ -295,16 +296,16 @@ def molecular_graph(elements, coordinates):
                 dict_distances[ligating_atom] = np.linalg.norm(coordinates[metal_center_id, :] - coordinates[ligating_atom, :])
             
             dict_distances = {k: v for k, v in sorted(dict_distances.items())}
+            
+            # Sort dictionary according to bond length to the metal center
             dict_distances = dict(sorted(dict_distances.items(), key=operator.itemgetter(1),reverse=False))
-
             new_bidentate = []
             new_bidentate.extend([metal_center_id, list(dict_distances.keys())[0], list(dict_distances.keys())[1]])
-            print(ligand, new_bidentate)
             return ligand, new_bidentate
-    print(ligand, bidentate)
     return ligand, bidentate
 
-# ### testing -- testing successful on xyz and log
+
+### testing -- testing successful on xyz and log
 # log = '[Rh+1]_L98_SP0.log'
 # elements, coordinates = read_cclib(log)
 # molecular_graph(elements = elements, coordinates = coordinates)
