@@ -280,28 +280,28 @@ cython_debug/
 # Ignore code-workspaces
 *.code-workspace
 
-open-bidentate-explorer/**/*.xlsx
-open-bidentate-explorer/**/*.csv
-open-bidentate-explorer/**/*.gjf
-open-bidentate-explorer/**/*.xyz
-open-bidentate-explorer/**/*.mol
-open-bidentate-explorer/**/*.png
-open-bidentate-explorer/**/*.jpg
-open-bidentate-explorer/**/*.pdf
-open-bidentate-explorer/crest_xtb_binaries
-open-bidentate-explorer/chemspax
-open-bidentate-explorer/Workflow*/
-open-bidentate-explorer/tools/images
-open-bidentate-explorer/**/CREST
-open-bidentate-explorer/**/crest*
-open-bidentate-explorer/subs_test/*
-open-bidentate-explorer/subs_test/*
-open-bidentate-explorer/tools/**/*OH*
-open-bidentate-explorer/tools/**/*SP*
+obelix/**/*.xlsx
+obelix/**/*.csv
+obelix/**/*.gjf
+obelix/**/*.xyz
+obelix/**/*.mol
+obelix/**/*.png
+obelix/**/*.jpg
+obelix/**/*.pdf
+obelix/crest_xtb_binaries
+obelix/chemspax
+obelix/Workflow*/
+obelix/tools/images
+obelix/**/CREST
+obelix/**/crest*
+obelix/subs_test/*
+obelix/subs_test/*
+obelix/tools/**/*OH*
+obelix/tools/**/*SP*
 
-open-bidentate-explorer/**/MACE
-open-bidentate-explorer/**/ferro
-open-bidentate-explorer/tools/data/new_descriptors/ferro/
+obelix/**/MACE
+obelix/**/ferro
+obelix/tools/data/new_descriptors/ferro/
 
 .empty
 # End of https://www.toptal.com/developers/gitignore/api/visualstudiocode
