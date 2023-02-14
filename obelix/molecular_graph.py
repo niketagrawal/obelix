@@ -1,6 +1,9 @@
 import numpy as np
 import periodictable
 from morfeus import read_xyz as read_xyz_mf
+from morfeus.utils import convert_elements
+from morfeus.io import read_cclib
+import operator
 
 atomic_radii = {}
 for element in periodictable.elements:
@@ -207,12 +210,19 @@ def molecular_graph(elements, coordinates):
     metal_centers = ['Rh', 'Ru', 'Mn', 'Pd', 
                      'Ir', 'Pt', 'Co']
 
+    periodic_table = [element.symbol for element in periodictable.elements]
+    
+    ### Check conversi
+    
+    if str(elements[0]).isdigit():
+        elements = list(elements)
+        for elem_id, element in enumerate(elements):    
+            elements[elem_id] = periodic_table[element]
+        elements = np.array(elements)
+    
     mg = MolGraph()
-
     mg.read_xyz_coord_from_mf(elements=elements,coordinates=coordinates)
-    
     graph = mg.adj_list
-    
     
     for elem_id, element in enumerate(elements):
         if element in metal_centers:
@@ -220,7 +230,6 @@ def molecular_graph(elements, coordinates):
            break
 
     metal_center_bonds_ = graph[metal_center_id]
-    print(metal_center_bonds_)
     del graph[metal_center_id]
     
     for key, bonds_to_atom in zip(graph.keys(), graph.values()):    
@@ -241,14 +250,20 @@ def molecular_graph(elements, coordinates):
         if ligand not in clean_ligands:
             clean_ligands.append(ligand)
     
+    
+    # store the size of the ligands in a list
     ligand_sizes = []
+    
     
     for ligand in clean_ligands:
         ligand_sizes.append(len(ligand))
 
+    # This part checks whether two ligands have the max length
     index_max_ligand = np.argwhere(ligand_sizes == np.amax(ligand_sizes))
+    # Flattens 2D array
     index_max_ligand = index_max_ligand.ravel()
-    
+
+    # Check if two monodentate ligands instead of one single bidentate ligand    
     if len(index_max_ligand) == 2:
         ligand = []
         ligand.extend(clean_ligands[index_max_ligand[0]])
@@ -256,17 +271,44 @@ def molecular_graph(elements, coordinates):
     else:
         ligand = clean_ligands[index_max_ligand[0]]
 
+    # Store metal id in a list
     bidentate = [metal_center_id]
+    # Extend bidentate atoms with the donating atoms
     for bond_to_metal in metal_center_bonds_:
         if bond_to_metal in ligand:
             bidentate.append(bond_to_metal)
+    # Check whether more atoms are taken as donating: especially important for the pristine structures
+    if len(bidentate) > 3:
+        # check atom type
+        new_bidentate = [metal_center_id]
+        
+        for ligating_atom in bidentate:
+            if (elements[ligating_atom] == 'N') or (elements[ligating_atom] == 'P') or (elements[ligating_atom] == 'S'):
+                new_bidentate.append(ligating_atom)
+        if len(new_bidentate) == 2:
+            return ligand, new_bidentate
+        
+        else:
+            dict_distances = {}
+            new_bidentate = new_bidentate[1:]
+            for ligating_atom in new_bidentate:
+                dict_distances[ligating_atom] = np.linalg.norm(coordinates[metal_center_id, :] - coordinates[ligating_atom, :])
+            
+            dict_distances = {k: v for k, v in sorted(dict_distances.items())}
+            dict_distances = dict(sorted(dict_distances.items(), key=operator.itemgetter(1),reverse=False))
 
+            new_bidentate = []
+            new_bidentate.extend([metal_center_id, list(dict_distances.keys())[0], list(dict_distances.keys())[1]])
+            print(ligand, new_bidentate)
+            return ligand, new_bidentate
+    print(ligand, bidentate)
     return ligand, bidentate
 
-
-# # Read the data from the .xyz file
+# ### testing -- testing successful on xyz and log
+# log = '[Rh+1]_L98_SP0.log'
+# elements, coordinates = read_cclib(log)
+# molecular_graph(elements = elements, coordinates = coordinates)
 
 # xyz = '1441830-74-5_NBD.xyz'
 # elements, coordinates = read_xyz_mf(xyz)
-
 # molecular_graph(elements = elements, coordinates = coordinates)
