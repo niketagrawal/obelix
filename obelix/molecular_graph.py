@@ -1,8 +1,10 @@
-import re
-from itertools import combinations
-from math import sqrt
-
 import numpy as np
+import periodictable
+from morfeus import read_xyz as read_xyz_mf
+
+atomic_radii = {}
+for element in periodictable.elements:
+    atomic_radii[element.symbol] = element.covalent_radius
 
 atomic_radii = dict(
     Ac=1.88,
@@ -120,18 +122,26 @@ class MolGraph:
         self.bond_lengths = {}
         self.adj_matrix = None
 
-    def read_xyz(self, file_path: str) -> None:
+    def read_xyz_coord_from_mf(self, elements, coordinates) -> None:
         """Reads an XYZ file, searches for elements and their cartesian coordinates
         and adds them to corresponding arrays."""
-        pattern = re.compile(
-            r"([A-Za-z]{1,3})\s*(-?\d+(?:\.\d+)?)\s*(-?\d+(?:\.\d+)?)\s*(-?\d+(?:\.\d+)?)"
-        )
-        with open(file_path) as file:
-            for element, x, y, z in pattern.findall(file.read()):
-                self.elements.append(element)
-                self.x.append(float(x))
-                self.y.append(float(y))
-                self.z.append(float(z))
+        # pattern = re.compile(
+        #     r"([A-Za-z]{1,3})\s*(-?\d+(?:\.\d+)?)\s*(-?\d+(?:\.\d+)?)\s*(-?\d+(?:\.\d+)?)"
+        # )
+        # with open(file_path) as file:
+        #     for element, x, y, z in pattern.findall(file.read()):
+        #         self.elements.append(element)
+        #         self.x.append(float(x))
+        #         self.y.append(float(y))
+        #         self.z.append(float(z))
+        
+        for element in elements:
+            self.elements.append(element)
+        
+        self.x = coordinates[:, 0]
+        self.y = coordinates[:, 1]
+        self.z = coordinates[:, 2]
+        
         self.atomic_radii = [atomic_radii[element] for element in self.elements]
         self._generate_adjacency_list()
 
@@ -192,9 +202,25 @@ def bfs(visited, graph, node):
                 
     return visited
 
-def molecular_graph(metal_center_id, graph):
-    metal_center_bonds_ = graph[metal_center_id]
 
+def molecular_graph(elements, coordinates):
+    metal_centers = ['Rh', 'Ru', 'Mn', 'Pd', 
+                     'Ir', 'Pt', 'Co']
+
+    mg = MolGraph()
+
+    mg.read_xyz_coord_from_mf(elements=elements,coordinates=coordinates)
+    
+    graph = mg.adj_list
+    
+    
+    for elem_id, element in enumerate(elements):
+        if element in metal_centers:
+           metal_center_id = int(elem_id)
+           break
+
+    metal_center_bonds_ = graph[metal_center_id]
+    print(metal_center_bonds_)
     del graph[metal_center_id]
     
     for key, bonds_to_atom in zip(graph.keys(), graph.values()):    
@@ -219,24 +245,28 @@ def molecular_graph(metal_center_id, graph):
     
     for ligand in clean_ligands:
         ligand_sizes.append(len(ligand))
-    
-    index_max_ligand = np.argmax(ligand_sizes)
 
-    bidentate_ligand = clean_ligands[index_max_ligand]
+    index_max_ligand = np.argwhere(ligand_sizes == np.amax(ligand_sizes))
+    index_max_ligand = index_max_ligand.ravel()
     
-    bidentate = []
+    if len(index_max_ligand) == 2:
+        ligand = []
+        ligand.extend(clean_ligands[index_max_ligand[0]])
+        ligand.extend(clean_ligands[index_max_ligand[1]])
+    else:
+        ligand = clean_ligands[index_max_ligand[0]]
+
+    bidentate = [metal_center_id]
     for bond_to_metal in metal_center_bonds_:
-        if bond_to_metal in bidentate_ligand:
+        if bond_to_metal in ligand:
             bidentate.append(bond_to_metal)
-    print(bidentate)
-    return bidentate, clean_ligands
+
+    return ligand, bidentate
 
 
+# # Read the data from the .xyz file
 
-mg = MolGraph()
-# Read the data from the .xyz file
+# xyz = '1441830-74-5_NBD.xyz'
+# elements, coordinates = read_xyz_mf(xyz)
 
-mg.read_xyz('molecular_graph_test.xyz')
-metal_center_bonds = mg.adj_list
-
-molecular_graph(39, metal_center_bonds)
+# molecular_graph(elements = elements, coordinates = coordinates)
