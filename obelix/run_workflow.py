@@ -234,13 +234,13 @@ class Workflow:
             try:
               if self.geom == 'OH':
                   identifier_OH = self.names_of_xyz[i] + '_OH'
-                  complex = MACE(self.mace_ligands[i], central_atom,  identifier_OH)
+                  complex = MACE(self.mace_ligands[i], self.central_atom,  identifier_OH)
                   self.bidentate_1_index, self.metal_index, self.bidentate_2_index = \
                       complex.generate_complex_OH_xyz(auxiliary_ligands, substrate=self.substrate)
               
               if self.geom == 'SP':
                   identifier_SP = self.names_of_xyz[i] + '_SP'
-                  complex = MACE(self.mace_ligands[i], central_atom,  identifier_SP)
+                  complex = MACE(self.mace_ligands[i], self.central_atom,  identifier_SP)
                   self.bidentate_1_index, self.metal_index, self.bidentate_2_index = complex.generate_complex_SP_xyz()
             except Exception:
               print('Wrong SMILES:', i)               
@@ -276,7 +276,6 @@ class Workflow:
 
             # set skeleton path to ../ChemSpaX/skeletons        
             path_to_skeletons = os.path.join(os.getcwd(), dest_dir_skeletons)
-            
             # copy substituents from user source to ChemSpaX folder
             src_dir_subs = self.path_to_substituents
             dest_dir_subs = os.path.join(self.path_to_workflow, 'ChemSpaX', 'substituents_xyz')   
@@ -295,7 +294,6 @@ class Workflow:
             # Run chemspax from main
         for index, sub_list in enumerate(self.substituent_list):
             #### Run chemspax
-            print(sub_list, skeleton_list_[index])
             main([os.path.join(path_to_skeletons, skeleton_list_[index])], sub_list, self.path_to_database, path_to_substituents, os.path.join(path_to_skeletons), chemspax_working_directory, path_to_output)
             
             os.rename(os.path.join(path_to_output, skeleton_list_[index][:-4] + '_func_' + str(len(sub_list)) + '.mol'), \
@@ -484,7 +482,7 @@ if __name__ == "__main__":
                         'solvent': solvent}
 
     # print(skeleton_list)
-    workflow = Workflow(path_to_workflow = os.getcwd() + '/Workflow', geom='BD', descriptor_calculator_input=descriptor_input)
+    workflow = Workflow(path_to_workflow = os.getcwd() + '/Workflow', geom='SP', descriptor_calculator_input=descriptor_input)
     workflow.prepare_folder_structure()
     # descriptor_df = workflow.calculate_descriptors()
     # descriptor_df.to_csv('descriptor_df_test.csv', index=False)
