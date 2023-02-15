@@ -287,7 +287,10 @@ def molecular_graph(elements, coordinates):
         ### Check two closest donors to the metal center.
         
         if len(new_bidentate) == 2:
-            return ligand, new_bidentate
+            ligand = list(ligand)
+            ligand.append(metal_center_id)
+            ligand_metal = np.array(ligand)
+            return ligand_metal, new_bidentate
     
         else:
             dict_distances = {}
@@ -301,24 +304,24 @@ def molecular_graph(elements, coordinates):
             dict_distances = dict(sorted(dict_distances.items(), key=operator.itemgetter(1),reverse=False))
             new_bidentate = []
             new_bidentate.extend([metal_center_id, list(dict_distances.keys())[0], list(dict_distances.keys())[1]])
-            
+
             ligand = list(ligand)
             ligand.append(metal_center_id)
-            
-            ligand_metal = np.sort(ligand)
+            ligand_metal = np.array(ligand)
             return ligand_metal, new_bidentate
         
     ligand = list(ligand)
     ligand.append(metal_center_id)
-    ligand_metal = np.sort(ligand)
+    ligand_metal = np.array(ligand)
     return ligand_metal, bidentate
 
 
-## testing -- testing successful on xyz and log
-log = '[Rh+1]_L98_SP0.log'
-elements, coordinates = read_cclib(log)
-molecular_graph(elements = elements, coordinates = coordinates)
+if __name__ == '__main__':
+    # testing -- testing successful on xyz and log
+    log = '[Rh+1]_L98_SP0.log'
+    elements, coordinates = read_cclib(log)
+    molecular_graph(elements = elements, coordinates = coordinates)
 
-xyz = '1441830-74-5_NBD.xyz'
-elements, coordinates = read_xyz_mf(xyz)
-molecular_graph(elements = elements, coordinates = coordinates)
+    xyz = '1441830-74-5_NBD.xyz'
+    elements, coordinates = read_xyz_mf(xyz)
+    molecular_graph(elements = elements, coordinates = coordinates)
