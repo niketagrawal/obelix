@@ -49,7 +49,7 @@ class Descriptors:
         return ligand_atoms, bidentate
 
     @staticmethod
-    def _buried_volume_quadrant_analysis(elements, coordinates, dictionary, metal_idx, z_axis_atoms, xz_plane_atoms, excluded_atoms=None):
+    def _buried_volume_quadrant_analysis(filename, elements, coordinates, dictionary, metal_idx, z_axis_atoms, xz_plane_atoms, excluded_atoms=None, plot_steric_map=False):
         """
         Calculate the buried volume for the 4 quadrants and 8 octants (positive Z direction) of the bidentate ligand.
         :param elements:
@@ -61,11 +61,12 @@ class Descriptors:
         :param excluded_atoms:
         :return:
         """
-        buried_volume_for_quad_oct = BuriedVolume(elements, coordinates, metal_idx,
+        buried_volume = BuriedVolume(elements, coordinates, metal_idx,
                                                   z_axis_atoms=z_axis_atoms,
                                                   xz_plane_atoms=xz_plane_atoms,
                                                   excluded_atoms=excluded_atoms,
                                                   radius=3.5).octant_analysis()
+        buried_volume_for_quad_oct = buried_volume.octant_analysis()
 
         quadrants = buried_volume_for_quad_oct.quadrants['percent_buried_volume']
         octants = buried_volume_for_quad_oct.octants['percent_buried_volume']
@@ -80,7 +81,8 @@ class Descriptors:
         for oct_index in range(8):
             values = list(octants.values())
             dictionary[octant_dictionary[oct_index] + "_octant"] = values[oct_index] / 100
-
+        if plot_steric_map:
+            buried_volume.plot_steric_map(filename=filename + '_steric_map.png')
         return dictionary
 
     @ staticmethod
@@ -225,7 +227,7 @@ class Descriptors:
             raise ValueError(f'Output type {new_output_type} not supported. Please choose from {self.supported_output_types}.')
         self.output_type = new_output_type
 
-    def _calculate_steric_electronic_desc_morfeus(self, geom_type, solvent, dictionary, elements, coordinates, filename, metal_adduct='pristine'):
+    def _calculate_steric_electronic_desc_morfeus(self, geom_type, solvent, dictionary, elements, coordinates, filename, metal_adduct='pristine', plot_steric_map=False):
         """
         Calculate all steric and electronic descriptors that can be calculated using Morfeus. For NBD ligands,
         there are additional descriptors that can be calculated.
@@ -357,8 +359,8 @@ class Descriptors:
         z_axis_atom_index = [bidentate_ligand_atoms_min_donor_idx, bidentate_ligand_atoms_max_donor_idx]
         xz_plane_atom_indices = [bidentate_ligand_atoms_max_donor_idx]
         dictionary.update(
-            self._buried_volume_quadrant_analysis(bidentate_ligand_atoms_elements, bidentate_ligand_atoms_coordinates, dictionary, bidentate_ligand_atoms_metal_idx,
-                                                  z_axis_atom_index, xz_plane_atom_indices, excluded_atoms))
+            self._buried_volume_quadrant_analysis(filename, bidentate_ligand_atoms_elements, bidentate_ligand_atoms_coordinates, dictionary, bidentate_ligand_atoms_metal_idx,
+                                                  z_axis_atom_index, xz_plane_atom_indices, excluded_atoms, plot_steric_map))
 
         # calculate steric descriptors
         # for the bite angle we can use the whole complex
@@ -618,7 +620,7 @@ class Descriptors:
 
         return dictionary
 
-    def calculate_morfeus_descriptors(self, geom_type, solvent=None, printout=False, metal_adduct='pristine'):
+    def calculate_morfeus_descriptors(self, geom_type, solvent=None, printout=False, metal_adduct='pristine', plot_steric_map=False):
         """
         Function that creates the dictionary for descriptor calculation using Morfeus and performs the right actions
         based on the output type. For CREST ensembles, the descriptors are boltzmann weighted and averaged.
@@ -645,7 +647,7 @@ class Descriptors:
 
                 elements, coordinates = read_xyz(metal_ligand_complex)
                 try:
-                    properties, metal_idx, bidentate_max_donor_idx, bidentate_min_donor_idx = self._calculate_steric_electronic_desc_morfeus(geom_type=geom_type, solvent=solvent, dictionary=properties, elements=elements, coordinates=coordinates, filename=filename, metal_adduct=metal_adduct)
+                    properties, metal_idx, bidentate_max_donor_idx, bidentate_min_donor_idx = self._calculate_steric_electronic_desc_morfeus(geom_type=geom_type, solvent=solvent, dictionary=properties, elements=elements, coordinates=coordinates, filename=filename, metal_adduct=metal_adduct, plot_steric_map=plot_steric_map)
                 except:
                     # if something goes wrong with the molecular graph it usually means that the geometry is wrong
                     print('Error calculating Morfeus descriptors for: ', filename)
@@ -687,7 +689,7 @@ class Descriptors:
                     for conformer in ce:
                         elements, coordinates = ce.elements, conformer.coordinates
                         try:
-                            conformer.properties, metal_idx, bidentate_max_donor_idx, bidentate_min_donor_idx = self._calculate_steric_electronic_desc_morfeus(geom_type=geom_type, solvent=solvent, dictionary=conformer.properties, elements=elements, coordinates=coordinates, filename=filename, metal_adduct=metal_adduct)
+                            conformer.properties, metal_idx, bidentate_max_donor_idx, bidentate_min_donor_idx = self._calculate_steric_electronic_desc_morfeus(geom_type=geom_type, solvent=solvent, dictionary=conformer.properties, elements=elements, coordinates=coordinates, filename=filename, metal_adduct=metal_adduct, plot_steric_map=plot_steric_map)
                             # these are indexing properties so we don't want them to be boltzmann averaged
                             columns_to_exclude = [f"index_{self.central_atom}", "index_donor_max", "index_donor_min",
                                                   f"element_{self.central_atom}", "element_donor_max",
@@ -729,7 +731,7 @@ class Descriptors:
         else:
             raise ValueError(f'Output type {self.output_type()} not supported. Please choose from {self.supported_output_types}.')
 
-    def calculate_dft_descriptors_from_log(self, geom_type, solvent=None, extract_xyz_from_log=False, printout=False, metal_adduct='pristine'):
+    def calculate_dft_descriptors_from_log(self, geom_type, solvent=None, extract_xyz_from_log=False, printout=False, metal_adduct='pristine', plot_steric_map=False):
         """
         Function that creates the dictionary and descriptor dataframe for the DFT descriptors. These descriptors are calculated
         from the log files of the DFT calculations. The log files are parsed using the cclib package. The descriptors are
@@ -764,7 +766,7 @@ class Descriptors:
                 coordinates = coordinates[-1]  # else morfeus descriptors are calculated for last geometry in log file
             elements = np.array(elements)
             try:
-                properties, metal_idx, bidentate_max_donor_idx, bidentate_min_donor_idx = self._calculate_steric_electronic_desc_morfeus(geom_type=geom_type, solvent=solvent, dictionary=properties, elements=elements, coordinates=coordinates, filename=filename, metal_adduct=metal_adduct)
+                properties, metal_idx, bidentate_max_donor_idx, bidentate_min_donor_idx = self._calculate_steric_electronic_desc_morfeus(geom_type=geom_type, solvent=solvent, dictionary=properties, elements=elements, coordinates=coordinates, filename=filename, metal_adduct=metal_adduct, plot_steric_map=plot_steric_map)
             except:
                 print('Error calculating Morfeus descriptors for: ', filename)
                 print('Make sure to check the geometry')
@@ -816,5 +818,5 @@ if __name__ == "__main__":
 
     # example descriptor calculation for log files with NBD adduct
     dft_descriptors = Descriptors(central_atom='Rh', path_to_workflow=os.path.join(os.getcwd(), 'Workflow'), output_type='gaussian')
-    dft_descriptors.calculate_dft_descriptors_from_log(geom_type='BD', solvent=None, extract_xyz_from_log=True, printout=False, metal_adduct='nbd')
+    dft_descriptors.calculate_dft_descriptors_from_log(geom_type='BD', solvent=None, extract_xyz_from_log=True, printout=False, metal_adduct='nbd', plot_steric_map=False)
     dft_descriptors.descriptor_df.to_csv('DFT_descriptors.csv', index=False)
