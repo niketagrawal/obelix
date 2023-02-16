@@ -57,34 +57,35 @@ class MACE:
 
         return bidentate_idxs[0], metal_atom.GetIdX(), bidentate_idxs[1]
 
-    def generate_complex_SP_xyz(self):
+    def generate_complex_SP_xyz(self, auxiliary_ligands = []):
         geom = 'SP'
-
-        core = mace.ComplexFromLigands([self.bidentate], self.CA, geom)
+        ligands = [self.bidentate]
+        ligands.extend(auxiliary_ligands)
+        core = mace.ComplexFromLigands(ligands, self.CA, geom)
         Xs = core.GetStereomers(regime='all', dropEnantiomers=True)
 
-        bidentate_idxs = []  # the final bidentate cycle indices
+        # bidentate_idxs = []  # the final bidentate cycle indices
         for i, X in enumerate(Xs):
             X.AddConformers(numConfs=10)   
-            X.ToXYZ(self.CA + '_' + '{}{}.xyz'.format(self.name_of_xyz, i), confId='min')
-            if len(bidentate_idxs) == 0:
-                try:
-                    # find bidentate indices for first conformer, they should be the same for all conformers
-                    # in case of SP we only need to find metal atom and neighbours since only one cycle with metal center is possible
-                    atomic_number_metal_center = Chem.MolFromSmiles(self.CA).GetAtomWithIdx(0).GetAtomicNum()
-                    metal_atom = [atom for atom in X.mol3D.GetAtoms() if atom.GetAtomicNum() == atomic_number_metal_center][0]
-                    metal_bonds = [bond for bond in metal_atom.GetBonds()]
-                    for bond in metal_bonds:
-                        # atoms that are connected to the metal and in the bidentate cycle are the bidentate atoms
-                        idx1, idx2 = bond.GetBeginAtomIdx(), bond.GetEndAtomIdx()
-                        bidentate_idxs.append(idx1) if idx1 != metal_atom.GetIdx() else bidentate_idxs.append(idx2)
+            X.ToXYZ(self.CA + '_' + '{}_{}.xyz'.format(self.name_of_xyz, i), confId='min')
+        #     if len(bidentate_idxs) == 0:
+        #         try:
+        #             # find bidentate indices for first conformer, they should be the same for all conformers
+        #             # in case of SP we only need to find metal atom and neighbours since only one cycle with metal center is possible
+        #             atomic_number_metal_center = Chem.MolFromSmiles(self.CA).GetAtomWithIdx(0).GetAtomicNum()
+        #             metal_atom = [atom for atom in X.mol3D.GetAtoms() if atom.GetAtomicNum() == atomic_number_metal_center][0]
+        #             metal_bonds = [bond for bond in metal_atom.GetBonds()]
+        #             for bond in metal_bonds:
+        #                 # atoms that are connected to the metal and in the bidentate cycle are the bidentate atoms
+        #                 idx1, idx2 = bond.GetBeginAtomIdx(), bond.GetEndAtomIdx()
+        #                 bidentate_idxs.append(idx1) if idx1 != metal_atom.GetIdx() else bidentate_idxs.append(idx2)
 
-                except Exception as e:
-                    # ToDo: add logging
-                    # go on to next conformer and try again
-                    continue
-
-        return bidentate_idxs[0], metal_atom.GetIdX(), bidentate_idxs[1]
+        #         except Exception as e:
+        #             # ToDo: add logging
+        #             # go on to next conformer and try again
+        #             continue
+        return len(Xs)
+        # return bidentate_idxs[0], metal_atom.GetIdX(), bidentate_idxs[1]
 
     def generate_complex_OH_xyz(self, auxiliary_ligands = [], substrate = []):
         geom = 'OH'
@@ -111,41 +112,43 @@ class MACE:
             X.AddConformers(numConfs=10)   
             X.ToXYZ(self.CA + '_' + '{}{}.xyz'.format(self.name_of_xyz, i), confId='min')
 
-            # find bidentate indices on the conformer if none were yet
-            if len(bidentate_idxs) == 0:
-                try:
-                    # get all mapped (donor) atom indices
-                    donor_atoms = [atom.GetIdx() for atom in X.mol3D.GetAtoms() if atom.GetAtomMapNum()]
-                    # smallest set of simple rings containing at least two mapped atoms
-                    # Chem.GetSSSR() is updated in rdkit 2020.09.1, versions before had to use Chem.GetSymmSSSR()
-                    atoms_of_smallest_rings = [list(idx) for idx in Chem.GetSSSR(X.mol3D)]
-                    for list_idxs in atoms_of_smallest_rings:
-                        # if at least two mapped atoms are in the ring it's a multidentate ligand
-                        if check_if_at_least_two_mapped_atoms_in_ring(donor_atoms, list_idxs):
-                            bidentate_cycle_idxs = list_idxs
-                            break
+        #     # find bidentate indices on the conformer if none were yet
+        #     if len(bidentate_idxs) == 0:
+        #         try:
+        #             # get all mapped (donor) atom indices
+        #             donor_atoms = [atom.GetIdx() for atom in X.mol3D.GetAtoms() if atom.GetAtomMapNum()]
+        #             # smallest set of simple rings containing at least two mapped atoms
+        #             # Chem.GetSSSR() is updated in rdkit 2020.09.1, versions before had to use Chem.GetSymmSSSR()
+        #             atoms_of_smallest_rings = [list(idx) for idx in Chem.GetSSSR(X.mol3D)]
+        #             for list_idxs in atoms_of_smallest_rings:
+        #                 # if at least two mapped atoms are in the ring it's a multidentate ligand
+        #                 if check_if_at_least_two_mapped_atoms_in_ring(donor_atoms, list_idxs):
+        #                     bidentate_cycle_idxs = list_idxs
+        #                     break
 
-                    # find metal atom and neighbours
-                    atomic_number_metal_center = Chem.MolFromSmiles(self.CA).GetAtomWithIdx(0).GetAtomicNum()
-                    metal_atom = [atom for atom in X.mol3D.GetAtoms() if atom.GetAtomicNum() == atomic_number_metal_center][0]
-                    metal_bonds = [bond for bond in metal_atom.GetBonds()]
-                    for bond in metal_bonds:
-                        # atoms that are connected to the metal and in the bidentate cycle are the bidentate atoms
-                        idx1, idx2 = bond.GetBeginAtomIdx(), bond.GetEndAtomIdx()
-                        if idx1 == metal_atom.GetIdx() and idx2 in bidentate_cycle_idxs:
-                            bidentate_idxs.append(idx2)
-                        elif idx1 in bidentate_cycle_idxs and idx2 == metal_atom.GetIdx():
-                            bidentate_idxs.append(idx1)
+        #             # find metal atom and neighbours
+        #             atomic_number_metal_center = Chem.MolFromSmiles(self.CA).GetAtomWithIdx(0).GetAtomicNum()
+        #             metal_atom = [atom for atom in X.mol3D.GetAtoms() if atom.GetAtomicNum() == atomic_number_metal_center][0]
+        #             metal_bonds = [bond for bond in metal_atom.GetBonds()]
+        #             for bond in metal_bonds:
+        #                 # atoms that are connected to the metal and in the bidentate cycle are the bidentate atoms
+        #                 idx1, idx2 = bond.GetBeginAtomIdx(), bond.GetEndAtomIdx()
+        #                 if idx1 == metal_atom.GetIdx() and idx2 in bidentate_cycle_idxs:
+        #                     bidentate_idxs.append(idx2)
+        #                 elif idx1 in bidentate_cycle_idxs and idx2 == metal_atom.GetIdx():
+        #                     bidentate_idxs.append(idx1)
 
-                except Exception as e:
-                    # ToDo: add logging
-                    # go on to next conformer and try again
-                    continue
+        #         except Exception as e:
+        #             # ToDo: add logging
+        #             # go on to next conformer and try again
+        #             continue
 
-        return bidentate_idxs[0], metal_atom.GetIdX(), bidentate_idxs[1]
+        # return bidentate_idxs[0], metal_atom.GetIdX(), bidentate_idxs[1]
             
 
 class Workflow:
+    
+    #### Initialize
     def __init__(self, mace_input=[], chemspax_input=[], crest_input=[], path_to_workflow=[], descriptor_calculator_input=[], geom='SP'):
         
         self.mace_input = mace_input
@@ -157,7 +160,7 @@ class Workflow:
         self.bidentate_1_index = None
         self.bidentate_2_index = None
         self.metal_index = None
-        
+        self.mace_skeletons = dict()
         # Unpack inputs of MACE, Chemspax, CREST
         print('Workflow is initializing. Converting your dict. input to variables.')
         print('')
@@ -232,20 +235,26 @@ class Workflow:
 
         for i in tqdm(range(len(self.mace_ligands))):
             try:
-              if self.geom == 'OH':
-                  identifier_OH = self.names_of_xyz[i] + '_OH'
-                  complex = MACE(self.mace_ligands[i], self.central_atom,  identifier_OH)
-                  self.bidentate_1_index, self.metal_index, self.bidentate_2_index = \
-                      complex.generate_complex_OH_xyz(auxiliary_ligands, substrate=self.substrate)
-              
-              if self.geom == 'SP':
-                  identifier_SP = self.names_of_xyz[i] + '_SP'
-                  complex = MACE(self.mace_ligands[i], self.central_atom,  identifier_SP)
-                  self.bidentate_1_index, self.metal_index, self.bidentate_2_index = complex.generate_complex_SP_xyz()
+                if self.geom == 'OH':
+                    identifier_OH = self.names_of_xyz[i] + '_OH'
+                    complex = MACE(self.mace_ligands[i], self.central_atom,  identifier_OH)
+                    complex.generate_complex_OH_xyz(self.auxiliary_ligands, substrate=self.substrate)
+                
+                if self.geom == 'SP':
+                    identifier_SP = self.names_of_xyz[i] + '_SP'
+                    complex = MACE(self.mace_ligands[i], self.central_atom, identifier_SP)
+                    Xs = complex.generate_complex_SP_xyz(self.auxiliary_ligands)
+                    # j index - conformer index
+                    # i index - ligand index
+                    for j in range(Xs):
+                        if self.names_of_xyz[i] in self.mace_skeletons.keys():
+                            self.mace_skeletons[self.names_of_xyz[i]].append("_".join([self.central_atom, identifier_SP, str(j) + '.xyz']))
+                        else:
+                            self.mace_skeletons[self.names_of_xyz[i]] = ["_".join([self.central_atom, identifier_SP, str(j) + '.xyz'])]
             except Exception:
-              print('Wrong SMILES:', i)               
-    
-    def run_chemspax(self, names, skeleton_list_):  
+                    print('Wrong SMILES:', i)               
+
+    def run_chemspax(self, names, functionalization_list):  
         
         """
         
@@ -254,6 +263,8 @@ class Workflow:
         Then run main(...) to functionalize the skeletons prepared by MACE.
         
         """
+        print('MACE scaffolds: ',self.mace_skeletons)
+        self.merged_mace_skeletons = sum(self.mace_skeletons.values(), [])
         
         chemspax_working_directory = os.path.join(self.path_to_workflow, 'ChemSpaX')
         
@@ -292,12 +303,19 @@ class Workflow:
             path_to_output = os.path.join(self.path_to_workflow, 'ChemSpaX','chemspax_output')
         
             # Run chemspax from main
+
         for index, sub_list in enumerate(self.substituent_list):
+            print(self.substituent_list)
             #### Run chemspax
-            main([os.path.join(path_to_skeletons, skeleton_list_[index])], sub_list, self.path_to_database, path_to_substituents, os.path.join(path_to_skeletons), chemspax_working_directory, path_to_output)
             
-            os.rename(os.path.join(path_to_output, skeleton_list_[index][:-4] + '_func_' + str(len(sub_list)) + '.mol'), \
-                os.path.join(path_to_output, list(names)[index] +  '.mol'))
+            #### Convert mace_skeletons to full paths (chemspax format).
+            chemspax_skeletons = [os.path.join(path_to_skeletons, i) for i in self.mace_skeletons[names[index]]]
+            
+            main(chemspax_skeletons, sub_list, self.path_to_database, path_to_substituents, os.path.join(path_to_skeletons), chemspax_working_directory, path_to_output)
+            
+            for skeleton in chemspax_skeletons:
+                os.rename(os.path.join(path_to_output, os.path.basename(skeleton)[:-4] + '_func_' + str(len(sub_list)) + '.mol'), \
+                    os.path.join(path_to_output, list(names)[index] + '_functionalization_' + str(functionalization_list[index]) + '.mol'))
             
             ## Convert mol to xyz to keep the bonding information
             obconversion = openbabel.OBConversion()
@@ -305,14 +323,14 @@ class Workflow:
             obconversion.SetOutFormat('xyz')
             mol = openbabel.OBMol()
             obconversion.ReadFile(mol, \
-                os.path.join(path_to_output, list(names)[index] +  '.mol'))
-            
+                os.path.join(path_to_output, list(names)[index] + '_functionalization_' + str(functionalization_list[index]) + '.mol'))
+
             obconversion.WriteFile(mol, \
-                os.path.join(path_to_output, list(names)[index] +  '.xyz'))
+                os.path.join(path_to_output,list(names)[index] + '_functionalization_' + str(functionalization_list[index]) + '.xyz'))
             
             for filename in glob.glob(os.path.join(self.path_to_workflow, 'ChemSpaX', 'chemspax_output', '*_func_*')):
                 os.remove(filename) 
-    
+
     def run_crest(self, path_to_complexes = [], path_to_output = [], conformer_search = 'off'):
         
         """
@@ -486,5 +504,5 @@ if __name__ == "__main__":
     workflow.prepare_folder_structure()
     # descriptor_df = workflow.calculate_descriptors()
     # descriptor_df.to_csv('descriptor_df_test.csv', index=False)
-    # workflow.run_chemspax(names=names ,skeleton_list_=skeleton_list)
+    # workflow.run_chemspax(names=names ,functionalization_list=skeleton_list)
     
