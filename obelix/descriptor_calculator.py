@@ -35,7 +35,7 @@ class Descriptors:
         self.descriptor_df = None
 
     @staticmethod
-    def _find_bidentate_ligand(elements, coordinates, geom_type):
+    def _find_bidentate_ligand(elements, coordinates):
         """
         Graph-based approach used to find the bidentate ligand in a complex. This method returns all auxillary ligand
         atoms and the bidentate ligand atoms. For now we only use the bidentate ligand atoms.
@@ -45,11 +45,11 @@ class Descriptors:
         :param geom_type:
         :return:
         """
-        ligand_atoms, bidentate = molecular_graph(elements=elements, coords=coordinates, geom=geom_type)
+        ligand_atoms, bidentate = molecular_graph(elements=elements, coordinates=coordinates)
         return ligand_atoms, bidentate
 
     @staticmethod
-    def _buried_volume_quadrant_analysis(elements, coordinates, dictionary, metal_idx, z_axis_atoms, xz_plane_atoms, excluded_atoms=None):
+    def _buried_volume_quadrant_analysis(filename, elements, coordinates, dictionary, metal_idx, z_axis_atoms, xz_plane_atoms, excluded_atoms=None, plot_steric_map=False):
         """
         Calculate the buried volume for the 4 quadrants and 8 octants (positive Z direction) of the bidentate ligand.
         :param elements:
@@ -61,11 +61,12 @@ class Descriptors:
         :param excluded_atoms:
         :return:
         """
-        buried_volume_for_quad_oct = BuriedVolume(elements, coordinates, metal_idx,
+        buried_volume = BuriedVolume(elements, coordinates, metal_idx,
                                                   z_axis_atoms=z_axis_atoms,
                                                   xz_plane_atoms=xz_plane_atoms,
                                                   excluded_atoms=excluded_atoms,
                                                   radius=3.5).octant_analysis()
+        buried_volume_for_quad_oct = buried_volume.octant_analysis()
 
         quadrants = buried_volume_for_quad_oct.quadrants['percent_buried_volume']
         octants = buried_volume_for_quad_oct.octants['percent_buried_volume']
@@ -80,7 +81,8 @@ class Descriptors:
         for oct_index in range(8):
             values = list(octants.values())
             dictionary[octant_dictionary[oct_index] + "_octant"] = values[oct_index] / 100
-
+        if plot_steric_map:
+            buried_volume.plot_steric_map(filename=filename + '_steric_map.png')
         return dictionary
 
     @ staticmethod
@@ -225,7 +227,7 @@ class Descriptors:
             raise ValueError(f'Output type {new_output_type} not supported. Please choose from {self.supported_output_types}.')
         self.output_type = new_output_type
 
-    def _calculate_steric_electronic_desc_morfeus(self, geom_type, solvent, dictionary, elements, coordinates, filename, metal_adduct='pristine'):
+    def _calculate_steric_electronic_desc_morfeus(self, geom_type, solvent, dictionary, elements, coordinates, filename, metal_adduct='pristine', plot_steric_map=False):
         """
         Calculate all steric and electronic descriptors that can be calculated using Morfeus. For NBD ligands,
         there are additional descriptors that can be calculated.
@@ -239,8 +241,20 @@ class Descriptors:
         :param metal_adduct:
         :return:
         """
-        ligand_atoms, bidentate = self._find_bidentate_ligand(elements, coordinates, geom_type)
+        # first we need to find the bidentate ligand atoms and the metal center
+        # bidentate_ligand_atoms = all indices of the bidentate ligand + metal center
+        # bidentate = just indices of the metal center and the two bidentate ligand atoms
+        bidentate_ligand_atoms, bidentate = self._find_bidentate_ligand(elements, coordinates)
+        # get elements and coordinates for the bidentate ligand atoms only, these are used in cone angle and quadrant
+        # calculations
+        bidentate_ligand_atoms_coordinates = coordinates[bidentate_ligand_atoms]
+        bidentate_ligand_atoms_elements = elements[bidentate_ligand_atoms]
+        # metal center idx is always at end of molecular_graph output, so we search for its coordinates to find the index
+        bidentate_ligand_atoms_metal_idx = np.where(np.array(bidentate_ligand_atoms_coordinates) == coordinates[bidentate_ligand_atoms[-1]])[0][0] + 1
+        # print(bidentate_ligand_atoms_elements[bidentate_ligand_atoms_metal_idx - 1])
+
         # first index is the metal, second index is the bidentate ligand 1, third index is the bidentate ligand 2
+        # in the full complex
         # morfeus indices start at 1, so add 1 to the indices
         metal_idx = bidentate[0] + 1
         bidentate_1_idx = bidentate[1] + 1
@@ -267,6 +281,11 @@ class Descriptors:
             bidentate_max_donor_idx = bidentate_2_idx
             bidentate_min_donor_idx = bidentate_1_idx
 
+        bidentate_ligand_atoms_max_donor_idx = np.where(np.array(bidentate_ligand_atoms_coordinates) == coordinates[bidentate_max_donor_idx - 1])[0][0] + 1
+        bidentate_ligand_atoms_min_donor_idx = np.where(np.array(bidentate_ligand_atoms_coordinates) == coordinates[bidentate_min_donor_idx - 1])[0][0] + 1
+        # print(bidentate_ligand_atoms_elements[bidentate_ligand_atoms_max_donor_idx - 1])
+        # print(bidentate_ligand_atoms_elements[bidentate_ligand_atoms_min_donor_idx - 1])
+
         # write indices and elements of metal center, max donor, and min donor to dictionary
         dictionary[f"index_{self.central_atom}"] = metal_idx
         dictionary["index_donor_max"] = bidentate_max_donor_idx
@@ -279,14 +298,14 @@ class Descriptors:
         # by default no atoms are excluded from buried volume analysis and all elements are taken for cone angle analysis
         # parameters for quadrant analysis
         excluded_atoms = None
-        z_axis_atom_index = [bidentate_min_donor_idx,
-                             bidentate_max_donor_idx]  # the index in the log file is 0-based, but the index in morfeus is 1-based
-        xz_plane_atom_indices = [bidentate_max_donor_idx]
+        # z_axis_atom_index = [bidentate_min_donor_idx,
+        #                      bidentate_max_donor_idx]  # the index in the log file is 0-based, but the index in morfeus is 1-based
+        # xz_plane_atom_indices = [bidentate_max_donor_idx]
 
         # parameters for cone angle
-        cone_angle_elements = elements
-        cone_angle_coordinates = coordinates
-        cone_angle_correct = True  # whether we can proceed with the cone angle calculation later or not
+        # cone_angle_elements = elements
+        # cone_angle_coordinates = coordinates
+        # cone_angle_correct = True  # whether we can proceed with the cone angle calculation later or not
 
         # if the metal adduct is NBD we can do buried volume quadrant analysis, calculate dihedral angles and C=C bond lengths
         if metal_adduct.lower() == 'nbd':
@@ -310,13 +329,13 @@ class Descriptors:
                 # quadrant analysis parameters
                 # exclude all nbd atoms from the quadrant analysis
                 # last 15 atoms are the nbd atoms, but indexing in morfeus is 1-based
-                nbd_indices = list(range(len(elements) - 15, len(elements) + 1))
-                excluded_atoms = nbd_indices
+                # nbd_indices = list(range(len(elements) - 15, len(elements) + 1))
+                # excluded_atoms = nbd_indices
 
                 # if everything with NBD is fine, we can delete all auxillary ligands and calculate the cone angle
-                cone_angle_correct = True
-                cone_angle_elements = elements[:-15]
-                cone_angle_coordinates = coordinates[:-15]
+                # cone_angle_correct = True
+                # cone_angle_elements = elements[:-15]
+                # cone_angle_coordinates = coordinates[:-15]
 
             elif carbon_back_nbd_idx is None and hydrogens_bonded_to_carbon_back_nbd is None:
                 print('NBD not found at end of xyz file, calculating stuff the hard way')
@@ -334,72 +353,91 @@ class Descriptors:
 
                     # quadrant analysis parameters
                     # ToDo: fix nbd_complex.find_nbd_openbabel() such that we can remove NBD for quadrant analysis
-                cone_angle_correct = False  # ToDo: fix nbd_complex.find_nbd_openbabel() such that we can remove NBD for cone angle calculation
+                # cone_angle_correct = False  # ToDo: fix nbd_complex.find_nbd_openbabel() such that we can remove NBD for cone angle calculation
 
+        # for the quadrant analysis, we only use the bidentate ligand atoms and metal center
+        z_axis_atom_index = [bidentate_ligand_atoms_min_donor_idx, bidentate_ligand_atoms_max_donor_idx]
+        xz_plane_atom_indices = [bidentate_ligand_atoms_max_donor_idx]
         dictionary.update(
-            self._buried_volume_quadrant_analysis(elements, coordinates, dictionary, metal_idx,
-                                                  z_axis_atom_index, xz_plane_atom_indices, excluded_atoms))
+            self._buried_volume_quadrant_analysis(filename, bidentate_ligand_atoms_elements, bidentate_ligand_atoms_coordinates, dictionary, bidentate_ligand_atoms_metal_idx,
+                                                  z_axis_atom_index, xz_plane_atom_indices, excluded_atoms, plot_steric_map))
 
         # calculate steric descriptors
+        # for the bite angle we can use the whole complex
         try:
-            dictionary["bite_angle"] = BiteAngle(coordinates, metal_idx, bidentate_1_idx,
+            bite_angle = BiteAngle(coordinates, metal_idx, bidentate_1_idx,
                                                  bidentate_2_idx).angle  # unit: degrees
+            dictionary["bite_angle"] = bite_angle
+            # print('Bite angle: {}'.format(bite_angle)
         except Exception:
             print('Bite angle calculation failed, defaulting to None.')
             dictionary["bite_angle"] = None
-        if cone_angle_correct:
-            if geom_type == "BD" or geom_type == "SP":
-                try:
-                    dictionary["cone_angle"] = ConeAngle(cone_angle_elements, cone_angle_coordinates,
-                                                         metal_idx).cone_angle
-                except Exception:
-                    print('Cone angle calculation failed, defaulting to None.')
-                    dictionary["cone_angle"] = None
-            else:
-                try:
-                    a = [bidentate[0]]
-                    a.extend(ligand_atoms[bidentate[1]])
-                    a = list(np.sort(np.array(a)))
 
-                except Exception:
-                    print('Molecular graph search failed, defaulting to manual search.')
-                    a = list(np.sort(np.array(bidentate)))
-
-                diff = None
-                for id, i in enumerate(a):
-                    if i == bidentate[0]:
-                        diff = id
-                elements_cone_angle = cone_angle_elements[a]
-                coordinates_cone_angle = np.array(cone_angle_coordinates)[a]
-                if diff is not None:
-                    try:
-                        dictionary["cone_angle"] = ConeAngle(elements_cone_angle, coordinates_cone_angle,
-                                                             diff + 1).cone_angle
-                    except Exception:
-                        # unit: degrees
-                        print('Cone angle calculation failed, defaulting to None. For complex:', complex)
-                        dictionary["cone_angle"] = None
-
-        else:
+        # for the cone angle we again only use the bidentate ligand atoms and metal center
+        try:
+            cone_angle = ConeAngle(bidentate_ligand_atoms_elements, bidentate_ligand_atoms_coordinates,
+                                   bidentate_ligand_atoms_metal_idx).cone_angle
+            dictionary["cone_angle"] = cone_angle
+            # print('Cone angle: {}'.format(cone_angle)
+        except Exception:
+            print('Cone angle calculation failed, defaulting to None.')
             dictionary["cone_angle"] = None
+
+        # if cone_angle_correct:
+        #     if geom_type == "BD" or geom_type == "SP":
+        #         try:
+        #             cone_angle = ConeAngle(bidentate_ligand_atoms_elements, bidentate_ligand_atoms_coordinates,
+        #                                                  bidentate_ligand_atoms_metal_idx).cone_angle
+        #             dictionary["cone_angle"] = cone_angle
+        #             # print('Cone angle: {}'.format(cone_angle)
+        #         except Exception:
+        #             print('Cone angle calculation failed, defaulting to None.')
+        #             dictionary["cone_angle"] = None
+        #     else:
+        #         try:
+        #             a = [bidentate[0]]
+        #             a.extend(ligand_atoms[bidentate[1]])
+        #             a = list(np.sort(np.array(a)))
+        #
+        #         except Exception:
+        #             print('Molecular graph search failed, defaulting to manual search.')
+        #             a = list(np.sort(np.array(bidentate)))
+        #
+        #         diff = None
+        #         for id, i in enumerate(a):
+        #             if i == bidentate[0]:
+        #                 diff = id
+        #         elements_cone_angle = cone_angle_elements[a]
+        #         coordinates_cone_angle = np.array(cone_angle_coordinates)[a]
+        #         if diff is not None:
+        #             try:
+        #                 dictionary["cone_angle"] = ConeAngle(elements_cone_angle, coordinates_cone_angle,
+        #                                                      diff + 1).cone_angle
+        #             except Exception:
+        #                 # unit: degrees
+        #                 print('Cone angle calculation failed, defaulting to None. For complex:', complex)
+        #                 dictionary["cone_angle"] = None
+        #
+        # else:
+        #     dictionary["cone_angle"] = None
 
         # calculate distances between metal and donors, units: angstrom
         dictionary[f"distance_{self.central_atom}_max_donor_{self.output_type.lower()}"] = calculate_distance(coordinates[metal_idx - 1], coordinates[bidentate_max_donor_idx - 1])
         dictionary[f"distance_{self.central_atom}_min_donor_{self.output_type.lower()}"] = calculate_distance(coordinates[metal_idx - 1], coordinates[bidentate_min_donor_idx - 1])
 
-        # calculate buried volume descriptors
-        bv_metal_center = BuriedVolume(elements, coordinates, metal_idx, radius=3.5, excluded_atoms=excluded_atoms).fraction_buried_volume
-        bv_max_donor = BuriedVolume(elements, coordinates, bidentate_1_idx, radius=3.5, excluded_atoms=excluded_atoms).fraction_buried_volume
-        bv_min_donor = BuriedVolume(elements, coordinates, bidentate_2_idx, radius=3.5, excluded_atoms=excluded_atoms).fraction_buried_volume
+        # calculate buried volume descriptors on only the bidentate ligand atoms
+        bv_metal_center = BuriedVolume(bidentate_ligand_atoms_elements, bidentate_ligand_atoms_coordinates, bidentate_ligand_atoms_metal_idx, radius=3.5, excluded_atoms=excluded_atoms).fraction_buried_volume
+        bv_max_donor = BuriedVolume(bidentate_ligand_atoms_elements, bidentate_ligand_atoms_coordinates, bidentate_ligand_atoms_max_donor_idx, radius=3.5, excluded_atoms=excluded_atoms).fraction_buried_volume
+        bv_min_donor = BuriedVolume(bidentate_ligand_atoms_elements, bidentate_ligand_atoms_coordinates, bidentate_ligand_atoms_min_donor_idx, radius=3.5, excluded_atoms=excluded_atoms).fraction_buried_volume
         # unit: fraction of volume occupied by atoms within 3.5A of the atom
         dictionary[f"buried_volume_{self.central_atom}_3.5A"] = bv_metal_center
         dictionary["buried_volume_donor_max"] = bv_max_donor
         dictionary["buried_volume_donor_min"] = bv_min_donor
 
-        bv_metal_4 = BuriedVolume(elements, coordinates, metal_idx, radius=4, excluded_atoms=excluded_atoms).fraction_buried_volume
-        bv_metal_5 = BuriedVolume(elements, coordinates, metal_idx, radius=5, excluded_atoms=excluded_atoms).fraction_buried_volume
-        bv_metal_6 = BuriedVolume(elements, coordinates, metal_idx, radius=6, excluded_atoms=excluded_atoms).fraction_buried_volume
-        bv_metal_7 = BuriedVolume(elements, coordinates, metal_idx, radius=7, excluded_atoms=excluded_atoms).fraction_buried_volume
+        bv_metal_4 = BuriedVolume(bidentate_ligand_atoms_elements, bidentate_ligand_atoms_coordinates, bidentate_ligand_atoms_metal_idx, radius=4, excluded_atoms=excluded_atoms).fraction_buried_volume
+        bv_metal_5 = BuriedVolume(bidentate_ligand_atoms_elements, bidentate_ligand_atoms_coordinates, bidentate_ligand_atoms_metal_idx, radius=5, excluded_atoms=excluded_atoms).fraction_buried_volume
+        bv_metal_6 = BuriedVolume(bidentate_ligand_atoms_elements, bidentate_ligand_atoms_coordinates, bidentate_ligand_atoms_metal_idx, radius=6, excluded_atoms=excluded_atoms).fraction_buried_volume
+        bv_metal_7 = BuriedVolume(bidentate_ligand_atoms_elements, bidentate_ligand_atoms_coordinates, bidentate_ligand_atoms_metal_idx, radius=7, excluded_atoms=excluded_atoms).fraction_buried_volume
 
         dictionary[f"buried_volume_{self.central_atom}_4A"] = bv_metal_4
         dictionary[f"buried_volume_{self.central_atom}_5A"] = bv_metal_5
@@ -410,6 +448,7 @@ class Descriptors:
         # BuriedVolume(elements, coordinates, bidentate[1], radius=4).print_report()
 
         # calculate dispersion, SASA and electronic descriptors using morfeus
+        # these are calculated on the whole complex
         # dispersion P_int unit: kcal^0.5 mol^-0.5
         dictionary[f"dispersion_p_int_{self.central_atom}_{calculation_method}"] = \
             Dispersion(elements, coordinates).atom_p_int[metal_idx]
@@ -581,7 +620,7 @@ class Descriptors:
 
         return dictionary
 
-    def calculate_morfeus_descriptors(self, geom_type, solvent=None, printout=False, metal_adduct='pristine'):
+    def calculate_morfeus_descriptors(self, geom_type, solvent=None, printout=False, metal_adduct='pristine', plot_steric_map=False):
         """
         Function that creates the dictionary for descriptor calculation using Morfeus and performs the right actions
         based on the output type. For CREST ensembles, the descriptors are boltzmann weighted and averaged.
@@ -607,7 +646,12 @@ class Descriptors:
                 properties['filename_tud'] = filename
 
                 elements, coordinates = read_xyz(metal_ligand_complex)
-                properties, metal_idx, bidentate_max_donor_idx, bidentate_min_donor_idx = self._calculate_steric_electronic_desc_morfeus(geom_type=geom_type, solvent=solvent, dictionary=properties, elements=elements, coordinates=coordinates, filename=filename, metal_adduct=metal_adduct)
+                try:
+                    properties, metal_idx, bidentate_max_donor_idx, bidentate_min_donor_idx = self._calculate_steric_electronic_desc_morfeus(geom_type=geom_type, solvent=solvent, dictionary=properties, elements=elements, coordinates=coordinates, filename=filename, metal_adduct=metal_adduct, plot_steric_map=plot_steric_map)
+                except:
+                    # if something goes wrong with the molecular graph it usually means that the geometry is wrong
+                    print('Error calculating Morfeus descriptors for: ', filename)
+                    print('Make sure to check the geometry')
                 dictionary_for_properties[os.path.basename(os.path.normpath(metal_ligand_complex[:-4]))] = properties
 
             new_descriptor_df = dataframe_from_dictionary(dictionary_for_properties)
@@ -641,28 +685,38 @@ class Descriptors:
                     # ce.generate_mol()
                     ce.prune_energy()
                     ce.sort()
+                    conformer_properties['filename_tud'] = filename
                     for conformer in ce:
                         elements, coordinates = ce.elements, conformer.coordinates
-                        conformer.properties, metal_idx, bidentate_max_donor_idx, bidentate_min_donor_idx = self._calculate_steric_electronic_desc_morfeus(geom_type=geom_type, solvent=solvent, dictionary=conformer.properties, elements=elements, coordinates=coordinates, filename=filename, metal_adduct=metal_adduct)
-                    # all descriptors calculated, now we can write the filaname and boltzman statistics to the dictionary
-                    conformer_properties['filename_tud'] = filename
+                        try:
+                            conformer.properties, metal_idx, bidentate_max_donor_idx, bidentate_min_donor_idx = self._calculate_steric_electronic_desc_morfeus(geom_type=geom_type, solvent=solvent, dictionary=conformer.properties, elements=elements, coordinates=coordinates, filename=filename, metal_adduct=metal_adduct, plot_steric_map=plot_steric_map)
+                            # these are indexing properties so we don't want them to be boltzmann averaged
+                            columns_to_exclude = [f"index_{self.central_atom}", "index_donor_max", "index_donor_min",
+                                                  f"element_{self.central_atom}", "element_donor_max",
+                                                  "element_donor_min"]
+                            for key in [k for k in ce.get_properties().keys() if k in columns_to_exclude]:
+                                # check if indexing property is the same across all conformers, then select property of first
+                                # conformer
+                                for property in ce.get_properties()[key]:
+                                    if property != ce.get_properties()[key][0]:
+                                        print(
+                                            f"BE AWARE: Indexing property {key} is not the same across all conformers. Taking property "
+                                            f"of first conformer for {os.path.basename(os.path.normpath(complex))}.")
+                                conformer_properties[key] = ce.get_properties()[key][0]
 
-                    columns_to_exclude = [f"index_{self.central_atom}", "index_donor_max", "index_donor_min", f"element_{self.central_atom}", "element_donor_max", "element_donor_min"]
-                    for key in [k for k in ce.get_properties().keys() if k in columns_to_exclude]:
-                        # check if indexing property is the same across all conformers, then select property of first
-                        # conformer
-                        for property in ce.get_properties()[key]:
-                            if property != ce.get_properties()[key][0]:
-                                print(f"BE AWARE: Indexing property {key} is not the same across all conformers. Taking property "
-                                      f"of first conformer for {os.path.basename(os.path.normpath(complex))}.")
-                        conformer_properties[key] = ce.get_properties()[key][0]
-
-                    # boltzmann averaging
-                    for key in [k for k in ce.get_properties().keys() if k not in columns_to_exclude]:
-                        conformer_properties[f"{key}_boltzmann_average"] = ce.boltzmann_statistic(key)
-                        conformer_properties[f"{key}_boltzmann_std"] = ce.boltzmann_statistic(key, statistic='std')
-                        conformer_properties[f"{key}_boltzmann_variance"] = ce.boltzmann_statistic(key, statistic='var')
-                        conformer_properties[f"{key}_Emin_conformer"] = ce.get_properties()[key][0]
+                            # boltzmann averaging
+                            for key in [k for k in ce.get_properties().keys() if k not in columns_to_exclude]:
+                                conformer_properties[f"{key}_boltzmann_average"] = ce.boltzmann_statistic(key)
+                                conformer_properties[f"{key}_boltzmann_std"] = ce.boltzmann_statistic(key,
+                                                                                                      statistic='std')
+                                conformer_properties[f"{key}_boltzmann_variance"] = ce.boltzmann_statistic(key,
+                                                                                                           statistic='var')
+                                conformer_properties[f"{key}_Emin_conformer"] = ce.get_properties()[key][0]
+                        except:
+                            # if something goes wrong with the molecular graph it usually means that the geometry is wrong
+                            print('Error calculating Morfeus descriptors or Boltzmann averaging for: ', filename)
+                            print('Make sure to check the geometry')
+                    # all descriptors calculated, now we can write the boltzman statistics to the dictionary
                 dictionary_for_conformer_properties[os.path.basename(os.path.normpath(complex))] = conformer_properties
 
             new_descriptor_df = dataframe_from_dictionary(dictionary_for_conformer_properties)
@@ -677,7 +731,7 @@ class Descriptors:
         else:
             raise ValueError(f'Output type {self.output_type()} not supported. Please choose from {self.supported_output_types}.')
 
-    def calculate_dft_descriptors_from_log(self, geom_type, solvent=None, extract_xyz_from_log=False, printout=False, metal_adduct='pristine'):
+    def calculate_dft_descriptors_from_log(self, geom_type, solvent=None, extract_xyz_from_log=False, printout=False, metal_adduct='pristine', plot_steric_map=False):
         """
         Function that creates the dictionary and descriptor dataframe for the DFT descriptors. These descriptors are calculated
         from the log files of the DFT calculations. The log files are parsed using the cclib package. The descriptors are
@@ -711,7 +765,11 @@ class Descriptors:
             if not len(coordinates[-1]) == 3:  # if this is true, there is only 1 coordinates array
                 coordinates = coordinates[-1]  # else morfeus descriptors are calculated for last geometry in log file
             elements = np.array(elements)
-            properties, metal_idx, bidentate_max_donor_idx, bidentate_min_donor_idx = self._calculate_steric_electronic_desc_morfeus(geom_type=geom_type, solvent=solvent, dictionary=properties, elements=elements, coordinates=coordinates, filename=filename, metal_adduct=metal_adduct)
+            try:
+                properties, metal_idx, bidentate_max_donor_idx, bidentate_min_donor_idx = self._calculate_steric_electronic_desc_morfeus(geom_type=geom_type, solvent=solvent, dictionary=properties, elements=elements, coordinates=coordinates, filename=filename, metal_adduct=metal_adduct, plot_steric_map=plot_steric_map)
+            except:
+                print('Error calculating Morfeus descriptors for: ', filename)
+                print('Make sure to check the geometry')
 
             # calculate DFT descriptors from Gaussian log file
             # get indices of bidentate ligands and metal for descriptor calculation class
@@ -760,5 +818,5 @@ if __name__ == "__main__":
 
     # example descriptor calculation for log files with NBD adduct
     dft_descriptors = Descriptors(central_atom='Rh', path_to_workflow=os.path.join(os.getcwd(), 'Workflow'), output_type='gaussian')
-    dft_descriptors.calculate_dft_descriptors_from_log(geom_type='BD', solvent=None, extract_xyz_from_log=True, printout=False, metal_adduct='nbd')
+    dft_descriptors.calculate_dft_descriptors_from_log(geom_type='BD', solvent=None, extract_xyz_from_log=True, printout=False, metal_adduct='nbd', plot_steric_map=False)
     dft_descriptors.descriptor_df.to_csv('DFT_descriptors.csv', index=False)
