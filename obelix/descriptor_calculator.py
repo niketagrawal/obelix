@@ -644,7 +644,12 @@ class Descriptors:
                 properties['filename_tud'] = filename
 
                 elements, coordinates = read_xyz(metal_ligand_complex)
-                properties, metal_idx, bidentate_max_donor_idx, bidentate_min_donor_idx = self._calculate_steric_electronic_desc_morfeus(geom_type=geom_type, solvent=solvent, dictionary=properties, elements=elements, coordinates=coordinates, filename=filename, metal_adduct=metal_adduct)
+                try:
+                    properties, metal_idx, bidentate_max_donor_idx, bidentate_min_donor_idx = self._calculate_steric_electronic_desc_morfeus(geom_type=geom_type, solvent=solvent, dictionary=properties, elements=elements, coordinates=coordinates, filename=filename, metal_adduct=metal_adduct)
+                except:
+                    # if something goes wrong with the molecular graph it usually means that the geometry is wrong
+                    print('Error calculating Morfeus descriptors for: ', filename)
+                    print('Make sure to check the geometry')
                 dictionary_for_properties[os.path.basename(os.path.normpath(metal_ligand_complex[:-4]))] = properties
 
             new_descriptor_df = dataframe_from_dictionary(dictionary_for_properties)
@@ -678,28 +683,38 @@ class Descriptors:
                     # ce.generate_mol()
                     ce.prune_energy()
                     ce.sort()
+                    conformer_properties['filename_tud'] = filename
                     for conformer in ce:
                         elements, coordinates = ce.elements, conformer.coordinates
-                        conformer.properties, metal_idx, bidentate_max_donor_idx, bidentate_min_donor_idx = self._calculate_steric_electronic_desc_morfeus(geom_type=geom_type, solvent=solvent, dictionary=conformer.properties, elements=elements, coordinates=coordinates, filename=filename, metal_adduct=metal_adduct)
-                    # all descriptors calculated, now we can write the filaname and boltzman statistics to the dictionary
-                    conformer_properties['filename_tud'] = filename
+                        try:
+                            conformer.properties, metal_idx, bidentate_max_donor_idx, bidentate_min_donor_idx = self._calculate_steric_electronic_desc_morfeus(geom_type=geom_type, solvent=solvent, dictionary=conformer.properties, elements=elements, coordinates=coordinates, filename=filename, metal_adduct=metal_adduct)
+                            # these are indexing properties so we don't want them to be boltzmann averaged
+                            columns_to_exclude = [f"index_{self.central_atom}", "index_donor_max", "index_donor_min",
+                                                  f"element_{self.central_atom}", "element_donor_max",
+                                                  "element_donor_min"]
+                            for key in [k for k in ce.get_properties().keys() if k in columns_to_exclude]:
+                                # check if indexing property is the same across all conformers, then select property of first
+                                # conformer
+                                for property in ce.get_properties()[key]:
+                                    if property != ce.get_properties()[key][0]:
+                                        print(
+                                            f"BE AWARE: Indexing property {key} is not the same across all conformers. Taking property "
+                                            f"of first conformer for {os.path.basename(os.path.normpath(complex))}.")
+                                conformer_properties[key] = ce.get_properties()[key][0]
 
-                    columns_to_exclude = [f"index_{self.central_atom}", "index_donor_max", "index_donor_min", f"element_{self.central_atom}", "element_donor_max", "element_donor_min"]
-                    for key in [k for k in ce.get_properties().keys() if k in columns_to_exclude]:
-                        # check if indexing property is the same across all conformers, then select property of first
-                        # conformer
-                        for property in ce.get_properties()[key]:
-                            if property != ce.get_properties()[key][0]:
-                                print(f"BE AWARE: Indexing property {key} is not the same across all conformers. Taking property "
-                                      f"of first conformer for {os.path.basename(os.path.normpath(complex))}.")
-                        conformer_properties[key] = ce.get_properties()[key][0]
-
-                    # boltzmann averaging
-                    for key in [k for k in ce.get_properties().keys() if k not in columns_to_exclude]:
-                        conformer_properties[f"{key}_boltzmann_average"] = ce.boltzmann_statistic(key)
-                        conformer_properties[f"{key}_boltzmann_std"] = ce.boltzmann_statistic(key, statistic='std')
-                        conformer_properties[f"{key}_boltzmann_variance"] = ce.boltzmann_statistic(key, statistic='var')
-                        conformer_properties[f"{key}_Emin_conformer"] = ce.get_properties()[key][0]
+                            # boltzmann averaging
+                            for key in [k for k in ce.get_properties().keys() if k not in columns_to_exclude]:
+                                conformer_properties[f"{key}_boltzmann_average"] = ce.boltzmann_statistic(key)
+                                conformer_properties[f"{key}_boltzmann_std"] = ce.boltzmann_statistic(key,
+                                                                                                      statistic='std')
+                                conformer_properties[f"{key}_boltzmann_variance"] = ce.boltzmann_statistic(key,
+                                                                                                           statistic='var')
+                                conformer_properties[f"{key}_Emin_conformer"] = ce.get_properties()[key][0]
+                        except:
+                            # if something goes wrong with the molecular graph it usually means that the geometry is wrong
+                            print('Error calculating Morfeus descriptors or Boltzmann averaging for: ', filename)
+                            print('Make sure to check the geometry')
+                    # all descriptors calculated, now we can write the boltzman statistics to the dictionary
                 dictionary_for_conformer_properties[os.path.basename(os.path.normpath(complex))] = conformer_properties
 
             new_descriptor_df = dataframe_from_dictionary(dictionary_for_conformer_properties)
@@ -748,7 +763,11 @@ class Descriptors:
             if not len(coordinates[-1]) == 3:  # if this is true, there is only 1 coordinates array
                 coordinates = coordinates[-1]  # else morfeus descriptors are calculated for last geometry in log file
             elements = np.array(elements)
-            properties, metal_idx, bidentate_max_donor_idx, bidentate_min_donor_idx = self._calculate_steric_electronic_desc_morfeus(geom_type=geom_type, solvent=solvent, dictionary=properties, elements=elements, coordinates=coordinates, filename=filename, metal_adduct=metal_adduct)
+            try:
+                properties, metal_idx, bidentate_max_donor_idx, bidentate_min_donor_idx = self._calculate_steric_electronic_desc_morfeus(geom_type=geom_type, solvent=solvent, dictionary=properties, elements=elements, coordinates=coordinates, filename=filename, metal_adduct=metal_adduct)
+            except:
+                print('Error calculating Morfeus descriptors for: ', filename)
+                print('Make sure to check the geometry')
 
             # calculate DFT descriptors from Gaussian log file
             # get indices of bidentate ligands and metal for descriptor calculation class
