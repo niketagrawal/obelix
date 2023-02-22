@@ -17,7 +17,7 @@ The pip installable version will be shortly available.
 
 ## Folder structure
 
-The folder structure is a crucial first step in using the workflow. You can either create your own workflow structure and then run the workflow with your own paths. Or alternatively you could use:
+The folder structure is a crucial first step in using the workflow. You can either create your own workflow structure and then run the workflow with your own paths. Or it is recommended that the below commands are used:
 
 ```python
 workflow = Workflow(path_to_workflow = "your/path/to/workflow")
@@ -38,13 +38,15 @@ workflow.run_workflow()
 The input to the workflow class contains the input to MACE, input to ChemSpax, input to xTB/CREST. The inputs should be given as below:
 
 ```python
-ligand_excel_file = 'ligands_test.xlsx'
-auxiliary_ligands = []
-substrate = ['CC#[N:1]']
+from run_workflow import *
+
+ligand_excel_file = os.path.join(os.getcwd(), 'test_mace.xlsx')
+auxiliary_ligands = ['CC#[N:1]', 'CC#[N:1]']
+# substrate = ['CC#[N:1]'] ## for octahedral complexes one can use alternative ligand names.
 
 geom = 'SP'
-central_atom = '[Ir+3]'
-names_of_xyz_key = 'Cas' # Names attributed to the MACE generated files
+central_atom = '[Rh+]'
+names_of_xyz_key = 'Cas'
 
 
 # MACE input 
@@ -55,37 +57,26 @@ mace_input = {'bidentate_ligands': ligand_excel_file,
                 'geom': geom, 
                 'substrate': substrate}
 
-# ChemXpaX input
-
 current_directory = os.path.join(os.getcwd(), "chemspax")  # use path.join()
 # os.chdir(current_directory)
 path_to_substituents = os.path.join(current_directory, "substituents_xyz") 
 path_to_database = os.path.join(path_to_substituents, "central_atom_centroid_database.csv")
-substituent_list = [["C6H12", "C6H12", "3_5_trifluoro_methyl_phenyl", "3_5_trifluoro_methyl_phenyl"]]
-skeleton_list = glob.glob(os.path.join("skeletons", "*.xyz"))
+substituent_df = pd.read_excel('test_chemspax.xlsx').dropna()
+substituent_list = np.array(substituent_df[['R1', 'R2', 'R3', 'R4']])
+# print(substituent_list)
+names = substituent_df['Name']
+skeleton_list = substituent_df['Functionalization']
+# print(skeleton_list)
 path_to_hand_drawn_skeletons = os.path.join(current_directory, "skeletons")
 path_to_output = os.path.join(current_directory, "complexes")
 
-
-chemspax_input = {'skeleton_list' : skeleton_list, 
-                'substituent_list' : substituent_list, 
+chemspax_input = {'substituent_list' : substituent_list, 
                 'path_to_database' : path_to_database, 
-                'path_to_substituents' : path_to_substituents, 
-                'path_to_additional_skeletons' : path_to_hand_drawn_skeletons}
+                'path_to_substituents' : path_to_substituents}
 
-
-method = 'gfn2'
-charge_of_complex = 0
-multiplicity = 1
-solvent = 'ch2cl2'
-
-crest_input = {'method': method, 
-                'charge_complex': charge_of_complex,
-                'multiplicity' : multiplicity,
-                'solvent' : solvent,
-                'conformer_search' : 'off'}
-
-workflow = Workflow(mace_input = mace_input, chemspax_input = chemspax_input, path_to_workflow = os.getcwd() + '/Workflow')
-workflow.run_workflow()
+workflow = Workflow(mace_input = mace_input, chemspax_input=chemspax_input, path_to_workflow = os.getcwd() + '/wf_test5', geom='BD')
+workflow.prepare_folder_structure()
+workflow.run_mace()
+workflow.run_chemspax(names=names, functionalization_list=skeleton_list)
 
 ```
