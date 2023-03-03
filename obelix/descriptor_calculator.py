@@ -48,43 +48,6 @@ class Descriptors:
         ligand_atoms, bidentate = molecular_graph(elements=elements, coordinates=coordinates)
         return ligand_atoms, bidentate
 
-    @staticmethod
-    def _buried_volume_quadrant_analysis(filename, elements, coordinates, dictionary, metal_idx, z_axis_atoms, xz_plane_atoms, excluded_atoms=None, plot_steric_map=False):
-        """
-        Calculate the buried volume for the 4 quadrants and 8 octants (positive Z direction) of the bidentate ligand.
-        :param elements:
-        :param coordinates:
-        :param dictionary:
-        :param metal_idx:
-        :param z_axis_atoms:
-        :param xz_plane_atoms:
-        :param excluded_atoms:
-        :return:
-        """
-        buried_volume = BuriedVolume(elements, coordinates, metal_idx,
-                                                  z_axis_atoms=z_axis_atoms,
-                                                  xz_plane_atoms=xz_plane_atoms,
-                                                  excluded_atoms=excluded_atoms,
-                                                  radius=3.5).octant_analysis()
-        buried_volume_for_quad_oct = buried_volume.octant_analysis()
-
-        quadrants = buried_volume_for_quad_oct.quadrants['percent_buried_volume']
-        octants = buried_volume_for_quad_oct.octants['percent_buried_volume']
-        quadrant_dictionary = {1: 'NE', 2: 'NW', 3: 'SW', 4: 'SE'}
-        octant_dictionary = {0: '+,+,+', 1: '-,+,+', 2: '-,-,+', 3: '+,-,+', 4: '+,-,-', 5: '-,-,-', 6: '-,+,-',
-                             7: '+,+,-'}
-
-        for quad_index in range(4):
-            values = list(quadrants.values())
-            dictionary[quadrant_dictionary[quad_index + 1] + "_quad"] = values[quad_index] / 100
-
-        for oct_index in range(8):
-            values = list(octants.values())
-            dictionary[octant_dictionary[oct_index] + "_octant"] = values[oct_index] / 100
-        if plot_steric_map:
-            buried_volume.plot_steric_map(filename=filename + '_steric_map.png')
-        return dictionary
-
     @ staticmethod
     def _calculate_c_c_distance_nbd(elements, coordinates, dictionary):
         """
@@ -196,6 +159,42 @@ class Descriptors:
         dictionary["dihedral_angle_2_index_3"] = central_carbon_nbd_idx + 1
         dictionary["dihedral_angle_2_index_4"] = hydrogen_2_idx + 1
 
+        return dictionary
+
+    def _buried_volume_quadrant_analysis(self, filename, elements, coordinates, dictionary, metal_idx, z_axis_atoms, xz_plane_atoms, excluded_atoms=None, plot_steric_map=False):
+        """
+        Calculate the buried volume for the 4 quadrants and 8 octants (positive Z direction) of the bidentate ligand.
+        :param elements:
+        :param coordinates:
+        :param dictionary:
+        :param metal_idx:
+        :param z_axis_atoms:
+        :param xz_plane_atoms:
+        :param excluded_atoms:
+        :return:
+        """
+        buried_volume = BuriedVolume(elements, coordinates, metal_idx,
+                                                  z_axis_atoms=z_axis_atoms,
+                                                  xz_plane_atoms=xz_plane_atoms,
+                                                  excluded_atoms=excluded_atoms,
+                                                  radius=3.5).octant_analysis()
+        buried_volume_for_quad_oct = buried_volume.octant_analysis()
+
+        quadrants = buried_volume_for_quad_oct.quadrants['percent_buried_volume']
+        octants = buried_volume_for_quad_oct.octants['percent_buried_volume']
+        quadrant_dictionary = {1: 'NE', 2: 'NW', 3: 'SW', 4: 'SE'}
+        octant_dictionary = {0: '+,+,+', 1: '-,+,+', 2: '-,-,+', 3: '+,-,+', 4: '+,-,-', 5: '-,-,-', 6: '-,+,-',
+                             7: '+,+,-'}
+
+        for quad_index in range(4):
+            values = list(quadrants.values())
+            dictionary[quadrant_dictionary[quad_index + 1] + "_quad"] = values[quad_index] / 100
+
+        for oct_index in range(8):
+            values = list(octants.values())
+            dictionary[octant_dictionary[oct_index] + "_octant"] = values[oct_index] / 100
+        if plot_steric_map:
+            buried_volume.plot_steric_map(filename=os.path.join(self.path_to_workflow, filename + '_steric_map.png'))
         return dictionary
 
     def _merge_descriptor_dfs(self, old_descriptor_df, new_descriptor_df):
@@ -761,10 +760,17 @@ class Descriptors:
             print('Calculating descriptors for:', filename)
             properties['filename_tud'] = filename
 
-            elements, coordinates = read_cclib(metal_ligand_complex)
-            if not len(coordinates[-1]) == 3:  # if this is true, there is only 1 coordinates array
-                coordinates = coordinates[-1]  # else morfeus descriptors are calculated for last geometry in log file
-            elements = np.array(elements)
+            elements, coordinates = None, None
+            # error catching for reading elements and coordinates from log file
+            try:
+                elements, coordinates = read_cclib(metal_ligand_complex)
+                if not len(coordinates[-1]) == 3:  # if this is true, there is only 1 coordinates array
+                    coordinates = coordinates[-1]  # else morfeus descriptors are calculated for last geometry in log file
+                elements = np.array(elements)
+            except:
+                print('Error reading elements and coordinates from log file for: ', filename)
+                print('Make sure to check the geometry')
+
             try:
                 properties, metal_idx, bidentate_max_donor_idx, bidentate_min_donor_idx = self._calculate_steric_electronic_desc_morfeus(geom_type=geom_type, solvent=solvent, dictionary=properties, elements=elements, coordinates=coordinates, filename=filename, metal_adduct=metal_adduct, plot_steric_map=plot_steric_map)
             except:
@@ -786,7 +792,11 @@ class Descriptors:
             # write xyz for log file
             if extract_xyz_from_log:
                 xyz_filename = metal_ligand_complex[:-4] + '_DFT.xyz'
-                write_xyz(os.path.join(self.path_to_workflow, xyz_filename), elements, coordinates)
+                if elements is not None and coordinates is not None:
+                    write_xyz(os.path.join(self.path_to_workflow, xyz_filename), elements, coordinates)
+                elif elements is None or coordinates is None:
+                    print('Error writing xyz for: ', filename)
+                    print('Make sure to check the geometry')
 
             # for property in properties.keys():
             dictionary_for_properties[os.path.basename(os.path.normpath(metal_ligand_complex[:-4]))] = properties
