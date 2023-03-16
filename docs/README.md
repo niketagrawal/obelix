@@ -1,9 +1,9 @@
-# open-bidentate-explorer
-
-A workflow for automated catalyst structure analysis. Uses Mace and ChemSpaX for
-bias-free catalyst structure generation. CREST is used for conformer search and Mofeus/Mordred
-are used for descriptor calculation. Afterwards, the descriptors are boltzmann averaged and compared for
-predictive purposes.
+# OBeLiX
+![logo](../images/logo.png)
+Open Bidentate Ligand eXplorer (OBeLiX) is a workflow for automated and reproducible TM-based catalyst structure generation and descriptor calculation. It Uses
+our in-house developed packages Mace and ChemSpaX for
+bias-free catalyst structure generation. CREST is used for conformer search and Morfeus/cclib
+are used for descriptor extraction. The workflow is currently usable for monodentate and bidentate ligands.
 
 ## Installation
 
@@ -17,25 +17,31 @@ The pip installable version will be shortly available.
 
 ## Folder structure
 
-The folder structure is a crucial first step in using the workflow. You can either create your own workflow structure and then run the workflow with your own paths. Or it is recommended that the below commands are used:
+The output folder structure is a crucial first step in using the workflow. You can either create your own workflow structure and then run the workflow with your own paths. Or it is recommended that the below commands are used:
 
 ```python
-workflow = Workflow(path_to_workflow = "your/path/to/workflow")
+workflow = Workflow(path_to_workflow = "your/path/to/workflow_results")
 workflow.prepare_folder_structure()
+```
+The workflow contains 4 modules: MACE, ChemSpaX, xTB/CREST, descriptor calculation.
+This command will thus create a folder structure like this at the path you specified:
+```bash
+Workflow/MACE
+Workflow/ChemSpaX
+Workflow/CREST
+Workflow/Descriptors
 ```
 
 ## Workflow Structure
-
-The workflow contains 4 modules: MACE, ChemSpaX, xTB/CREST, Morfeus.
-
+### Using all modules at once
 You can run the whole workflow at once, like this:
 
 ```python
-workflow = Workflow(mace_input = mace_input, chemspax_input = chemspax_input, crest_input = crest_input, path_to_workflow = "your/path/to/workflow")
+workflow = Workflow(mace_input = mace_input, chemspax_input = chemspax_input, crest_input = crest_input, path_to_workflow = "your/path/to/workflow_results")
 workflow.run_workflow()
 ```
 
-The input to the workflow class contains the input to MACE, input to ChemSpax, input to xTB/CREST. The inputs should be given as below:
+The input to the workflow class contains the input to MACE, input to ChemSpax, input to xTB/CREST and the descriptor calculator. The inputs should be given as below:
 
 ```python
 from run_workflow import *
@@ -80,3 +86,9 @@ workflow.run_mace()
 workflow.run_chemspax(names=names, functionalization_list=skeleton_list)
 
 ```
+
+### Using the modules separately
+
+
+## Citation
+WIP
