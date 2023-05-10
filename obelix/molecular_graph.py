@@ -202,7 +202,7 @@ def molecular_graph(elements, coordinates):
     :return ligand, bidentate:
     """
     metal_centers = ['Rh', 'Ru', 'Mn', 'Pd', 
-                     'Ir', 'Pt', 'Co']
+                     'Ir', 'Pt', 'Co', 'Ni']
 
     periodic_table = [element.symbol for element in periodictable.elements]
     
