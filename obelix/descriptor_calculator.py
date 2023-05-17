@@ -652,7 +652,7 @@ class Descriptors:
                 base_with_extension = os.path.basename(metal_ligand_complex)
                 split_base = os.path.splitext(base_with_extension)
                 filename = split_base[0]
-                print('Calculating descriptors for: ', filename, '...')
+                print('\nCalculating descriptors for: ', filename, '...')
                 properties['filename_tud'] = filename
 
                 elements, coordinates = read_xyz(metal_ligand_complex)
@@ -682,7 +682,7 @@ class Descriptors:
                 conformer_properties = {}
                 ce = None
                 filename = os.path.basename(os.path.normpath(complex))
-                print('Calculating descriptors for: ', filename, '...')
+                print('\nCalculating descriptors for: ', filename, '...')
                 try:
                     ce = ConformerEnsemble.from_crest(complex)
                 except Exception as e:
@@ -696,36 +696,49 @@ class Descriptors:
                     ce.prune_energy()
                     ce.sort()
                     conformer_properties['filename_tud'] = filename
-                    for conformer in ce:
-                        elements, coordinates = ce.elements, conformer.coordinates
-                        try:
+                    print(f'Number of conformers in ensemble for {filename}: {len(ce)}')
+                    # define indexing columns that need to be excluded from boltzmann averaging
+                    columns_to_exclude = [f"index_{self.central_atom}", "index_donor_max", "index_donor_min",
+                                          f"element_{self.central_atom}", "element_donor_max",
+                                          "element_donor_min"]
+                    # initialize list which will contain conformers to be removed if indexing properties are not
+                    # the same as the first conformer
+                    remove_conformer_list = []
+
+                    try:
+                        for conformer_idx, conformer in enumerate(ce.conformers):
+                            elements, coordinates = ce.elements, conformer.coordinates
                             conformer.properties, metal_idx, bidentate_max_donor_idx, bidentate_min_donor_idx = self._calculate_steric_electronic_desc_morfeus(geom_type=geom_type, solvent=solvent, dictionary=conformer.properties, elements=elements, coordinates=coordinates, filename=filename, metal_adduct=metal_adduct, plot_steric_map=plot_steric_map)
                             # these are indexing properties so we don't want them to be boltzmann averaged
-                            columns_to_exclude = [f"index_{self.central_atom}", "index_donor_max", "index_donor_min",
-                                                  f"element_{self.central_atom}", "element_donor_max",
-                                                  "element_donor_min"]
-                            for key in [k for k in ce.get_properties().keys() if k in columns_to_exclude]:
-                                # check if indexing property is the same across all conformers, then select property of first
-                                # conformer
-                                for property in ce.get_properties()[key]:
-                                    if property != ce.get_properties()[key][0]:
-                                        print(
-                                            f"BE AWARE: Indexing property {key} is not the same across all conformers. Taking property "
-                                            f"of first conformer for {os.path.basename(os.path.normpath(complex))}.")
-                                conformer_properties[key] = ce.get_properties()[key][0]
 
-                            # boltzmann averaging
-                            for key in [k for k in ce.get_properties().keys() if k not in columns_to_exclude]:
-                                conformer_properties[f"{key}_boltzmann_average"] = ce.boltzmann_statistic(key)
-                                conformer_properties[f"{key}_boltzmann_std"] = ce.boltzmann_statistic(key,
-                                                                                                      statistic='std')
-                                conformer_properties[f"{key}_boltzmann_variance"] = ce.boltzmann_statistic(key,
-                                                                                                           statistic='var')
-                                conformer_properties[f"{key}_Emin_conformer"] = ce.get_properties()[key][0]
-                        except:
-                            # if something goes wrong with the molecular graph it usually means that the geometry is wrong
-                            print('Error calculating Morfeus descriptors or Boltzmann averaging for: ', filename)
-                            print('Make sure to check the geometry')
+                            # check if indexing column is the same as the first conformer, if not add conformer to
+                            # remove_conformer_list to be removed from the conformer ensemble later
+                            for key in [k for k in ce.get_properties().keys() if k in columns_to_exclude]:
+                                if conformer.properties[key] != ce.conformers[0].properties[key]:
+                                    print("\n"
+                                        f"BE AWARE: Indexing property {key} is not the same across all conformers for conformer {conformer_idx}. "
+                                        f"This conformer will be deleted for {os.path.basename(os.path.normpath(complex))}.")
+                                    remove_conformer_list.append(conformer_idx)
+
+                        # get unique list of conformers to remove and delete them from the conformer ensemble
+                        remove_conformer_list = list(set(remove_conformer_list))
+                        for remove_conformer_idx in reversed(remove_conformer_list):
+                            del ce.conformers[remove_conformer_idx]
+                        print(f"\nNumber of conformers in ensemble for {filename} after removing conformers with different indexing properties: {len(ce)}")
+
+                        # boltzmann averaging
+                        for key in [k for k in ce.get_properties().keys() if k not in columns_to_exclude]:
+                            conformer_properties[f"{key}_boltzmann_average"] = ce.boltzmann_statistic(key)
+                            conformer_properties[f"{key}_boltzmann_std"] = ce.boltzmann_statistic(key,
+                                                                                                  statistic='std')
+                            conformer_properties[f"{key}_boltzmann_variance"] = ce.boltzmann_statistic(key,
+                                                                                                       statistic='var')
+                            conformer_properties[f"{key}_Emin_conformer"] = ce.get_properties()[key][0]
+                    except Exception as e:
+                        # if something goes wrong with the molecular graph it usually means that the geometry is wrong
+                        print('Error calculating Morfeus descriptors or Boltzmann averaging for: ', filename)
+                        print(e)
+                        print('Make sure to check the geometry')
                     # all descriptors calculated, now we can write the boltzman statistics to the dictionary
                 dictionary_for_conformer_properties[os.path.basename(os.path.normpath(complex))] = conformer_properties
 
@@ -768,7 +781,7 @@ class Descriptors:
             base_with_extension = os.path.basename(metal_ligand_complex)
             split_base = os.path.splitext(base_with_extension)
             filename = split_base[0]
-            print('Calculating descriptors for:', filename)
+            print('\nCalculating descriptors for:', filename)
             properties['filename_tud'] = filename
 
             elements, coordinates = None, None
@@ -784,8 +797,9 @@ class Descriptors:
 
             try:
                 properties, metal_idx, bidentate_max_donor_idx, bidentate_min_donor_idx = self._calculate_steric_electronic_desc_morfeus(geom_type=geom_type, solvent=solvent, dictionary=properties, elements=elements, coordinates=coordinates, filename=filename, metal_adduct=metal_adduct, plot_steric_map=plot_steric_map)
-            except:
+            except Exception as e:
                 print('Error calculating Morfeus descriptors for: ', filename)
+                print(e)
                 print('Make sure to check the geometry')
 
             # calculate DFT descriptors from Gaussian log file
