@@ -652,7 +652,7 @@ class Descriptors:
                 base_with_extension = os.path.basename(metal_ligand_complex)
                 split_base = os.path.splitext(base_with_extension)
                 filename = split_base[0]
-                print('Calculating descriptors for: ', filename, '...')
+                print('\nCalculating descriptors for: ', filename, '...')
                 properties['filename_tud'] = filename
 
                 elements, coordinates = read_xyz(metal_ligand_complex)
@@ -682,7 +682,7 @@ class Descriptors:
                 conformer_properties = {}
                 ce = None
                 filename = os.path.basename(os.path.normpath(complex))
-                print('Calculating descriptors for: ', filename, '...')
+                print('\nCalculating descriptors for: ', filename, '...')
                 try:
                     ce = ConformerEnsemble.from_crest(complex)
                 except Exception as e:
@@ -781,7 +781,7 @@ class Descriptors:
             base_with_extension = os.path.basename(metal_ligand_complex)
             split_base = os.path.splitext(base_with_extension)
             filename = split_base[0]
-            print('Calculating descriptors for:', filename)
+            print('\nCalculating descriptors for:', filename)
             properties['filename_tud'] = filename
 
             elements, coordinates = None, None
