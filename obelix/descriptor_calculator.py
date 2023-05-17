@@ -10,6 +10,7 @@ from morfeus import read_xyz, BiteAngle, ConeAngle, BuriedVolume, Dispersion, SA
 from morfeus.conformer import ConformerEnsemble
 from morfeus.io import read_cclib, write_xyz
 from morfeus.utils import convert_elements
+import xtb.utils
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
@@ -492,6 +493,16 @@ class Descriptors:
         dft = DFTExtractor(log_file, metal_idx, bidentate_min_donor_idx, bidentate_max_donor_idx, metal_adduct)
         successful_dft_optimization = dft.check_normal_termination()
         dictionary["optimization_success_dft"] = successful_dft_optimization
+        wall_time, cpu_time = dft.extract_time()
+        # the last item of wall_time and cpu_time in cclib are the actual extracted values
+        wall_time = wall_time[-1]
+        cpu_time = cpu_time[-1]
+        # convert timedelta object to hour duration for easy comparison
+        wall_time = float(wall_time.total_seconds()) / 3600
+        cpu_time = float(cpu_time.total_seconds()) / 3600
+        dictionary["wall_time_dft"] = wall_time
+        dictionary["cpu_time_dft"] = cpu_time
+
         if successful_dft_optimization:
             # if metal_adduct.lower() == "nbd":
                 # these are calculated in _calculate_steric_electronic_desc_morfeus already
