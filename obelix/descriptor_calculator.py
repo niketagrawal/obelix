@@ -715,8 +715,8 @@ class Descriptors:
                             # remove_conformer_list to be removed from the conformer ensemble later
                             for key in [k for k in ce.get_properties().keys() if k in columns_to_exclude]:
                                 if conformer.properties[key] != ce.conformers[0].properties[key]:
-                                    print(
-                                        f"BE AWARE: Indexing property {key} is not the same across all conformers for conformer {conformer_idx}."
+                                    print("\n"
+                                        f"BE AWARE: Indexing property {key} is not the same across all conformers for conformer {conformer_idx}. "
                                         f"This conformer will be deleted for {os.path.basename(os.path.normpath(complex))}.")
                                     remove_conformer_list.append(conformer_idx)
 
@@ -724,7 +724,7 @@ class Descriptors:
                         remove_conformer_list = list(set(remove_conformer_list))
                         for remove_conformer_idx in reversed(remove_conformer_list):
                             del ce.conformers[remove_conformer_idx]
-                        print(f"Number of conformers in ensemble for {filename} after removing conformers with different indexing properties: {len(ce)}")
+                        print(f"\nNumber of conformers in ensemble for {filename} after removing conformers with different indexing properties: {len(ce)}")
 
                         # boltzmann averaging
                         for key in [k for k in ce.get_properties().keys() if k not in columns_to_exclude]:
