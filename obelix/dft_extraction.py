@@ -7,7 +7,7 @@ import os
 import glob
 import re
 import numpy as np
-from tools.utilities import get_bonded_atoms
+from obelix.tools.utilities import get_bonded_atoms
 from morfeus.io import read_cclib, get_xyz_string, read_xyz
 from morfeus.utils import convert_elements
 import cclib

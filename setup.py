@@ -17,6 +17,6 @@ setup(
     description='An automated worklfow for generation & analysis of bidentate ligand containing complexes ',
     setup_requires=['pytest-runner'],
     tests_require=['pytest'],
-    package_data={'obelix': ['data/']},
+    package_data={'obelix': ['data']},
     long_description=open('docs/README.md').read(),
 )

@@ -15,9 +15,9 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
-from molecular_graph import molecular_graph
-from tools.utilities import dataframe_from_dictionary, calculate_distance, calculate_dihedral
-from dft_extraction import DFTExtractor, NBDComplex
+from obelix.molecular_graph import molecular_graph
+from obelix.tools.utilities import dataframe_from_dictionary, calculate_distance, calculate_dihedral
+from obelix.dft_extraction import DFTExtractor, NBDComplex
 
 
 class Descriptors:
