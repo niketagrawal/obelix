@@ -242,10 +242,41 @@ class DFTExtractor(object):
         homo_lumo_gap = lumo_energy - homo_energy
         return homo_energy, lumo_energy, homo_lumo_gap
 
-    def extract_natural_charges(self):
-        # NBO charge
+    def extract_natural_charges_cclib(self):
+        # Uses cclib to extract the natural charge from a Gaussian log file, in cclib only the 1st table
+        # from the log file is read because people usually do a SP DFT calculation for NBO
+        # if however you do an optimization and NBO calculation at the same time, you need the last table
+        # since only the last table shows NBO on the opt and freq output
         natural_charges = self.atom_charges_dict['natural']
         return natural_charges
+
+    def extract_natural_charges(self):
+        # code from cclib (https://github.com/cclib/cclib/blob/master/cclib/parser/gaussianparser.py)
+        # but always reads the last NBO table for natural charges, works thus for SP and full DFT opt log files
+        # Note, be cautious with open shell systems. There, the last table contains the beta spin orbitals, so you need
+        # the 1st table instead
+        inputfile = self.log_file_text
+        for line_index, line in enumerate(inputfile):
+            if line.strip() == "Natural Population":
+                if not hasattr(self.data, 'atomcharges'):
+                    # if the atomcharges attribute for the cclib data object does not exist, create it
+                    # very unlikely that this happens, but just in case
+                    self.atomcharges = {}
+                line1 = inputfile[line_index + 1]
+                line2 = inputfile[line_index + 2]
+                # use line 1 and 2 to check if this is the correct table
+                if line1.split()[0] == 'Natural' and line2.split()[2] == 'Charge':
+                    dashes = inputfile[line_index + 3]
+                    charges = []
+                    count = 3
+                    # read the charge table below the dashes for as long as there are atoms
+                    for i in range(len(self.elements)):
+                        count += 1
+                        nline = inputfile[line_index + count]
+                        charges.append(float(nline.split()[2]))
+                    # each table replaces the previous one, so the last table is the one we want
+                    self.atom_charges_dict["natural"] = charges
+        return self.atom_charges_dict['natural']
 
     def extract_mulliken_charges(self):
         atomic_charges = self.atom_charges_dict['mulliken']
@@ -613,7 +644,7 @@ if __name__ == '__main__':
         # elements = convert_elements(elements, output='symbols')
         elements = np.array(elements)
         geom_type = 'BD'
-        ligand_atoms, bidentate = molecular_graph(elements=elements, coords=coordinates, geom=geom_type)
+        ligand_atoms, bidentate = molecular_graph(elements=elements, coordinates=coordinates)
         dft = DFTExtractor(complex, bidentate[0] + 1, bidentate[1] + 1, bidentate[2] + 1, metal_adduct='nbd')
         # print(dft.check_nbd_back_carbon())
         # print(dft.get_hydrogens_bonded_to_carbon_back_nbd())
