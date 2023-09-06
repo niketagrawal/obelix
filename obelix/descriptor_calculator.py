@@ -15,9 +15,9 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
-from molecular_graph import molecular_graph
-from tools.utilities import dataframe_from_dictionary, calculate_distance, calculate_dihedral
-from dft_extraction import DFTExtractor, NBDComplex
+from obelix.molecular_graph import molecular_graph
+from obelix.tools.utilities import dataframe_from_dictionary, calculate_distance, calculate_dihedral
+from obelix.dft_extraction import DFTExtractor, NBDComplex
 
 
 class Descriptors:
@@ -701,6 +701,20 @@ class Descriptors:
                     columns_to_exclude = [f"index_{self.central_atom}", "index_donor_max", "index_donor_min",
                                           f"element_{self.central_atom}", "element_donor_max",
                                           "element_donor_min"]
+                    if metal_adduct.lower() == 'nbd':  # in this case there are some additional columns that need to be skipped
+                        columns_to_exclude += ['distance_pi_bond_1_element_1', 'distance_pi_bond_1_element_2',
+                                               'distance_pi_bond_1_element_1_idx', 'distance_pi_bond_1_element_2_idx',
+                                               'distance_pi_bond_2_element_1', 'distance_pi_bond_2_element_2',
+                                               'distance_pi_bond_2_element_1_idx', 'distance_pi_bond_2_element_2_idx',
+                                               'dihedral_angle_1_element_1', 'dihedral_angle_1_element_2',
+                                               'dihedral_angle_1_element_3', 'dihedral_angle_1_element_4',
+                                               'dihedral_angle_1_index_1', 'dihedral_angle_1_index_2',
+                                               'dihedral_angle_1_index_3', 'dihedral_angle_1_index_4',
+                                               'dihedral_angle_2_element_1', 'dihedral_angle_2_element_2',
+                                               'dihedral_angle_2_element_3', 'dihedral_angle_2_element_4',
+                                               'dihedral_angle_2_index_1', 'dihedral_angle_2_index_2',
+                                               'dihedral_angle_2_index_3', 'dihedral_angle_2_index_4']
+
                     # initialize list which will contain conformers to be removed if indexing properties are not
                     # the same as the first conformer
                     remove_conformer_list = []

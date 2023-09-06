@@ -3,8 +3,8 @@ from chemspax.utilities import *
 import os
 import glob
 import pandas as pd
-from tools.utilities import *
-from descriptor_calculator import Descriptors
+from obelix.tools.utilities import *
+from obelix.descriptor_calculator import Descriptors
 import shutil
 from tqdm import tqdm
 import mace
