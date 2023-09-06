@@ -1,8 +1,10 @@
 import numpy as np
+import os
+
 import periodictable
 from morfeus import read_xyz as read_xyz_mf
 from morfeus.utils import convert_elements
-from morfeus.io import read_cclib
+from morfeus.io import read_cclib, write_xyz
 import operator
 
 
@@ -191,7 +193,36 @@ def bfs(visited, graph, node):
     return visited
 
 
-def molecular_graph(elements, coordinates):
+def extract_ligand_and_write_xyz(ligand, bidentate, path_to_workflow, filename):
+    """
+    This function extracts the ligand from the complex and writes the xyz file of the ligand. The comment line will
+    contain the indices of the donor atoms.
+    :param ligand: list of indices of the ligand atoms
+    :param bidentate: list of metal center, donor 1, donor 2 indices
+    :param path_to_workflow: path to the workflow folder (where the xyz files will be written)
+    :param filename: filename of the complex file, which will be used to name the xyz file
+    :return:
+    """
+
+    xyz_filename = 'free_ligand_' + filename + '.xyz'
+    if elements is not None and coordinates is not None:
+        # get elements, coords of the ligand and write xyz file
+        # ligands contains the indices of the ligand atoms, so we can use it to extract the elements and coords
+        ligand_elements = elements[ligand]
+        ligand_coordinates = coordinates[ligand]
+        # donors will be shifted due to the extraction of the ligand atoms, so we need to find the indices again based on their coordinates
+        ligand_bidentate_1_index = np.where(np.all(ligand_coordinates == coordinates[bidentate[1]], axis=1))[0][0]
+        ligand_bidentate_2_index = np.where(np.all(ligand_coordinates == coordinates[bidentate[2]], axis=1))[0][0]
+        # write bidentate indices in dictionary to comment line of xyz file
+        comment = {'complex_bidentate_1_index': bidentate[1], 'complex_bidentate_2_index': bidentate[2], 'free_ligand_bidentate_1_index': ligand_bidentate_1_index, 'free_ligand_bidentate_2_index': ligand_bidentate_2_index}
+        comment = [str(comment)]
+        write_xyz(os.path.join(path_to_workflow, xyz_filename), ligand_elements, ligand_coordinates, comment)
+    elif elements is None or coordinates is None:
+        print('Error writing xyz for: ', filename)
+        print('Make sure to check the geometry')
+
+
+def molecular_graph(elements, coordinates, extract_ligand=False, path_to_workflow=None, filename=None):
     """
     This function is applied to find the molecular graph of a TM complex.
     This function returns the indices of all atoms making the investigated and the indices forming the bite angle.
@@ -219,109 +250,141 @@ def molecular_graph(elements, coordinates):
     mg = MolGraph()
     mg.read_xyz_coord_from_mf(elements=elements,coordinates=coordinates)
     graph = mg.adj_list
-    
+
+    metal_center_id = None
     for elem_id, element in enumerate(elements):
         if element in metal_centers:
            metal_center_id = int(elem_id)
            break
 
-    metal_center_bonds_ = graph[metal_center_id]
-    del graph[metal_center_id]
-    
-    for key, bonds_to_atom in zip(graph.keys(), graph.values()):    
-        graph[key] = list(bonds_to_atom)
-    
-        for bond_id, bond in enumerate(bonds_to_atom):
-            if bond == metal_center_id:
-                graph[key].pop(bond_id)
-                
-    store_ligands = []
+    # if metal center is in the structure we are dealing with a complex and we can search for the ligands
+    # if there is no metal center in the structure, we are dealing with a free ligand and we can skip the ligand search
+    if metal_center_id is not None:
+        metal_center_bonds_ = graph[metal_center_id]
+        del graph[metal_center_id]
 
-    for node in metal_center_bonds_:
-        store_ligands.append(list(np.sort(bfs([], graph, node))))
+        for key, bonds_to_atom in zip(graph.keys(), graph.values()):
+            graph[key] = list(bonds_to_atom)
 
-    # Remove duplicates and store in new list --> clean_ligands
-    clean_ligands = []
+            for bond_id, bond in enumerate(bonds_to_atom):
+                if bond == metal_center_id:
+                    graph[key].pop(bond_id)
 
-    for ligand in store_ligands:
-        if ligand not in clean_ligands:
-            clean_ligands.append(ligand)
-    
-    
-    # store the size of the ligands in a list
-    ligand_sizes = []
-    
-    for ligand in clean_ligands:
-        ligand_sizes.append(len(ligand))
+        store_ligands = []
 
-    # This part checks whether two ligands have the max length
-    index_max_ligand = np.argwhere(ligand_sizes == np.amax(ligand_sizes))
-    # Flattens 2D array
-    index_max_ligand = index_max_ligand.ravel()
+        for node in metal_center_bonds_:
+            store_ligands.append(list(np.sort(bfs([], graph, node))))
 
-    # Check if two monodentate ligands instead of one single bidentate ligand    
-    if len(index_max_ligand) == 2:
-        ligand = []
-        ligand.extend(clean_ligands[index_max_ligand[0]])
-        ligand.extend(clean_ligands[index_max_ligand[1]])
-    else:
-        ligand = clean_ligands[index_max_ligand[0]]
+        # Remove duplicates and store in new list --> clean_ligands
+        clean_ligands = []
 
-    # Store metal id in a list
-    bidentate = [metal_center_id]
-    # Extend bidentate atoms with the donating atoms
-    for bond_to_metal in metal_center_bonds_:
-        if bond_to_metal in ligand:
-            bidentate.append(bond_to_metal)
-    # Check whether more atoms are taken as donating: especially important for the pristine structures
-    if len(bidentate) > 3:
-        # check atom type
-        new_bidentate = [metal_center_id]
-        
-        ### Check whether the atom is P, N or S and rewrite the bidentate list with only these types
-        
-        for ligating_atom in bidentate:
-            if (elements[ligating_atom] == 'N') or (elements[ligating_atom] == 'P') or (elements[ligating_atom] == 'S'):
-                new_bidentate.append(ligating_atom)
-    
-        ### Check two closest donors to the metal center.
-        
-        if len(new_bidentate) == 2:
-            ligand = list(ligand)
-            ligand.append(metal_center_id)
-            ligand_metal = np.array(ligand)
-            return ligand_metal, new_bidentate
-    
+        for ligand in store_ligands:
+            if ligand not in clean_ligands:
+                clean_ligands.append(ligand)
+
+
+        # store the size of the ligands in a list
+        ligand_sizes = []
+
+        for ligand in clean_ligands:
+            ligand_sizes.append(len(ligand))
+
+        # This part checks whether two ligands have the max length
+        index_max_ligand = np.argwhere(ligand_sizes == np.amax(ligand_sizes))
+        # Flattens 2D array
+        index_max_ligand = index_max_ligand.ravel()
+
+        # Check if two monodentate ligands instead of one single bidentate ligand
+        if len(index_max_ligand) == 2:
+            ligand = []
+            ligand.extend(clean_ligands[index_max_ligand[0]])
+            ligand.extend(clean_ligands[index_max_ligand[1]])
         else:
-            dict_distances = {}
-            new_bidentate = new_bidentate[1:]
-            for ligating_atom in new_bidentate:
-                dict_distances[ligating_atom] = np.linalg.norm(coordinates[metal_center_id, :] - coordinates[ligating_atom, :])
-            
-            dict_distances = {k: v for k, v in sorted(dict_distances.items())}
-            
-            # Sort dictionary according to bond length to the metal center
-            dict_distances = dict(sorted(dict_distances.items(), key=operator.itemgetter(1),reverse=False))
-            new_bidentate = []
-            new_bidentate.extend([metal_center_id, list(dict_distances.keys())[0], list(dict_distances.keys())[1]])
+            ligand = clean_ligands[index_max_ligand[0]]
 
-            ligand = list(ligand)
-            ligand.append(metal_center_id)
-            ligand_metal = np.array(ligand)
-            return ligand_metal, new_bidentate
-        
-    ligand = list(ligand)
-    ligand.append(metal_center_id)
-    ligand_metal = np.array(ligand)
-    return ligand_metal, bidentate
+        # Store metal id in a list
+        bidentate = [metal_center_id]
+        # Extend bidentate atoms with the donating atoms
+        for bond_to_metal in metal_center_bonds_:
+            if bond_to_metal in ligand:
+                bidentate.append(bond_to_metal)
+        # Check whether more atoms are taken as donating: especially important for the pristine structures
+        if len(bidentate) > 3:
+            # check atom type
+            new_bidentate = [metal_center_id]
+
+            ### Check whether the atom is P, N or S and rewrite the bidentate list with only these types
+
+            for ligating_atom in bidentate:
+                if (elements[ligating_atom] == 'N') or (elements[ligating_atom] == 'P') or (elements[ligating_atom] == 'S'):
+                    new_bidentate.append(ligating_atom)
+
+            ### Check two closest donors to the metal center.
+
+            if len(new_bidentate) == 2:
+                ligand = list(ligand)
+                # if we need to write the xyz file we want to extract only the ligand atoms
+                if extract_ligand is True and path_to_workflow is not None and filename is not None:
+                    extract_ligand_and_write_xyz(ligand, bidentate, path_to_workflow, filename)
+
+                ligand.append(metal_center_id)
+                ligand_metal = np.array(ligand)
+                return ligand_metal, new_bidentate
+
+            else:
+                dict_distances = {}
+                new_bidentate = new_bidentate[1:]
+                for ligating_atom in new_bidentate:
+                    dict_distances[ligating_atom] = np.linalg.norm(coordinates[metal_center_id, :] - coordinates[ligating_atom, :])
+
+                dict_distances = {k: v for k, v in sorted(dict_distances.items())}
+
+                # Sort dictionary according to bond length to the metal center
+                dict_distances = dict(sorted(dict_distances.items(), key=operator.itemgetter(1),reverse=False))
+                new_bidentate = []
+                new_bidentate.extend([metal_center_id, list(dict_distances.keys())[0], list(dict_distances.keys())[1]])
+
+                ligand = list(ligand)
+                # if we need to write the xyz file we want to extract only the ligand atoms
+                if extract_ligand is True and path_to_workflow is not None and filename is not None:
+                    extract_ligand_and_write_xyz(ligand, bidentate, path_to_workflow, filename)
+
+                ligand.append(metal_center_id)
+                ligand_metal = np.array(ligand)
+                return ligand_metal, new_bidentate
+
+        ligand = list(ligand)
+        # if we need to write the xyz file we want to extract only the ligand atoms
+        if extract_ligand is True and path_to_workflow is not None and filename is not None:
+            extract_ligand_and_write_xyz(ligand, bidentate, path_to_workflow, filename)
+
+        # return the ligand and the metal center for descriptor calculation
+        ligand.append(metal_center_id)
+        ligand_metal = np.array(ligand)
+        # ligand_metal is the ligand + the metal center indices. Bidentate is the metal center + the two donor atoms indices
+        return ligand_metal, bidentate
+    # if we are dealing with the free ligand we only need to return the donor atoms
+    else:
+        # ToDo: return all P, N, S atoms (how to find out which ones are donor atoms? distance between them?)
+        pass
 
 
 if __name__ == '__main__':
-    # testing -- testing successful on xyz and log
-    log = '[Rh+1]_L98_SP0.log'
-    elements, coordinates = read_cclib(log)
-    molecular_graph(elements = elements, coordinates = coordinates)
+    import glob
+    from tqdm import tqdm
 
-    xyz = '1441830-74-5_NBD.xyz'
-    elements, coordinates = read_xyz_mf(xyz)
-    molecular_graph(elements = elements, coordinates = coordinates)
+    path_to_workflow = os.getcwd()
+    # testing -- testing successful on xyz and log
+    complexes_to_calc_descriptors = glob.glob(os.path.join(path_to_workflow, '*.log'))
+    dictionary_for_properties = {}
+
+    # iterate over log files and extract the free ligand as an xyz file
+    for metal_ligand_complex in tqdm(complexes_to_calc_descriptors):
+        elements, coordinates = read_cclib(metal_ligand_complex)
+        if not len(coordinates[-1]) == 3:  # if this is true, there is only 1 coordinates array
+            coordinates = coordinates[-1]
+        base_with_extension = os.path.basename(metal_ligand_complex)
+        split_base = os.path.splitext(base_with_extension)
+        filename = split_base[0]
+        print(molecular_graph(elements=elements, coordinates=coordinates, extract_ligand=True, path_to_workflow=path_to_workflow, filename=filename))
+
