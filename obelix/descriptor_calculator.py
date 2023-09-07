@@ -478,7 +478,7 @@ class Descriptors:
         
         return dictionary, metal_idx, bidentate_max_donor_idx, bidentate_min_donor_idx
 
-    def _calculate_dft_descriptors_from_log(self, log_file, metal_idx, bidentate_max_donor_idx, bidentate_min_donor_idx, dictionary, metal_adduct):
+    def _calculate_dft_descriptors_from_log(self, dft, dictionary):
         """
         Calculate descriptors from DFT log file using the DFTExtractor class.
 
@@ -490,7 +490,6 @@ class Descriptors:
         :param metal_adduct:
         :return:
         """
-        dft = DFTExtractor(log_file, metal_idx, bidentate_min_donor_idx, bidentate_max_donor_idx, metal_adduct)
         successful_dft_optimization = dft.check_normal_termination()
         dictionary["optimization_success_dft"] = successful_dft_optimization
         wall_time, cpu_time = dft.extract_time()
@@ -534,12 +533,15 @@ class Descriptors:
 
             # orbital occupations
             # donor with metal
-            min_donor_metal_orbital_occupation, min_donor_metal_anti_orbital_occupation = dft.calculate_min_donor_metal_orbital_occupation(), dft.calculate_min_donor_metal_anti_orbital_occupation()
-            dictionary[f"orbital_occupation_min_donor_{self.central_atom}_dft"] = min_donor_metal_orbital_occupation
-            dictionary[f"anti_orbital_occupation_min_donor_{self.central_atom}_dft"] = min_donor_metal_anti_orbital_occupation
-            max_donor_metal_orbital_occupation, max_donor_metal_anti_orbital_occupation = dft.calculate_max_donor_metal_orbital_occupation(), dft.calculate_max_donor_metal_anti_orbital_occupation()
-            dictionary[f"orbital_occupation_max_donor_{self.central_atom}_dft"] = max_donor_metal_orbital_occupation
-            dictionary[f"anti_orbital_occupation_max_donor_{self.central_atom}_dft"] = max_donor_metal_anti_orbital_occupation
+            if self.central_atom is not None:
+                # this will be skipped for the free ligand since there is no metal center there
+                min_donor_metal_orbital_occupation, min_donor_metal_anti_orbital_occupation = dft.calculate_min_donor_metal_orbital_occupation(), dft.calculate_min_donor_metal_anti_orbital_occupation()
+                dictionary[f"orbital_occupation_min_donor_{self.central_atom}_dft"] = min_donor_metal_orbital_occupation
+                dictionary[f"anti_orbital_occupation_min_donor_{self.central_atom}_dft"] = min_donor_metal_anti_orbital_occupation
+                max_donor_metal_orbital_occupation, max_donor_metal_anti_orbital_occupation = dft.calculate_max_donor_metal_orbital_occupation(), dft.calculate_max_donor_metal_anti_orbital_occupation()
+                dictionary[f"orbital_occupation_max_donor_{self.central_atom}_dft"] = max_donor_metal_orbital_occupation
+                dictionary[f"anti_orbital_occupation_max_donor_{self.central_atom}_dft"] = max_donor_metal_anti_orbital_occupation
+
             # donor with any other element
             min_donor_other_element_index_list, min_donor_other_orbital_occupation_list = dft.calculate_min_donor_other_orbital_occupation()
             if not min_donor_other_element_index_list is None and not min_donor_other_orbital_occupation_list is None:
@@ -820,7 +822,8 @@ class Descriptors:
             # get indices of bidentate ligands and metal for descriptor calculation class
             dft_properties = {}
             try:
-                dft_properties = self._calculate_dft_descriptors_from_log(metal_ligand_complex, metal_idx, bidentate_max_donor_idx, bidentate_min_donor_idx, dft_properties, metal_adduct)
+                dft = DFTExtractor(metal_ligand_complex, metal_idx, bidentate_max_donor_idx, bidentate_min_donor_idx, metal_adduct)
+                dft_properties = self._calculate_dft_descriptors_from_log(dft, dft_properties)
             except Exception as e:
                 # print(e)
                 print(f'DFT descriptor calculation failed for {filename}')

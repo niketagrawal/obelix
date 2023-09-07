@@ -204,7 +204,10 @@ class DFTExtractor(object):
             self.carbon_back_nbd_idx = self.nbd_complex.carbon_back_nbd_idx
 
         # idx's come from morfeus, so they start at 1, subtract 1 to get the correct index for cclib
-        self.metal_center_idx = metal_center_idx - 1
+        # it is possible that a free ligand is passed that does not have a metal center idx
+        self.metal_center_idx = None
+        if metal_center_idx is not None:
+            self.metal_center_idx = metal_center_idx - 1
         self.min_donor_idx = min_donor_idx - 1
         self.max_donor_idx = max_donor_idx - 1
         self.elements = convert_elements(self.elements, output='symbols')
@@ -607,14 +610,20 @@ class DFTExtractor(object):
 
     def calculate_natural_charges(self):
         natural_charges = self.extract_natural_charges()
-        metal_center_charge = natural_charges[self.metal_center_idx]
+        if self.metal_center_idx is not None:
+            metal_center_charge = natural_charges[self.metal_center_idx]
+        else:
+            metal_center_charge = None
         max_donor_charge = natural_charges[self.max_donor_idx]
         min_donor_charge = natural_charges[self.min_donor_idx]
         return metal_center_charge, min_donor_charge, max_donor_charge
 
     def calculate_mulliken_charges(self):
         mulliken_charges = self.extract_mulliken_charges()
-        metal_center_charge = mulliken_charges[self.metal_center_idx]
+        if self.metal_center_idx is not None:
+            metal_center_charge = mulliken_charges[self.metal_center_idx]
+        else:
+            metal_center_charge = None
         max_donor_charge = mulliken_charges[self.max_donor_idx]
         min_donor_charge = mulliken_charges[self.min_donor_idx]
         return metal_center_charge, min_donor_charge, max_donor_charge
