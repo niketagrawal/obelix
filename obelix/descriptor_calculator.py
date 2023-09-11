@@ -10,7 +10,7 @@ from morfeus import read_xyz, BiteAngle, ConeAngle, BuriedVolume, Dispersion, SA
 from morfeus.conformer import ConformerEnsemble
 from morfeus.io import read_cclib, write_xyz
 from morfeus.utils import convert_elements
-import xtb.utils
+import xtb.utils  # comment this if working on windows
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
@@ -261,6 +261,7 @@ class Descriptors:
         bidentate_2_idx = bidentate[2] + 1
 
         # determine max or min donor based on xTB charge of the donor atoms
+        # ToDo: make this optional, so that the user can choose whether to use xTB for this or give the max/min donor
         xtb_functional = 2  # indicate whether GFN1 or GFN2 is used for electronic descriptors
         if xtb_functional == 1:
             calculation_method = 'gfn1_xtb'
@@ -610,13 +611,17 @@ class Descriptors:
 
             # NBO charges
             metal_nbo_charge, min_donor_nbo_charge, max_donor_nbo_charge = dft.calculate_natural_charges()
-            dictionary[f"nbo_charge_{self.central_atom}_dft"] = metal_nbo_charge
+            if self.central_atom is not None:
+                # this will be skipped for the free ligand since there is no metal center there
+                dictionary[f"nbo_charge_{self.central_atom}_dft"] = metal_nbo_charge
             dictionary[f"nbo_charge_min_donor_dft"] = min_donor_nbo_charge
             dictionary[f"nbo_charge_max_donor_dft"] = max_donor_nbo_charge
 
             # mulliken charges
             metal_mulliken_charge, min_donor_mulliken_charge, max_donor_mulliken_charge = dft.calculate_mulliken_charges()
-            dictionary[f"mulliken_charge_{self.central_atom}_dft"] = metal_mulliken_charge
+            if self.central_atom is not None:
+                # this will be skipped for the free ligand since there is no metal center there
+                dictionary[f"mulliken_charge_{self.central_atom}_dft"] = metal_mulliken_charge
             dictionary[f"mulliken_charge_min_donor_dft"] = min_donor_mulliken_charge
             dictionary[f"mulliken_charge_max_donor_dft"] = max_donor_mulliken_charge
 
@@ -810,6 +815,8 @@ class Descriptors:
             except:
                 print('Error reading elements and coordinates from log file for: ', filename)
                 print('Make sure to check the geometry')
+
+            # ToDo: initialize DFTExtractor class here and allow assigning min/max donor from the DFT data
 
             try:
                 properties, metal_idx, bidentate_max_donor_idx, bidentate_min_donor_idx = self._calculate_steric_electronic_desc_morfeus(geom_type=geom_type, solvent=solvent, dictionary=properties, elements=elements, coordinates=coordinates, filename=filename, metal_adduct=metal_adduct, plot_steric_map=plot_steric_map)

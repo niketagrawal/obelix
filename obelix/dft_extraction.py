@@ -205,15 +205,24 @@ class DFTExtractor(object):
 
         # idx's come from morfeus, so they start at 1, subtract 1 to get the correct index for cclib
         # it is possible that a free ligand is passed that does not have a metal center idx
+        # individually the min and max donor idx can be None as well when initializing the free ligand's DFTExtractor
         self.metal_center_idx = None
         if metal_center_idx is not None:
             self.metal_center_idx = metal_center_idx - 1
-        self.min_donor_idx = min_donor_idx - 1
-        self.max_donor_idx = max_donor_idx - 1
+        self.min_donor_idx = None
+        if min_donor_idx is not None:
+            self.min_donor_idx = min_donor_idx - 1
+        self.max_donor_idx = None
+        if max_donor_idx is not None:
+            self.max_donor_idx = max_donor_idx - 1
+        # find elements of the metal center and the min and max donor
         self.elements = convert_elements(self.elements, output='symbols')
-        self.metal_center_element = self.elements[self.metal_center_idx]
-        self.min_donor_element = self.elements[self.min_donor_idx]
-        self.max_donor_element = self.elements[self.max_donor_idx]
+        if self.metal_center_idx is not None:
+            self.metal_center_element = self.elements[self.metal_center_idx]
+        if self.min_donor_idx is not None:
+            self.min_donor_element = self.elements[self.min_donor_idx]
+        if self.max_donor_idx is not None:
+            self.max_donor_element = self.elements[self.max_donor_idx]
 
         # read the log file for extraction
         with open(log_file) as f:
