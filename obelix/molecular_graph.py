@@ -325,7 +325,7 @@ def molecular_graph(elements, coordinates, extract_ligand=False, path_to_workflo
                 ligand = list(ligand)
                 # if we need to write the xyz file we want to extract only the ligand atoms
                 if extract_ligand is True and path_to_workflow is not None and filename is not None:
-                    extract_ligand_and_write_xyz(ligand, bidentate, path_to_workflow, filename)
+                    extract_ligand_and_write_xyz(ligand, new_bidentate, path_to_workflow, filename)
 
                 ligand.append(metal_center_id)
                 ligand_metal = np.array(ligand)
@@ -347,7 +347,7 @@ def molecular_graph(elements, coordinates, extract_ligand=False, path_to_workflo
                 ligand = list(ligand)
                 # if we need to write the xyz file we want to extract only the ligand atoms
                 if extract_ligand is True and path_to_workflow is not None and filename is not None:
-                    extract_ligand_and_write_xyz(ligand, bidentate, path_to_workflow, filename)
+                    extract_ligand_and_write_xyz(ligand, new_bidentate, path_to_workflow, filename)
 
                 ligand.append(metal_center_id)
                 ligand_metal = np.array(ligand)

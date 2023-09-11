@@ -17,12 +17,12 @@ After cloning the repository, the conda environment with dependencies can be cre
 
 ```bash
 git clone https://github.com/EPiCs-group/obelix
+cd obelix
 conda env create -f environment.yml
 ```
-The obelix package can then be installed with pip from setup.py in the root directory:
+The obelix package can then be installed with pip from setup.py in the obelix folder:
 
 ```bash
-cd obelix
 pip install -e .
 ```
 
