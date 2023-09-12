@@ -24,7 +24,23 @@ class FreeLigand:
     def __init__(self, path_to_workflow, xyz_filename, dft_log_file):
         # the code expects the extracted xyz file of the free ligand and the DFT log file in the same directory
         self.path_to_workflow = path_to_workflow
-        self.xyz_filename = os.path.join(path_to_workflow, xyz_filename)
+        self.xyz_filename = xyz_filename
+        if self.xyz_filename is not None:
+            self.xyz_filename = os.path.join(path_to_workflow, xyz_filename)
+            # read the string on the second line of the xyz file and try to convert to dict
+            with open(self.xyz_filename, 'r') as f:
+                line = f.readline()
+                line = f.readline()
+                try:
+                    line = ast.literal_eval(line)
+                    # read the 0-indexed bidentate indices from the dict and store in class
+                    # we add + 1 to it since Morfeus and DFTExtractor expect 1-indexed indices
+                    self.complex_xyz_bidentate_1_idx = line['complex_bidentate_1_index'] + 1
+                    self.complex_xyz_bidentate_2_idx = line['complex_bidentate_2_index'] + 1
+                    self.free_ligand_xyz_bidentate_1_idx = line['free_ligand_bidentate_1_index'] + 1
+                    self.free_ligand_xyz_bidentate_2_idx = line['free_ligand_bidentate_2_index'] + 1
+                except ValueError:
+                    raise ValueError('The second line of the free ligand xyz file is not a dict')
         self.dft_log_file = os.path.join(path_to_workflow, dft_log_file)
 
         self.dft = None # the DFTExtractor class for this free ligand
@@ -44,21 +60,6 @@ class FreeLigand:
         self.metal_center_idx = None  # this will remain None since we are not using a metal center
         self._min_donor_idx = None
         self._max_donor_idx = None
-
-        # read the string on the second line of the xyz file and try to convert to dict
-        with open(self.xyz_filename, 'r') as f:
-            line = f.readline()
-            line = f.readline()
-            try:
-                line = ast.literal_eval(line)
-                # read the 0-indexed bidentate indices from the dict and store in class
-                # we add + 1 to it since Morfeus and DFTExtractor expect 1-indexed indices
-                self.complex_xyz_bidentate_1_idx = line['complex_bidentate_1_index'] + 1
-                self.complex_xyz_bidentate_2_idx = line['complex_bidentate_2_index'] + 1
-                self.free_ligand_xyz_bidentate_1_idx = line['free_ligand_bidentate_1_index'] + 1
-                self.free_ligand_xyz_bidentate_2_idx = line['free_ligand_bidentate_2_index'] + 1
-            except ValueError:
-                raise ValueError('The second line of the free ligand xyz file is not a dict')
 
     def initialize_dft_extractor(self, log_file, metal_center_idx, min_donor_idx, max_donor_idx, metal_adduct):
         # initialize the DFTExtractor class using the given log file and the bidentate indices
