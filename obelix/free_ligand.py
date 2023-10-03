@@ -25,6 +25,14 @@ class FreeLigand:
         # the code expects the extracted xyz file of the free ligand and the DFT log file in the same directory
         self.path_to_workflow = path_to_workflow
         self.xyz_filename = xyz_filename
+
+        # it is possible that the bidentate indices are different in the free ligand and complex, hence we need to
+        # read the bidentate indices from the extraced ligand's xyz file (stored on the second line by obelix)
+        self.complex_xyz_bidentate_1_idx = None
+        self.complex_xyz_bidentate_2_idx = None
+        self.free_ligand_xyz_bidentate_1_idx = None
+        self.free_ligand_xyz_bidentate_2_idx = None
+
         if self.xyz_filename is not None:
             self.xyz_filename = os.path.join(path_to_workflow, xyz_filename)
             # read the string on the second line of the xyz file and try to convert to dict
@@ -48,13 +56,6 @@ class FreeLigand:
                                                  path_to_workflow=self.path_to_workflow,
                                                  output_type='gaussian')
         # self.descriptor_df = None # the dataframe containing the descriptors for a set of free ligands
-
-        # it is possible that the bidentate indices are different in the free ligand and complex, hence we need to
-        # read the bidentate indices from the extraced ligand's xyz file (stored on the second line by obelix)
-        self.complex_xyz_bidentate_1_idx = None
-        self.complex_xyz_bidentate_2_idx = None
-        self.free_ligand_xyz_bidentate_1_idx = None
-        self.free_ligand_xyz_bidentate_2_idx = None
 
         # these will be used by morfeus, so we need to convert to 1-indexed later
         self.metal_center_idx = None  # this will remain None since we are not using a metal center
