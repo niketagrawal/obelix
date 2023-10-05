@@ -16,7 +16,7 @@ import rdkit
 from rdkit import Chem
 from rdkit.Chem import AllChem
 from openbabel import openbabel
-
+import periodictable as pt
 # from molSimplify.Classes.mol3D import mol3D  # ToDo: method for finding NBD indices using molsimplify
 
 
@@ -190,6 +190,12 @@ class DFTExtractor(object):
         self.meta_data = self.data.metadata
         if not self.check_normal_termination():
             print(f"Warning: {log_file} did not terminate normally!")
+
+        # check whether the dft calculation is an optimization or a single point calculation
+        # we can test this by seeing if data has a vibfreqs attribute
+        self.freq_calculation = False
+        if hasattr(self.data, 'vibfreqs'):
+            self.freq_calculation = True
 
         self.atom_charges_dict = self.data.atomcharges
         # use morfeus parser (in case it's needed)
@@ -409,8 +415,15 @@ class DFTExtractor(object):
         # if donor is P, there are 3 other bonds, so from the last 3 lines we take the values
         if donor_element == "P":
             donor_lines = donor_lines[-3:]
+        # if donor is S, there are 2 other bonds, so from the last 2 lines we take the values
+        elif donor_element == "S":
+            donor_lines = donor_lines[-2:]
+        # if donor is N, there are 2 other bonds, so from the last 2 lines we take the values
         elif donor_element == "N":
             donor_lines = donor_lines[-2:]
+        # if donor is O, there is 1 other bond, so from the last 1 line we take the values
+        elif donor_element == "O":
+            donor_lines = donor_lines[-1:]
         else:
             raise ValueError("Donor element not supported")
 
@@ -465,8 +478,15 @@ class DFTExtractor(object):
         # if donor is P, there are 3 other bonds, so from the last 3 lines we take the values
         if donor_element == "P":
             donor_lines = donor_lines[-3:]
+        # if donor is S, there are 2 other bonds, so from the last 2 lines we take the values
+        elif donor_element == "S":
+            donor_lines = donor_lines[-2:]
+        # if donor is N, there are 2 other bonds, so from the last 2 lines we take the values
         elif donor_element == "N":
             donor_lines = donor_lines[-2:]
+        # if donor is O, there is 1 other bond, so from the last 1 line we take the values
+        elif donor_element == "O":
+            donor_lines = donor_lines[-1:]
         else:
             raise ValueError("Donor element not supported")
 
@@ -500,16 +520,65 @@ class DFTExtractor(object):
         for line_index, line in enumerate(data):
             if "NATURAL POPULATIONS:  Natural atomic orbital occupancies" in line:
                 count += 1
-                if count == 3:
+                # if there is a frequency calculation in the log file, there are 3 occurences of this line
+                # but if not then we just take the first one
+                if self.freq_calculation:
+                    if count == 3:
+                        counting_line = line_index + 4
+                else:
                     counting_line = line_index + 4
-            if "electrons found in the effective core potential" in line:
-                count2 += 1
-                if count2 == 3:
-                    counting_line_ = line_index - 1
 
-                # if
-                # final_line =
-        # file.close()
+            # the ending of the search should be at the amount of atoms * a space per atom * the amount of orbitals per atom
+            # amount_of_atoms = len(self.elements)
+            # use periodictable to sum the amount of orbitals for all atoms
+            # ToDo:
+            # amount_of_orbitals = 0
+            # for element in self.elements:
+                # iterate over elements in periodic table and if it matches the element in the molecule, add the amount of orbitals to the total
+                # for pt_element in pt.elements:
+                #     if pt_element.symbol == element:
+                #         electron_config = pt.elements.electronconfig
+                #         amount_of_orbitals += electron_config.count('.')
+            # counting_line_ = counting_line + amount_of_atoms * 2 * amount_of_orbitals
+                
+            # # there are 3 possible endings of this section
+            # first we check if a line contains the string "electrons found in the effective core potential"
+            ending_found = False
+            if "electrons found in the effective core potential" in line:
+                if self.freq_calculation:
+                    count2 += 1
+                    if count2 == 3:
+                        counting_line_ = line_index - 1
+                        ending_found = True
+                else:
+                    counting_line_ = line_index - 1
+                    ending_found = True
+
+            # if this is not the case, we check if a line contains the string "WARNING:  1 low occupancy (<1.9990e) core orbital  found on"
+            if not ending_found:
+                count2 = 0
+                if " WARNING:  1 low occupancy (<1.9990e) core orbital  found on" in line:
+                    if self.freq_calculation:
+                        count2 += 1
+                        if count2 == 3:
+                            counting_line_ = line_index - 1
+                            ending_found = True
+                    else:
+                        # the first occurence of this is the end of the section
+                        counting_line_ = line_index - 1
+                        ending_found = True
+                        break
+
+            # elif 'Summary of Natural Population Analysis:' in line:
+            #     counting_line_ = line_index - len(self.elements)
+            # if we have not found the ending yet, we check if the next line contains the string "Summary of Natural Population Analysis:"
+            if not ending_found:
+                try:
+                    if "Summary of Natural Population Analysis:" in data[line_index + 1]:
+                        counting_line_ = line_index - len(self.elements)
+                except:
+                    raise ValueError("Could not find the end of the natural population analysis section in the log file")
+
         occupancy_raw_data = data[counting_line: counting_line_]
 
         occupancy_final_data = []
@@ -531,14 +600,18 @@ class DFTExtractor(object):
 
         returns = []
         if atom_type_min == 'N':
+            # for N the lone pair is in the 2S orbital
             returns.append(orbital_dictionary[self.min_donor_idx + 1]['S_Val(2S)'])
-
+        elif atom_type_min == 'O':
+            # for O the lone pair is in the 2S orbital (or 2P, but we take the 2S)
+            returns.append(orbital_dictionary[self.min_donor_idx + 1]['S_Val(2S)'])
         else:
             returns.append(orbital_dictionary[self.min_donor_idx + 1]['S_Val(3S)'])
 
         if atom_type_max == 'N':
             returns.append(orbital_dictionary[self.max_donor_idx + 1]['S_Val(2S)'])
-
+        elif atom_type_max == 'O':
+            returns.append(orbital_dictionary[self.max_donor_idx + 1]['S_Val(2S)'])
         else:
             returns.append(orbital_dictionary[self.max_donor_idx + 1]['S_Val(3S)'])
 
@@ -603,8 +676,9 @@ class DFTExtractor(object):
     def calculate_donor_lone_pair_occupancy(self):
         try:
             min_donor_occupancy, max_donor_occupancy = self.extract_donor_lone_pair_occupancy(self.min_donor_element, self.max_donor_element)
-        except:
+        except Exception as e:
             print("Lone pair occupancy not found in DFT log file")
+            print(e)
             min_donor_occupancy, max_donor_occupancy = None, None
         return min_donor_occupancy, max_donor_occupancy
 

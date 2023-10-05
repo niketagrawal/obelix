@@ -305,53 +305,62 @@ def molecular_graph(elements, coordinates, extract_ligand=False, path_to_workflo
         # Store metal id in a list
         bidentate = [metal_center_id]
         # Extend bidentate atoms with the donating atoms
+        # do loop twice, first only add P, N, S atoms, if there is only 1 atom of these types (so bidentate list only contains
+        # metal center and 1 donor atom), also add O atoms
         for bond_to_metal in metal_center_bonds_:
             if bond_to_metal in ligand:
-                bidentate.append(bond_to_metal)
+                if elements[bond_to_metal] == 'P' or elements[bond_to_metal] == 'N' or elements[bond_to_metal] == 'S':
+                    bidentate.append(bond_to_metal)
+        if len(bidentate) == 2:
+            for bond_to_metal in metal_center_bonds_:
+                if bond_to_metal in ligand:
+                    if elements[bond_to_metal] == 'O':
+                        bidentate.append(bond_to_metal)
+
         # Check whether more atoms are taken as donating: especially important for the pristine structures
         if len(bidentate) > 3:
             # check atom type
-            new_bidentate = [metal_center_id]
+            # new_bidentate = [metal_center_id]
 
             ### Check whether the atom is P, N or S and rewrite the bidentate list with only these types
 
-            for ligating_atom in bidentate:
-                if (elements[ligating_atom] == 'N') or (elements[ligating_atom] == 'P') or (elements[ligating_atom] == 'S'):
-                    new_bidentate.append(ligating_atom)
+            # for ligating_atom in bidentate:
+            #     if (elements[ligating_atom] == 'N') or (elements[ligating_atom] == 'P') or (elements[ligating_atom] == 'S'):
+            #         new_bidentate.append(ligating_atom)
 
             ### Check two closest donors to the metal center.
 
-            if len(new_bidentate) == 2:
-                ligand = list(ligand)
-                # if we need to write the xyz file we want to extract only the ligand atoms
-                if extract_ligand is True and path_to_workflow is not None and filename is not None:
-                    extract_ligand_and_write_xyz(ligand, new_bidentate, path_to_workflow, filename)
+            # if len(new_bidentate) == 2:
+            #     ligand = list(ligand)
+            #     if we need to write the xyz file we want to extract only the ligand atoms
+                # if extract_ligand is True and path_to_workflow is not None and filename is not None:
+                #     extract_ligand_and_write_xyz(ligand, new_bidentate, path_to_workflow, filename)
+                #
+                # ligand.append(metal_center_id)
+                # ligand_metal = np.array(ligand)
+                # return ligand_metal, new_bidentate
+            #
+            # else:
+            dict_distances = {}
+            new_bidentate = bidentate[1:]
+            for ligating_atom in new_bidentate:
+                dict_distances[ligating_atom] = np.linalg.norm(coordinates[metal_center_id, :] - coordinates[ligating_atom, :])
 
-                ligand.append(metal_center_id)
-                ligand_metal = np.array(ligand)
-                return ligand_metal, new_bidentate
+            dict_distances = {k: v for k, v in sorted(dict_distances.items())}
 
-            else:
-                dict_distances = {}
-                new_bidentate = new_bidentate[1:]
-                for ligating_atom in new_bidentate:
-                    dict_distances[ligating_atom] = np.linalg.norm(coordinates[metal_center_id, :] - coordinates[ligating_atom, :])
+            # Sort dictionary according to bond length to the metal center
+            dict_distances = dict(sorted(dict_distances.items(), key=operator.itemgetter(1),reverse=False))
+            new_bidentate = []
+            new_bidentate.extend([metal_center_id, list(dict_distances.keys())[0], list(dict_distances.keys())[1]])
 
-                dict_distances = {k: v for k, v in sorted(dict_distances.items())}
+            ligand = list(ligand)
+            # if we need to write the xyz file we want to extract only the ligand atoms
+            if extract_ligand is True and path_to_workflow is not None and filename is not None:
+                extract_ligand_and_write_xyz(ligand, new_bidentate, path_to_workflow, filename)
 
-                # Sort dictionary according to bond length to the metal center
-                dict_distances = dict(sorted(dict_distances.items(), key=operator.itemgetter(1),reverse=False))
-                new_bidentate = []
-                new_bidentate.extend([metal_center_id, list(dict_distances.keys())[0], list(dict_distances.keys())[1]])
-
-                ligand = list(ligand)
-                # if we need to write the xyz file we want to extract only the ligand atoms
-                if extract_ligand is True and path_to_workflow is not None and filename is not None:
-                    extract_ligand_and_write_xyz(ligand, new_bidentate, path_to_workflow, filename)
-
-                ligand.append(metal_center_id)
-                ligand_metal = np.array(ligand)
-                return ligand_metal, new_bidentate
+            ligand.append(metal_center_id)
+            ligand_metal = np.array(ligand)
+            return ligand_metal, new_bidentate
 
         ligand = list(ligand)
         # if we need to write the xyz file we want to extract only the ligand atoms
@@ -380,6 +389,7 @@ if __name__ == '__main__':
 
     # iterate over log files and extract the free ligand as an xyz file
     for metal_ligand_complex in tqdm(complexes_to_calc_descriptors):
+        print(metal_ligand_complex)
         elements, coordinates = read_cclib(metal_ligand_complex)
         if not len(coordinates[-1]) == 3:  # if this is true, there is only 1 coordinates array
             coordinates = coordinates[-1]
