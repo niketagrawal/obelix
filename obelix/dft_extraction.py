@@ -515,23 +515,27 @@ class DFTExtractor(object):
         # Count nr of times " NATURAL POPULATIONS:  Natural atomic orbital occupancies" appears and take the last one
         count = 0
         count2 = 0
+        ending_found = False
         # with open(self.log_file) as file:  # Use file to refer to the file object
         data = self.log_file_text
         for line_index, line in enumerate(data):
             if "NATURAL POPULATIONS:  Natural atomic orbital occupancies" in line:
                 count += 1
-                # if there is a frequency calculation in the log file, there are 3 occurences of this line
-                # but if not then we just take the first one
+                # if there is a frequency calculation in the log file, there are 2 or 3 occurences of this line
+                # but if not then we just take the first one (e.g. in SP calculations)
                 if self.freq_calculation:
+                    # we only want the last occurence of this line, so either the 2nd or 3rd are saved
+                    if count == 2:
+                        counting_line = line_index + 4
                     if count == 3:
                         counting_line = line_index + 4
                 else:
                     counting_line = line_index + 4
 
+            # ToDo: the best approach would be to enumerate orbitals per atom, but how to do this? WIP
             # the ending of the search should be at the amount of atoms * a space per atom * the amount of orbitals per atom
             # amount_of_atoms = len(self.elements)
             # use periodictable to sum the amount of orbitals for all atoms
-            # ToDo:
             # amount_of_orbitals = 0
             # for element in self.elements:
                 # iterate over elements in periodic table and if it matches the element in the molecule, add the amount of orbitals to the total
@@ -543,10 +547,13 @@ class DFTExtractor(object):
                 
             # # there are 3 possible endings of this section
             # first we check if a line contains the string "electrons found in the effective core potential"
-            ending_found = False
+            # ending_found = False
             if "electrons found in the effective core potential" in line:
                 if self.freq_calculation:
                     count2 += 1
+                    if count2 == 2:
+                        counting_line_ = line_index - 1
+                        ending_found = True
                     if count2 == 3:
                         counting_line_ = line_index - 1
                         ending_found = True
@@ -554,12 +561,16 @@ class DFTExtractor(object):
                     counting_line_ = line_index - 1
                     ending_found = True
 
-            # if this is not the case, we check if a line contains the string "WARNING:  1 low occupancy (<1.9990e) core orbital  found on"
-            if not ending_found:
+        # if this is not the case, we check if a line contains the string "WARNING:  1 low occupancy (<1.9990e) core orbital  found on"
+        if not ending_found:
+            for line_index, line in enumerate(data):
                 count2 = 0
                 if " WARNING:  1 low occupancy (<1.9990e) core orbital  found on" in line:
                     if self.freq_calculation:
                         count2 += 1
+                        if count2 == 2:
+                            counting_line_ = line_index - 1
+                            ending_found = True
                         if count2 == 3:
                             counting_line_ = line_index - 1
                             ending_found = True
@@ -569,10 +580,11 @@ class DFTExtractor(object):
                         ending_found = True
                         break
 
-            # elif 'Summary of Natural Population Analysis:' in line:
-            #     counting_line_ = line_index - len(self.elements)
-            # if we have not found the ending yet, we check if the next line contains the string "Summary of Natural Population Analysis:"
-            if not ending_found:
+        # elif 'Summary of Natural Population Analysis:' in line:
+        #     counting_line_ = line_index - len(self.elements)
+        # if we have not found the ending yet, we check if the next line contains the string "Summary of Natural Population Analysis:"
+        if not ending_found:
+            for line_index, line in enumerate(data):
                 try:
                     if "Summary of Natural Population Analysis:" in data[line_index + 1]:
                         counting_line_ = line_index - len(self.elements)
