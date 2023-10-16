@@ -564,18 +564,13 @@ class DFTExtractor(object):
 
         # if this is not the case, we check if a line contains the string "WARNING:  1 low occupancy (<1.9990e) core orbital  found on"
         if not ending_found:
+            count2 = 0
             for line_index, line in enumerate(data):
-                count2 = 0
                 # search for  WARNING:  {i} low occupancy (<1.9990e) core orbital  found on line
-                if " WARNING:" in line:
+                if re.search(r"\s+WARNING:\s+\d\s+low", line):
                     if self.freq_calculation:
                         count2 += 1
-                        # this happens twice in the log file, also in the  NATURAL BOND ORBITAL ANALYSIS section
-                        # somehow we need to get the 4th and 6th occurence of this line (very flaky solution)
-                        if count2 == 4:
-                            counting_line_ = line_index - 1
-                            ending_found = True
-                        if count2 == 6:
+                        if count2 == 3:
                             counting_line_ = line_index - 1
                             ending_found = True
                     else:
