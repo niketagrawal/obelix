@@ -10,7 +10,7 @@ from morfeus import read_xyz, BiteAngle, ConeAngle, BuriedVolume, Dispersion, SA
 from morfeus.conformer import ConformerEnsemble
 from morfeus.io import read_cclib, write_xyz
 from morfeus.utils import convert_elements
-import xtb.utils
+import xtb.utils  # comment this if working on windows
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
@@ -178,7 +178,7 @@ class Descriptors:
                                                   z_axis_atoms=z_axis_atoms,
                                                   xz_plane_atoms=xz_plane_atoms,
                                                   excluded_atoms=excluded_atoms,
-                                                  radius=3.5).octant_analysis()
+                                                  radius=7).octant_analysis()
         buried_volume_for_quad_oct = buried_volume.octant_analysis()
 
         quadrants = buried_volume_for_quad_oct.quadrants['percent_buried_volume']
@@ -261,6 +261,7 @@ class Descriptors:
         bidentate_2_idx = bidentate[2] + 1
 
         # determine max or min donor based on xTB charge of the donor atoms
+        # ToDo: make this optional, so that the user can choose whether to use xTB for this or give the max/min donor
         xtb_functional = 2  # indicate whether GFN1 or GFN2 is used for electronic descriptors
         if xtb_functional == 1:
             calculation_method = 'gfn1_xtb'
@@ -478,7 +479,7 @@ class Descriptors:
         
         return dictionary, metal_idx, bidentate_max_donor_idx, bidentate_min_donor_idx
 
-    def _calculate_dft_descriptors_from_log(self, log_file, metal_idx, bidentate_max_donor_idx, bidentate_min_donor_idx, dictionary, metal_adduct):
+    def _calculate_dft_descriptors_from_log(self, dft, dictionary):
         """
         Calculate descriptors from DFT log file using the DFTExtractor class.
 
@@ -490,7 +491,6 @@ class Descriptors:
         :param metal_adduct:
         :return:
         """
-        dft = DFTExtractor(log_file, metal_idx, bidentate_min_donor_idx, bidentate_max_donor_idx, metal_adduct)
         successful_dft_optimization = dft.check_normal_termination()
         dictionary["optimization_success_dft"] = successful_dft_optimization
         wall_time, cpu_time = dft.extract_time()
@@ -534,12 +534,15 @@ class Descriptors:
 
             # orbital occupations
             # donor with metal
-            min_donor_metal_orbital_occupation, min_donor_metal_anti_orbital_occupation = dft.calculate_min_donor_metal_orbital_occupation(), dft.calculate_min_donor_metal_anti_orbital_occupation()
-            dictionary[f"orbital_occupation_min_donor_{self.central_atom}_dft"] = min_donor_metal_orbital_occupation
-            dictionary[f"anti_orbital_occupation_min_donor_{self.central_atom}_dft"] = min_donor_metal_anti_orbital_occupation
-            max_donor_metal_orbital_occupation, max_donor_metal_anti_orbital_occupation = dft.calculate_max_donor_metal_orbital_occupation(), dft.calculate_max_donor_metal_anti_orbital_occupation()
-            dictionary[f"orbital_occupation_max_donor_{self.central_atom}_dft"] = max_donor_metal_orbital_occupation
-            dictionary[f"anti_orbital_occupation_max_donor_{self.central_atom}_dft"] = max_donor_metal_anti_orbital_occupation
+            if self.central_atom is not None:
+                # this will be skipped for the free ligand since there is no metal center there
+                min_donor_metal_orbital_occupation, min_donor_metal_anti_orbital_occupation = dft.calculate_min_donor_metal_orbital_occupation(), dft.calculate_min_donor_metal_anti_orbital_occupation()
+                dictionary[f"orbital_occupation_min_donor_{self.central_atom}_dft"] = min_donor_metal_orbital_occupation
+                dictionary[f"anti_orbital_occupation_min_donor_{self.central_atom}_dft"] = min_donor_metal_anti_orbital_occupation
+                max_donor_metal_orbital_occupation, max_donor_metal_anti_orbital_occupation = dft.calculate_max_donor_metal_orbital_occupation(), dft.calculate_max_donor_metal_anti_orbital_occupation()
+                dictionary[f"orbital_occupation_max_donor_{self.central_atom}_dft"] = max_donor_metal_orbital_occupation
+                dictionary[f"anti_orbital_occupation_max_donor_{self.central_atom}_dft"] = max_donor_metal_anti_orbital_occupation
+
             # donor with any other element
             min_donor_other_element_index_list, min_donor_other_orbital_occupation_list = dft.calculate_min_donor_other_orbital_occupation()
             if not min_donor_other_element_index_list is None and not min_donor_other_orbital_occupation_list is None:
@@ -608,13 +611,17 @@ class Descriptors:
 
             # NBO charges
             metal_nbo_charge, min_donor_nbo_charge, max_donor_nbo_charge = dft.calculate_natural_charges()
-            dictionary[f"nbo_charge_{self.central_atom}_dft"] = metal_nbo_charge
+            if self.central_atom is not None:
+                # this will be skipped for the free ligand since there is no metal center there
+                dictionary[f"nbo_charge_{self.central_atom}_dft"] = metal_nbo_charge
             dictionary[f"nbo_charge_min_donor_dft"] = min_donor_nbo_charge
             dictionary[f"nbo_charge_max_donor_dft"] = max_donor_nbo_charge
 
             # mulliken charges
             metal_mulliken_charge, min_donor_mulliken_charge, max_donor_mulliken_charge = dft.calculate_mulliken_charges()
-            dictionary[f"mulliken_charge_{self.central_atom}_dft"] = metal_mulliken_charge
+            if self.central_atom is not None:
+                # this will be skipped for the free ligand since there is no metal center there
+                dictionary[f"mulliken_charge_{self.central_atom}_dft"] = metal_mulliken_charge
             dictionary[f"mulliken_charge_min_donor_dft"] = min_donor_mulliken_charge
             dictionary[f"mulliken_charge_max_donor_dft"] = max_donor_mulliken_charge
 
@@ -809,6 +816,8 @@ class Descriptors:
                 print('Error reading elements and coordinates from log file for: ', filename)
                 print('Make sure to check the geometry')
 
+            # ToDo: initialize DFTExtractor class here and allow assigning min/max donor from the DFT data
+
             try:
                 properties, metal_idx, bidentate_max_donor_idx, bidentate_min_donor_idx = self._calculate_steric_electronic_desc_morfeus(geom_type=geom_type, solvent=solvent, dictionary=properties, elements=elements, coordinates=coordinates, filename=filename, metal_adduct=metal_adduct, plot_steric_map=plot_steric_map)
             except Exception as e:
@@ -820,7 +829,8 @@ class Descriptors:
             # get indices of bidentate ligands and metal for descriptor calculation class
             dft_properties = {}
             try:
-                dft_properties = self._calculate_dft_descriptors_from_log(metal_ligand_complex, metal_idx, bidentate_max_donor_idx, bidentate_min_donor_idx, dft_properties, metal_adduct)
+                dft = DFTExtractor(metal_ligand_complex, metal_idx, bidentate_max_donor_idx, bidentate_min_donor_idx, metal_adduct)
+                dft_properties = self._calculate_dft_descriptors_from_log(dft, dft_properties)
             except Exception as e:
                 # print(e)
                 print(f'DFT descriptor calculation failed for {filename}')
