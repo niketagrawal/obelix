@@ -178,7 +178,7 @@ class Descriptors:
                                                   z_axis_atoms=z_axis_atoms,
                                                   xz_plane_atoms=xz_plane_atoms,
                                                   excluded_atoms=excluded_atoms,
-                                                  radius=3.5).octant_analysis()
+                                                  radius=7).octant_analysis()
         buried_volume_for_quad_oct = buried_volume.octant_analysis()
 
         quadrants = buried_volume_for_quad_oct.quadrants['percent_buried_volume']
