@@ -567,7 +567,7 @@ class DFTExtractor(object):
             count2 = 0
             for line_index, line in enumerate(data):
                 # search for  WARNING:  {i} low occupancy (<1.9990e) core orbital  found on line
-                if re.search(r"\s+WARNING:\s+\d\s+low", line):
+                if re.search(r"\sWARNING:\s+\d\s+low", line):
                     if self.freq_calculation:
                         count2 += 1
                         if count2 == 3:
