@@ -829,7 +829,7 @@ class Descriptors:
             # get indices of bidentate ligands and metal for descriptor calculation class
             dft_properties = {}
             try:
-                dft = DFTExtractor(metal_ligand_complex, metal_idx, bidentate_max_donor_idx, bidentate_min_donor_idx, metal_adduct)
+                dft = DFTExtractor(metal_ligand_complex, metal_idx, bidentate_min_donor_idx, bidentate_max_donor_idx, metal_adduct)
                 dft_properties = self._calculate_dft_descriptors_from_log(dft, dft_properties)
             except Exception as e:
                 # print(e)
