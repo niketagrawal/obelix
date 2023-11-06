@@ -15,7 +15,7 @@ from morfeus import BiteAngle, ConeAngle, BuriedVolume, Dispersion, SASA, read_x
 # from xtb.utils import get_method
 import pandas as pd
 from openbabel import openbabel
-from molecular_graph import molecular_graph
+from obelix.molecular_graph import molecular_graph
 from rdkit import RDLogger
 RDLogger.DisableLog('rdApp.info')
 
