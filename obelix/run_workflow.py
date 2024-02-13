@@ -69,7 +69,6 @@ class MACE:
             X.AddConformers(numConfs=10)   
             X.ToXYZ(self.CA + '_' + '{}_{}.xyz'.format(self.name_of_xyz, i), confId='min')
         ligands.remove(self.bidentate)
-        ligands.remove(substrate[0])
         #     if len(bidentate_idxs) == 0:
         #         try:
         #             # find bidentate indices for first conformer, they should be the same for all conformers
@@ -237,7 +236,7 @@ class Workflow:
         os.chdir(self.path_to_workflow)
         if not os.path.exists('MACE'):
             os.mkdir('MACE')
-        if not os.path.exists('ChemSpax'):
+        if not os.path.exists('ChemSpaX'):
             os.mkdir('ChemSpaX')
         if not os.path.exists('CREST'):
             os.mkdir('CREST')
