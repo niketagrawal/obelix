@@ -1,18 +1,22 @@
 from obelix.run_workflow import *
 
 ligand_excel_file = os.path.join(os.getcwd(), 'test_mace.xlsx')
+ligand_df = pd.read_excel(ligand_excel_file).dropna()
+ligand_name = ligand_df['Name']
+ligand_smiles = ligand_df['smiles']
+
 auxiliary_ligands = ['CC#[N:1]', 'CC#[N:1]']
 substrate = ['CC#[N:1]']
 
 geom = 'SP'
 central_atom = '[Rh+]'
-names_of_xyz_key = 'Cas'
+
 
 
 # MACE input 
-mace_input = {'bidentate_ligands': ligand_excel_file, 
+mace_input = {'bidentate_ligands': ligand_smiles, 
                 'auxiliary_ligands': auxiliary_ligands, 
-                'names_of_xyz': names_of_xyz_key, 
+                'names_of_xyz': ligand_name, 
                 'central_atom': central_atom, 
                 'geom': geom, 
                 'substrate': substrate}

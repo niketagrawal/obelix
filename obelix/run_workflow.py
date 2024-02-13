@@ -68,6 +68,8 @@ class MACE:
         for i, X in enumerate(Xs):
             X.AddConformers(numConfs=10)   
             X.ToXYZ(self.CA + '_' + '{}_{}.xyz'.format(self.name_of_xyz, i), confId='min')
+        ligands.remove(self.bidentate)
+        ligands.remove(substrate[0])
         #     if len(bidentate_idxs) == 0:
         #         try:
         #             # find bidentate indices for first conformer, they should be the same for all conformers
@@ -89,29 +91,33 @@ class MACE:
 
     def generate_complex_OH_xyz(self, auxiliary_ligands = [], substrate = []):
         geom = 'OH'
+        try:
+            # Check if auxiliary ligands and substrate are present
+            if auxiliary_ligands == [] and substrate == []:
+                auxiliary_ligands = ['[H-:1]']*4
+            if auxiliary_ligands == [] and substrate != []:
+                auxiliary_ligands = ['[H-:1]']*3
+            
+            auxiliary = auxiliary_ligands
+            
+            if substrate == []:
+                auxiliary.extend([self.bidentate])
+            else:
+                auxiliary.extend([self.bidentate, substrate[0]])
 
-        # Check if auxiliary ligands and substrate are present
-        if auxiliary_ligands == [] and substrate == []:
-            auxiliary_ligands = ['[H-:1]']*4
-        if auxiliary_ligands == [] and substrate != []:
-            auxiliary_ligands = ['[H-:1]']*3
-        
-        auxiliary = auxiliary_ligands
-        
-        if substrate == []:
-            auxiliary.extend([self.bidentate])
-        else:
-            auxiliary.extend([self.bidentate, substrate[0]])
+            core = mace.ComplexFromLigands(auxiliary, self.CA, geom)
+            Xs = core.GetStereomers(regime='all', dropEnantiomers=True)
 
-        core = mace.ComplexFromLigands(auxiliary, self.CA, geom)
-        Xs = core.GetStereomers(regime='all', dropEnantiomers=True)
+            bidentate_cycle_idxs = None  # all cycles that could possibly be the metal-bidentate cycle
+            bidentate_idxs = []  # the final bidentate cycle indices
+            for i, X in enumerate(Xs):
+                X.AddConformers(numConfs=10)   
+                X.ToXYZ(self.CA + '_' + '{}{}.xyz'.format(self.name_of_xyz, i), confId='min')
+        except Exception as e:
+            print('Error in MACE: ', e)
 
-        bidentate_cycle_idxs = None  # all cycles that could possibly be the metal-bidentate cycle
-        bidentate_idxs = []  # the final bidentate cycle indices
-        for i, X in enumerate(Xs):
-            X.AddConformers(numConfs=10)   
-            X.ToXYZ(self.CA + '_' + '{}{}.xyz'.format(self.name_of_xyz, i), confId='min')
-
+        auxiliary.remove(self.bidentate)
+        auxiliary.remove(substrate[0])
         #     # find bidentate indices on the conformer if none were yet
         #     if len(bidentate_idxs) == 0:
         #         try:
@@ -178,11 +184,13 @@ class Workflow:
     def initialize_mace(self):
         print('Reading MACE inputs')
         
-        bidentate = list(pd.read_excel(self.mace_input['bidentate_ligands'])['smiles'])
+        bidentate = list(self.mace_input['bidentate_ligands'])
+        #bidentate = list(pd.read_excel(self.mace_input['bidentate_ligands'])['smiles'])
         auxiliary_ligands = self.mace_input['auxiliary_ligands']
         geom = self.mace_input['geom']
         central_atom = self.mace_input['central_atom']
-        names_of_xyz_key = list(pd.read_excel(self.mace_input['bidentate_ligands'])['Name'])
+        names_of_xyz_key = list(self.mace_input['names_of_xyz'])
+        #names_of_xyz_key = list(pd.read_excel(self.mace_input['bidentate_ligands'])['Name'])
         substrate = self.mace_input['substrate']
         return bidentate, auxiliary_ligands, geom, central_atom, names_of_xyz_key, substrate
       
@@ -223,13 +231,18 @@ class Workflow:
     def prepare_folder_structure(self):
         
         print('Preparing the folder structure')
-    
-        os.mkdir(self.path_to_workflow)
+
+        if not os.path.exists(self.path_to_workflow):
+            os.mkdir(self.path_to_workflow)
         os.chdir(self.path_to_workflow)
-        os.mkdir('MACE')
-        os.mkdir('ChemSpaX')
-        os.mkdir('CREST')
-        os.mkdir('Descriptors')      
+        if not os.path.exists('MACE'):
+            os.mkdir('MACE')
+        if not os.path.exists('ChemSpax'):
+            os.mkdir('ChemSpaX')
+        if not os.path.exists('CREST'):
+            os.mkdir('CREST')
+        if not os.path.exists('Descriptors'):
+            os.mkdir('Descriptors') 
         os.chdir(self.path_to_workflow)
 
     def run_mace(self):
