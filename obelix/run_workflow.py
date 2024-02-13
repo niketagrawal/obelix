@@ -1,4 +1,4 @@
-from chemspax.main import main
+from chemspax.main import main as chemspax_main
 from chemspax.utilities import *
 import os
 import glob
@@ -168,7 +168,7 @@ class Workflow:
         self.solvent = None
         if mace_input != []:  
           self.mace_ligands, self.auxiliary_ligands, self.geom, self.central_atom, self.names_of_xyz, self.substrate = self.initialize_mace()
-        if chemspax_input != []:        
+        if chemspax_input != []:
           self.substituent_list, self.path_to_database, self.path_to_substituents = self.initialize_chemspax()
         if crest_input != []:
           self.method, self.charge_of_complex, self.multiplicity, self.solvent, self.conf_search = self.initialize_crest()
@@ -191,8 +191,11 @@ class Workflow:
         print('Reading ChemSpaX inputs')
 
         substituent_list = self.chemspax_input['substituent_list']
-        path_to_database = self.chemspax_input['path_to_database']
-        path_to_substituents = self.chemspax_input['path_to_substituents']
+        # assume that this path is always at the base of the chemspax package, so substituents are read from there
+        path_to_substituents = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'install', 'chemspax', 'chemspax', 'substituents_xyz', 'manually_generated')
+        path_to_database = os.path.join(path_to_substituents, "central_atom_centroid_database.csv")
+        # path_to_database = self.chemspax_input['path_to_database']
+        # path_to_substituents = self.chemspax_input['path_to_substituents']
         
         return substituent_list, path_to_database, path_to_substituents
     
@@ -288,35 +291,36 @@ class Workflow:
             # set skeleton path to ../ChemSpaX/skeletons        
             path_to_skeletons = os.path.join(os.getcwd(), dest_dir_skeletons)
             # copy substituents from user source to ChemSpaX folder
-            src_dir_subs = self.path_to_substituents
-            dest_dir_subs = os.path.join(self.path_to_workflow, 'ChemSpaX', 'substituents_xyz')   
+            # src_dir_subs = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'install', 'chemspax', 'chemspax', 'substituents_xyz', 'manually_generated')
+            # src_dir_subs = self.path_to_substituents
+            # dest_dir_subs = os.path.join(self.path_to_workflow, 'ChemSpaX', 'substituents_xyz')
             
-            if not os.path.exists(dest_dir_subs):      
-                shutil.copytree(src_dir_subs, dest_dir_subs)
+            # if not os.path.exists(dest_dir_subs):
+            #     shutil.copytree(src_dir_subs, dest_dir_subs)
 
             # Prepare data (from data_preparation.py in the chemspax package)
             print('Data preparation has been performed.')
-            path_to_substituents = os.path.join(os.getcwd(), dest_dir_subs)
+            # path_to_substituents = src_dir_subs
             #   prepare_data(path_to_substituents, path_to_skeletons, self.path_to_database)
 
             # Set path to output
             path_to_output = os.path.join(self.path_to_workflow, 'ChemSpaX','chemspax_output')
-        
+
             # Run chemspax from main
 
         for index, sub_list in enumerate(self.substituent_list):
             print(self.substituent_list)
             #### Run chemspax
-            
+
             #### Convert mace_skeletons to full paths (chemspax format).
             chemspax_skeletons = [os.path.join(path_to_skeletons, i) for i in self.mace_skeletons[names[index]]]
-            
-            main(chemspax_skeletons, sub_list, self.path_to_database, path_to_substituents, os.path.join(path_to_skeletons), chemspax_working_directory, path_to_output)
-            
+
+            chemspax_main(chemspax_skeletons, sub_list, self.path_to_database, self.path_to_substituents, os.path.join(path_to_skeletons), chemspax_working_directory, path_to_output)
+
             for skeleton in chemspax_skeletons:
                 os.rename(os.path.join(path_to_output, os.path.basename(skeleton)[:-4] + '_func_' + str(len(sub_list)) + '.mol'), \
                     os.path.join(path_to_output, list(names)[index] + '_functionalization_' + str(functionalization_list[index]) + '.mol'))
-            
+
             ## Convert mol to xyz to keep the bonding information
             obconversion = openbabel.OBConversion()
             obconversion.SetInFormat('mol')
@@ -327,9 +331,9 @@ class Workflow:
 
             obconversion.WriteFile(mol, \
                 os.path.join(path_to_output,list(names)[index] + '_functionalization_' + str(functionalization_list[index]) + '.xyz'))
-            
-            for filename in glob.glob(os.path.join(self.path_to_workflow, 'ChemSpaX', 'chemspax_output', '*_func_*')):
-                os.remove(filename) 
+
+            # for filename in glob.glob(os.path.join(self.path_to_workflow, 'ChemSpaX', 'chemspax_output', '*_func_*')):
+            #     os.remove(filename)
 
     def run_crest(self, path_to_complexes = [], path_to_output = [], conformer_search = 'off'):
         
