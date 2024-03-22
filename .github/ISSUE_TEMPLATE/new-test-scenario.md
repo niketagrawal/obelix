@@ -7,8 +7,6 @@ assignees: ''
 
 ---
 
-Add the below as a issue template following the steps [here](https://docs.github.com/en/communities/using-templates-to-encourage-useful-issues-and-pull-requests/configuring-issue-templates-for-your-repository)
-
 ------------------------------------------------------------------------------------------------------------------------
 
 We need to implement test(s) for the following scenario:
