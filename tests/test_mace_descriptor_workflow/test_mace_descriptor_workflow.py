@@ -20,6 +20,7 @@ import shutil
 
 import numpy as np
 import pandas as pd
+import pytest
 
 from obelix.descriptor_calculator import Descriptors
 from obelix.run_workflow import Workflow
@@ -27,112 +28,143 @@ from obelix.run_workflow import Workflow
 
 #################### Prepare the input for the test ####################
 
+path_to_workflow = os.path.abspath(os.path.join(os.path.dirname(__file__), "output"))
 
 ## ---------- Input for MACE-------------##
+
 
 # we define a square planar geometry with a central Rhodium atom as the metal center
 # square planar means that the metal center has 4 ligands in the same plane
 # the other option is 'OH' for octahedral geometry
-geom = "SP"
-central_atom = "[Rh+]"
+@pytest.fixture
+def input_for_mace():
+    geom = "SP"
+    central_atom = "[Rh+]"
 
-# SMILES and name of the ligand with two points of attachment to the metal center
-ligand_name = ["1-Naphthyl-DIPAMP"]
-ligand_smiles = ["c1ccc([P:1](CC[P:1](c2ccccc2)c2cccc3ccccc23)c2cccc3ccccc23)cc1"]
+    # SMILES and name of the ligand with two points of attachment to the metal center
+    ligand_name = ["1-Naphthyl-DIPAMP"]
+    ligand_smiles = ["c1ccc([P:1](CC[P:1](c2ccccc2)c2cccc3ccccc23)c2cccc3ccccc23)cc1"]
 
-# SMILES of the auxiliary ligands with one point of attachment to the metal center
-auxiliary_ligands = ["CC#[N:1]", "CC#[N:1]"]
-# in the SP geometry, the ligands are in the same plane, so we don't need a substrate for this example
-substrate = []
+    # SMILES of the auxiliary ligands with one point of attachment to the metal center
+    auxiliary_ligands = ["CC#[N:1]", "CC#[N:1]"]
+    # in the SP geometry, the ligands are in the same plane, so we don't need a substrate for this example
+    substrate = []
 
-# the input for MACE is a dictionary with the following keys
-# MACE input
-mace_input = {
-    "bidentate_ligands": ligand_smiles,
-    "auxiliary_ligands": auxiliary_ligands,
-    "names_of_xyz": ligand_name,
-    "central_atom": central_atom,
-    "geom": geom,
-    "substrate": substrate,
-}
+    # the input for MACE is a dictionary with the following keys
+    # MACE input
+    mace_input = {
+        "bidentate_ligands": ligand_smiles,
+        "auxiliary_ligands": auxiliary_ligands,
+        "names_of_xyz": ligand_name,
+        "central_atom": central_atom,
+        "geom": geom,
+        "substrate": substrate,
+    }
+
+    return mace_input
 
 
 ## ---------- Input for Descriptor calculation-------------##
+@pytest.fixture
+def xyz_files(input_for_mace):
 
-path_to_workflow = os.path.abspath(os.path.join(os.path.dirname(__file__), "output"))
+    # Ouput of MACE is a set of xyz files and will be stored in the output_produced/ folder in the current working directory. Use absolute path.
+    workflow = Workflow(
+        mace_input=input_for_mace,
+        path_to_workflow=path_to_workflow,
+        geom="BD",
+    )
 
-# Ouput of MACE is a set of xyz files and will be stored in the output_produced/ folder in the current working directory. Use absolute path.
-workflow = Workflow(
-    mace_input=mace_input,
-    path_to_workflow=path_to_workflow,
-    geom="BD",
-)
+    # create the folder structure
+    workflow.prepare_folder_structure()
+    # create and write xyz files for the complexes defined by the input
+    workflow.run_mace()
 
+    xyz_files = os.path.join(path_to_workflow, "MACE")
 
-# create the folder structure
-workflow.prepare_folder_structure()
-# create and write xyz files for the complexes defined by the input
-workflow.run_mace()
+    return xyz_files
 
 
 #################### Descriptor calculation ####################
+@pytest.fixture
+def descriptors(xyz_files):
 
-# path to MACE folder
-path_to_MACE_output = os.path.join(path_to_workflow, "MACE")
-print("path_to_workflow line 62 is: ", path_to_MACE_output)
+    # path to MACE folder
+    path_to_MACE_output = xyz_files
 
-# calculate the descriptors for the xyz structures
-descriptors = Descriptors(
-    central_atom="Rh",
-    path_to_workflow=path_to_MACE_output,
-    output_type="xyz",
-)
+    # calculate the descriptors for the xyz structures
+    descriptors = Descriptors(
+        central_atom="Rh",
+        path_to_workflow=path_to_MACE_output,
+        output_type="xyz",
+    )
 
-descriptors.calculate_morfeus_descriptors(
-    geom_type="BD", solvent=None, printout=False, metal_adduct="pristine"
-)
+    descriptors.calculate_morfeus_descriptors(
+        geom_type="BD", solvent=None, printout=False, metal_adduct="pristine"
+    )
 
-# write the descriptors to a csv file in the Descriptors folder
-descriptors.descriptor_df.to_csv(
-    os.path.join(path_to_workflow, "Descriptors", "descriptors.csv"), index=False
-)
+    # write the descriptors to a csv file in the Descriptors folder
+    descriptors.descriptor_df.to_csv(
+        os.path.join(
+            path_to_workflow,
+            "Descriptors",
+            "descriptors.csv",
+        ),
+        index=False,
+    )
+
+    output_csv = os.path.join(
+        path_to_workflow,
+        "Descriptors",
+        "descriptors.csv",
+    )
+
+    return output_csv
 
 
 #################### Prepare output for comparison ####################
+@pytest.fixture
+def prep_output_for_comparison(descriptors):
 
-# path to the expected output csv file
-path_to_expected_output = os.path.abspath(
-    os.path.join(
-        os.path.dirname(__file__),
-        "expected_output",
-        "Descriptors",
+    # path to the expected output csv file
+    path_to_expected_output = os.path.abspath(
+        os.path.join(
+            os.path.dirname(__file__),
+            "expected_output",
+            "Descriptors",
+        )
     )
-)
 
-expected_output_csv = os.path.join(path_to_expected_output, "descriptors.csv")
-output_csv = os.path.join(path_to_workflow, "Descriptors", "descriptors.csv")
+    output_csv = descriptors
+    expected_output_csv = os.path.join(path_to_expected_output, "descriptors.csv")
 
-# Export the produced csv file to a pandas dataframe to compare the values in
-# the csv file with the expected values
-output_df = pd.read_csv(output_csv)
-expected_df = pd.read_csv(expected_output_csv)
+    # Export the produced csv file to a pandas dataframe to compare the values in
+    # the csv file with the expected values
+    output_df = pd.read_csv(output_csv)
+    expected_df = pd.read_csv(expected_output_csv)
+    # return a dictionary so it can be accessed as prep_output_for_comparison['output_df']
+    return {"output_df": output_df, "expected_df": expected_df}
 
 
 ########################### Testcases ###########################
 
 
-def test_descriptor_values():
+def test_descriptor_values(prep_output_for_comparison):
     """
     The descriptor values in the output csv file must match the expected
     descriptor values for this input.
     """
 
     # Exclude the columns starting with name 'index' and 'element' from the dataframes
-    output_descriptor_values_df = output_df.loc[
-        :, ~output_df.columns.str.contains("index|element|filename")
+    output_descriptor_values_df = prep_output_for_comparison["output_df"].loc[
+        :,
+        ~prep_output_for_comparison["output_df"].columns.str.contains(
+            "index|element|filename_tud"
+        ),
     ]
-    expected_descriptor_values_df = expected_df.loc[
-        :, ~expected_df.columns.str.contains("index|element|filename_tud")
+
+    expected_descriptor_values_df = prep_output_for_comparison["expected_df"].loc[
+        :, ~prep_output_for_comparison["expected_df"].columns.str.contains("index")
     ]
 
     # store the descriptor values contained in the rows in numpy arrays for comparison
@@ -144,10 +176,13 @@ def test_descriptor_values():
     ), "The descriptor values in the output csv file does not match the expected descriptor values for this input."
 
 
-def test_index_values():
-    output_index_values_df = output_df.loc[:, output_df.columns.str.contains("index")]
-    expected_index_values_df = expected_df.loc[
-        :, expected_df.columns.str.contains("index")
+def test_index_values(prep_output_for_comparison):
+    output_index_values_df = prep_output_for_comparison["output_df"].loc[
+        :, prep_output_for_comparison["output_df"].columns.str.contains("index")
+    ]
+
+    expected_index_values_df = prep_output_for_comparison["expected_df"].loc[
+        :, prep_output_for_comparison["expected_df"].columns.str.contains("index")
     ]
 
     assert output_index_values_df.equals(
@@ -155,12 +190,13 @@ def test_index_values():
     ), "The index values in the output csv file does not match the expected index values for this input."
 
 
-def test_element_values():
-    output_element_values_df = output_df.loc[
-        :, output_df.columns.str.contains("element")
+def test_element_values(prep_output_for_comparison):
+    output_element_values_df = prep_output_for_comparison["output_df"].loc[
+        :, prep_output_for_comparison["output_df"].columns.str.contains("element")
     ]
-    expected_element_values_df = expected_df.loc[
-        :, expected_df.columns.str.contains("element")
+
+    expected_element_values_df = prep_output_for_comparison["expected_df"].loc[
+        :, prep_output_for_comparison["expected_df"].columns.str.contains("element")
     ]
 
     assert output_element_values_df.equals(
@@ -168,13 +204,19 @@ def test_element_values():
     ), "The element values in the output csv file does not match the expected element values for this input."
 
 
-def test_filename_values():
-    assert output_df["filename_tud"].equals(
-        expected_df["filename_tud"]
+def test_filename_values(prep_output_for_comparison):
+    assert prep_output_for_comparison["output_df"].equals(
+        prep_output_for_comparison["expected_df"]
     ), "The filename values in the output csv file does not match the expected filename values for this input."
 
 
 #################### Clean up ####################
 
+
 # Delete the outputs generated by the test
-shutil.rmtree(path_to_workflow)
+# use yield to run the cleanup code after the test is run. Clean up should run at the end of the test
+@pytest.fixture
+def cleanup():
+    yield
+    # remove the output folder generated by the test
+    shutil.rmtree(path_to_workflow)
