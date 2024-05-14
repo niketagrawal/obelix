@@ -60,7 +60,7 @@ def input_for_mace():
         "geom": geom,
         "substrate": substrate,
     }
-
+    print("Input for MACE fixture called")
     return mace_input
 
 
@@ -81,13 +81,13 @@ def xyz_files(input_for_mace):
     workflow.run_mace()
 
     xyz_files = os.path.join(path_to_workflow, "MACE")
-
+    print("xyz files fixture called")
     return xyz_files
 
 
 #################### Descriptor calculation ####################
 @pytest.fixture
-def descriptors(xyz_files):
+def output_csv(xyz_files):
 
     # path to MACE folder
     path_to_MACE_output = xyz_files
@@ -118,53 +118,54 @@ def descriptors(xyz_files):
         "Descriptors",
         "descriptors.csv",
     )
-
+    print("Output csv fixture called")
     return output_csv
 
 
-#################### Prepare output for comparison ####################
 @pytest.fixture
-def prep_output_for_comparison(descriptors):
+def output_df(output_csv):
+    output_df = pd.read_csv(output_csv)
+    print("Output df fixture called")
+    return output_df
 
+
+@pytest.fixture
+def expected_csv():
     # path to the expected output csv file
-    path_to_expected_output = os.path.abspath(
+    path_to_expected_csv = os.path.abspath(
         os.path.join(
             os.path.dirname(__file__),
             "expected_output",
             "Descriptors",
         )
     )
+    expected_csv = os.path.join(path_to_expected_csv, "descriptors.csv")
+    print("Expected csv fixture called")
+    return expected_csv
 
-    output_csv = descriptors
-    expected_output_csv = os.path.join(path_to_expected_output, "descriptors.csv")
 
-    # Export the produced csv file to a pandas dataframe to compare the values in
-    # the csv file with the expected values
-    output_df = pd.read_csv(output_csv)
-    expected_df = pd.read_csv(expected_output_csv)
-    # return a dictionary so it can be accessed as prep_output_for_comparison['output_df']
-    return {"output_df": output_df, "expected_df": expected_df}
+@pytest.fixture
+def expected_df(expected_csv):
+    expected_df = pd.read_csv(expected_csv)
+    print("Expected df fixture called")
+    return expected_df
 
 
 ########################### Testcases ###########################
 
 
-def test_descriptor_values(prep_output_for_comparison):
+def test_descriptor_values(output_df, expected_df):
     """
     The descriptor values in the output csv file must match the expected
-    descriptor values for this input.
+    descriptor values for the same input.
     """
 
     # Exclude the columns starting with name 'index' and 'element' from the dataframes
-    output_descriptor_values_df = prep_output_for_comparison["output_df"].loc[
-        :,
-        ~prep_output_for_comparison["output_df"].columns.str.contains(
-            "index|element|filename_tud"
-        ),
+    output_descriptor_values_df = output_df.loc[
+        :, ~output_df.columns.str.contains("index|element|filename")
     ]
-
-    expected_descriptor_values_df = prep_output_for_comparison["expected_df"].loc[
-        :, ~prep_output_for_comparison["expected_df"].columns.str.contains("index")
+    expected_descriptor_values_df = expected_df.loc[
+        :, ~expected_df.columns.str.contains("index|element|filename_tud")
     ]
 
     # store the descriptor values contained in the rows in numpy arrays for comparison
@@ -176,13 +177,16 @@ def test_descriptor_values(prep_output_for_comparison):
     ), "The descriptor values in the output csv file does not match the expected descriptor values for this input."
 
 
-def test_index_values(prep_output_for_comparison):
-    output_index_values_df = prep_output_for_comparison["output_df"].loc[
-        :, prep_output_for_comparison["output_df"].columns.str.contains("index")
-    ]
+def test_index_values(output_df, expected_df):
+    """
+    The index values in the output csv file must match the expected
+    index values for the same input.
+    """
 
-    expected_index_values_df = prep_output_for_comparison["expected_df"].loc[
-        :, prep_output_for_comparison["expected_df"].columns.str.contains("index")
+    output_index_values_df = output_df.loc[:, output_df.columns.str.contains("index")]
+
+    expected_index_values_df = expected_df.loc[
+        :, expected_df.columns.str.contains("index")
     ]
 
     assert output_index_values_df.equals(
@@ -190,13 +194,32 @@ def test_index_values(prep_output_for_comparison):
     ), "The index values in the output csv file does not match the expected index values for this input."
 
 
-def test_element_values(prep_output_for_comparison):
-    output_element_values_df = prep_output_for_comparison["output_df"].loc[
-        :, prep_output_for_comparison["output_df"].columns.str.contains("element")
+# def test_index_values(prep_output_for_comparison):
+#     output_index_values_df = prep_output_for_comparison["output_df"].loc[
+#         :, prep_output_for_comparison["output_df"].columns.str.contains("index")
+#     ]
+
+#     expected_index_values_df = prep_output_for_comparison["expected_df"].loc[
+#         :, prep_output_for_comparison["expected_df"].columns.str.contains("index")
+#     ]
+
+#     assert output_index_values_df.equals(
+#         expected_index_values_df
+#     ), "The index values in the output csv file does not match the expected index values for this input."
+
+
+def test_element_values(output_df, expected_df):
+    """
+    The element values in the output csv file must match the expected
+    element values for the same input.
+    """
+
+    output_element_values_df = output_df.loc[
+        :, output_df.columns.str.contains("element")
     ]
 
-    expected_element_values_df = prep_output_for_comparison["expected_df"].loc[
-        :, prep_output_for_comparison["expected_df"].columns.str.contains("element")
+    expected_element_values_df = expected_df.loc[
+        :, expected_df.columns.str.contains("element")
     ]
 
     assert output_element_values_df.equals(
@@ -204,9 +227,23 @@ def test_element_values(prep_output_for_comparison):
     ), "The element values in the output csv file does not match the expected element values for this input."
 
 
-def test_filename_values(prep_output_for_comparison):
-    assert prep_output_for_comparison["output_df"].equals(
-        prep_output_for_comparison["expected_df"]
+# def test_element_values(prep_output_for_comparison):
+#     output_element_values_df = prep_output_for_comparison["output_df"].loc[
+#         :, prep_output_for_comparison["output_df"].columns.str.contains("element")
+#     ]
+
+#     expected_element_values_df = prep_output_for_comparison["expected_df"].loc[
+#         :, prep_output_for_comparison["expected_df"].columns.str.contains("element")
+#     ]
+
+#     assert output_element_values_df.equals(
+#         expected_element_values_df
+#     ), "The element values in the output csv file does not match the expected element values for this input."
+
+
+def test_filename_values(output_df, expected_df):
+    assert output_df["filename_tud"].equals(
+        expected_df["filename_tud"]
     ), "The filename values in the output csv file does not match the expected filename values for this input."
 
 
@@ -214,9 +251,10 @@ def test_filename_values(prep_output_for_comparison):
 
 
 # Delete the outputs generated by the test
-# use yield to run the cleanup code after the test is run. Clean up should run at the end of the test
-@pytest.fixture
+# use yield to run the cleanup code after all the tests have run
+@pytest.fixture(autouse=True)
 def cleanup():
     yield
-    # remove the output folder generated by the test
+    # delete the output folder
     shutil.rmtree(path_to_workflow)
+    print("Clean up done")
