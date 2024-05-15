@@ -223,8 +223,10 @@ def test_filename_values(output_df, expected_df):
 #################### Clean up ####################
 
 
-# delete the output folder after the tests have been run. Use yield instead of return to run the cleanup code after the testcases have been run.
 @pytest.fixture(scope="module", autouse=True)
 def clean_up():
+    """
+    Delete the 'output/' folder generated as a result of the MACE workflow.
+    """
     yield
     shutil.rmtree(path_to_workflow)
