@@ -149,8 +149,9 @@ def test_descriptor_values(output_df: pd.DataFrame, expected_df: pd.DataFrame):
 
     # Filter the columns containing the descriptor values
     output_descriptor_values_df = output_df.loc[
-        :, ~output_df.columns.str.contains("index|element|filename")
+        :, ~output_df.columns.str.contains("index|element|filename_tud")
     ]
+
     expected_descriptor_values_df = expected_df.loc[
         :, ~expected_df.columns.str.contains("index|element|filename_tud")
     ]
