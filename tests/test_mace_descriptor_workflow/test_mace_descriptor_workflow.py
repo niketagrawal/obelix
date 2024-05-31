@@ -14,13 +14,10 @@ import pytest
 from obelix.descriptor_calculator import Descriptors
 from obelix.run_workflow import Workflow
 
-# path to the folder where the output of MACE (xyz files) and OBeLix (descriptors.csv) will be stored. This folder gets generated as a result of the MACE workflow being called.
+# path to the folder where the output of MACE (xyz files) and OBeLix (descriptors.csv) will be stored.
 path_to_workflow = os.path.abspath(os.path.join(os.path.dirname(__file__), "output"))
 
-####################### Input for MACE ######################
 
-
-# To do: specify input as a dictionary, then parameterize the fixture. Generate descriptor.csv for each input and keep in the expected_output/Dercriptors folder with the name descript_mace_config_1.csv, descript_mace_config_2.csv, etc. Check if mace_config is a suitable name for the mace input we define below. Since we do not compare the xyz files, we do not need to store them in the expected_output folder.
 @pytest.fixture(scope="module")
 def input_for_mace():
     """
