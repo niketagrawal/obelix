@@ -1,0 +1,3 @@
+# omit tests/* and obelix/install/* folder from coveragr report
+[run]
+omit = tests/*, obelix/install/*
