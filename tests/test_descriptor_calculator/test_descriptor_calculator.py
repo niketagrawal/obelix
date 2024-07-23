@@ -102,7 +102,9 @@ class TestDescriptorCalculation:
         exclude_columns=None,
     ):
         """
-        This is a helper function to compare the contents of the output csv file with the expected csv file. Extracting out this function helps to avoid code duplication in the test methods.
+        This is a helper function to compare the contents of the output csv
+        file with the expected csv file. Extracting out this function helps to
+        avoid code duplication in the test methods.
         """
         path_expected_csv = os.path.join(
             os.path.abspath(os.path.dirname(__file__)),
