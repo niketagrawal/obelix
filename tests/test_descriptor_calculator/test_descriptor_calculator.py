@@ -61,7 +61,9 @@ def setup_descriptors(request):
         "nbd-xyz",
         "pristine-xyz",
         "nbd-gaussian",
-    ],  # these ids prints the metal_adduct and output_type in the test name in the pytest report, making it easier to see the pass/fail status of each test case for each combination of metal_adduct and output_type
+    ],  # these ids prints the metal_adduct and output_type in the test name
+    # in the pytest report, making it easier to see the pass/fail status of
+    # each test case for each combination of metal_adduct and output_type
 )
 class TestDescriptorCalculation:
     def test_descriptor_values(self, setup_descriptors):
@@ -116,7 +118,12 @@ class TestDescriptorCalculation:
         expected_df = pd.read_csv(path_expected_csv)
         output_df = pd.read_csv(output_csv)
 
-        # filter the columns based on the include_columns or exclude_columns parameter and compare the values. If include_columns is provided, use DataFrame.equals for comparison. If exclude_columns is provided, use np.allclose for comparison. This is because DataFrame.equals is used for non-numeric data comparison (index, filenme and element values), while np.allclose is used for numeric data comparison (descriptor values).
+        # Filter the columns based on the include_columns or exclude_columns
+        # parameter and compare the values. If include_columns is provided,
+        # use DataFrame.equals for comparison. If exclude_columns is provided
+        # use np.allclose for comparison. This is because DataFrame.equals is
+        # used for non-numeric data comparison (index, filenme and element
+        # values), while np.allclose is used for numeric data comparison (descriptor values).
         if include_columns:
             filtered_columns = expected_df.columns[
                 expected_df.columns.str.contains("|".join(include_columns))
@@ -145,7 +152,12 @@ class TestDescriptorCalculation:
                 output_descriptor_values == False, 0, output_descriptor_values
             )
 
-            # Convert each element in the array to a numeric type (float by default). If an element cannot be converted (e.g., a string that doesn't represent a number), it is replaced with NaN (Not a Number), as a result of the errors='coerce' parameter. This step ensures that the entire array is numeric, which is a prerequisite for using np.allclose.
+            # Convert each element in the array to a numeric type (float by
+            # default). If an element cannot be converted (e.g., a string that
+            # doesn't represent a number), it is replaced with NaN (Not a
+            # Number), as a result of the errors='coerce' parameter. This step
+            # ensures that the entire array is numeric, which is a
+            # prerequisite for using np.allclose.
             output_descriptor_values = pd.to_numeric(
                 output_descriptor_values.flatten(), errors="coerce"
             ).reshape(output_descriptor_values.shape)
