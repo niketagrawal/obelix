@@ -1,8 +1,10 @@
 import os
+import shutil
+
+import numpy as np
 import pandas as pd
 import pytest
-import numpy as np
-import shutil
+
 from obelix.descriptor_calculator import Descriptors
 
 
@@ -44,7 +46,7 @@ def setup_descriptors(request):
     output_file_path = os.path.join(output_dir, "descriptors.csv")
     descriptors.descriptor_df.to_csv(output_file_path, index=False)
 
-    yield descriptors, metal_adduct, output_type
+    yield metal_adduct, output_type
 
     shutil.rmtree(output_dir)
 
@@ -67,35 +69,31 @@ def setup_descriptors(request):
 )
 class TestDescriptorCalculation:
     def test_descriptor_values(self, setup_descriptors):
-        descriptors, metal_adduct, output_type = setup_descriptors
+        metal_adduct, output_type = setup_descriptors
         self.compare_csv_contents(
-            descriptors,
             metal_adduct,
             output_type,
             exclude_columns=["index", "element", "filename_tud"],
         )
 
     def test_index_values(self, setup_descriptors):
-        descriptors, metal_adduct, output_type = setup_descriptors
-        self.compare_csv_contents(
-            descriptors, metal_adduct, output_type, include_columns=["index"]
-        )
+        metal_adduct, output_type = setup_descriptors
+        self.compare_csv_contents(metal_adduct, output_type, include_columns=["index"])
 
     def test_element_values(self, setup_descriptors):
-        descriptors, metal_adduct, output_type = setup_descriptors
+        metal_adduct, output_type = setup_descriptors
         self.compare_csv_contents(
-            descriptors, metal_adduct, output_type, include_columns=["element"]
+            metal_adduct, output_type, include_columns=["element"]
         )
 
     def test_filename_values(self, setup_descriptors):
-        descriptors, metal_adduct, output_type = setup_descriptors
+        metal_adduct, output_type = setup_descriptors
         self.compare_csv_contents(
-            descriptors, metal_adduct, output_type, include_columns=["filename_tud"]
+            metal_adduct, output_type, include_columns=["filename_tud"]
         )
 
     def compare_csv_contents(
         self,
-        descriptors,
         metal_adduct,
         output_type,
         include_columns=None,
@@ -133,9 +131,10 @@ class TestDescriptorCalculation:
             expected_df = expected_df.loc[:, filtered_columns]
             output_df = output_df.loc[:, filtered_columns]
             # Use DataFrame.equals for non-numeric data comparison
-            assert expected_df.equals(
-                output_df
-            ), f"The {include_columns} values in the output csv file do not match the expected values for {metal_adduct} with {output_type}."
+            assert expected_df.equals(output_df), (
+                f"The {include_columns} values in the output csv file do not"
+                f"match the expected values for {metal_adduct} with {output_type}."
+            )
         elif exclude_columns:
             # For numeric data, use np.allclose after excluding non-numeric columns
             filtered_columns = expected_df.columns[
@@ -148,10 +147,10 @@ class TestDescriptorCalculation:
 
             # Convert True/False values to 1/0
             output_descriptor_values = np.where(
-                output_descriptor_values == True, 1, output_descriptor_values
+                output_descriptor_values is True, 1, output_descriptor_values
             )
             output_descriptor_values = np.where(
-                output_descriptor_values == False, 0, output_descriptor_values
+                output_descriptor_values is False, 0, output_descriptor_values
             )
 
             # Convert each element in the array to a numeric type (float by
@@ -167,10 +166,10 @@ class TestDescriptorCalculation:
             expected_descriptor_values = expected_df.to_numpy()
 
             expected_descriptor_values = np.where(
-                expected_descriptor_values == True, 1, expected_descriptor_values
+                expected_descriptor_values is True, 1, expected_descriptor_values
             )
             expected_descriptor_values = np.where(
-                expected_descriptor_values == False, 0, expected_descriptor_values
+                expected_descriptor_values is False, 0, expected_descriptor_values
             )
 
             expected_descriptor_values = pd.to_numeric(
@@ -179,7 +178,10 @@ class TestDescriptorCalculation:
 
             assert np.allclose(
                 output_descriptor_values, expected_descriptor_values, equal_nan=True
-            ), f"The descriptor values in the output csv file do not match the expected descriptor values for {metal_adduct} with {output_type}."
+            ), (
+                f"The descriptor values in the output csv file do not match"
+                f"the expected descriptor values for {metal_adduct} with {output_type}."
+            )
         else:
             raise ValueError(
                 "Either include_columns or exclude_columns must be provided."
