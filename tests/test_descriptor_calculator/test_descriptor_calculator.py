@@ -13,8 +13,6 @@ Execute `pytest -v tests/test_descriptor_calculator/test_descriptor_calculator.p
 Run all the tests in the repository:
 `pytest -v` in the terminal from the root directory of the repository.
 
-NOTE: Handling of CREST output is not implemented in this test. The development is ongoing and will be added in the future. The test is currently set up to handle xyz and Gaussian output types only.
-
 """
 
 import os
@@ -76,12 +74,14 @@ def calculate_descriptors(request):
         ("nbd", "xyz"),
         ("pristine", "xyz"),
         ("nbd", "gaussian"),
+        ("pristine", "crest"),
     ],
     indirect=True,
     ids=[
         "nbd-xyz",
         "pristine-xyz",
         "nbd-gaussian",
+        "pristine-crest",
     ],  # these ids prints the metal_adduct and output_type in the test name
     # in the pytest report, making it easier to see the pass/fail status of
     # each test case for each combination of metal_adduct and output_type
