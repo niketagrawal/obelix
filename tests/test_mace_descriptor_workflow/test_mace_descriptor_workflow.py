@@ -137,7 +137,6 @@ class TestMaceDescriptorWorkflow:
         path_expected_csv = os.path.join(
             os.path.abspath(os.path.dirname(__file__)),
             "expected_output",
-            "Descriptors",
             "descriptors.csv",
         )
         output_csv = os.path.join(
