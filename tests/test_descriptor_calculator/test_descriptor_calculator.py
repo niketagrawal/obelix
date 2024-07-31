@@ -6,6 +6,10 @@ When this test is run, the following sequence of events occur:
 1. The calculate_descriptors fixture is run to calculate the descriptors for the given set of files.
 2. The testcases are run with the data provided by the calculate_descriptors fixture.
 
+
+Specifying scope="class" in the fixture decorator ensures that the descriptors are calculated only once per (metal_adduct, output_type) combination, and then the 4 test cases are run on the output csv file produced.
+
+
 *************** Running the test ***************
 Run this test only:
 Execute `pytest -v tests/test_descriptor_calculator/test_descriptor_calculator.py` in the terminal from the root directory of the repository.
@@ -25,7 +29,7 @@ import pytest
 from obelix.descriptor_calculator import Descriptors
 
 
-@pytest.fixture
+@pytest.fixture(scope="class")
 def calculate_descriptors(request):
     metal_adduct, output_type = request.param
     path_to_input = os.path.join(
