@@ -44,6 +44,9 @@ jobs:
        # Additionally, install pytest via mamba to run tests.
       run: mamba env update -n obelix -f environment.yml && mamba install -n obelix pytest -y
 
+    - name: Verify pytest installation
+      run: mamba list -n obelix | grep pytest
+
     - name: Test with pytest
       run: python -m pytest -v
       # `python -m pytest` is almost equivalent to invoking the command line
