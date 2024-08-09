@@ -41,7 +41,7 @@ jobs:
 
     - name: Install dependencies
        # This step installs the dependencies listed in the environment.yml file. Some dependencies are available only via conda, so environment.yml is preferred over requirements.txt or pyproject.toml.
-      run: mamba env update --file environment.yml && mamba install pytest
+      run: mamba env update --file environment.yml && mamba install pytest -y
 
     - name: Test with pytest
       run: python -m pytest -v
