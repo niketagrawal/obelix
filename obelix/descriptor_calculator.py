@@ -649,7 +649,7 @@ class Descriptors:
         :return:
         """
         if self.output_type.lower() == 'xyz':
-            complexes_to_calc_descriptors = glob.glob(os.path.join(self.path_to_workflow, '*.xyz'))
+            complexes_to_calc_descriptors = sorted(glob.glob(os.path.join(self.path_to_workflow, '*.xyz')))
             dictionary_for_properties = {}
 
             # try:
@@ -683,7 +683,7 @@ class Descriptors:
                 self.descriptor_df = self._merge_descriptor_dfs(self.descriptor_df, new_descriptor_df)
 
         elif self.output_type.lower() == 'crest':
-            complexes_to_calc_descriptors = glob.glob(os.path.join(self.path_to_workflow, 'CREST', '*'))
+            complexes_to_calc_descriptors = sorted(glob.glob(os.path.join(self.path_to_workflow, 'CREST', '*')))
             dictionary_for_conformer_properties = {}
             for complex in tqdm(complexes_to_calc_descriptors):
                 conformer_properties = {}
@@ -793,7 +793,7 @@ class Descriptors:
             raise ValueError(f"Metal adduct {metal_adduct} not supported. Please choose from {supported_metal_adducts}.")
 
         # get all log files
-        complexes_to_calc_descriptors = glob.glob(os.path.join(self.path_to_workflow, '*.log'))
+        complexes_to_calc_descriptors = sorted(glob.glob(os.path.join(self.path_to_workflow, '*.log')))
         dictionary_for_properties = {}
 
         # first calculate morfeus descriptors in same way as for xyz files using cclib
