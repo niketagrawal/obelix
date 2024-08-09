@@ -48,7 +48,7 @@ jobs:
       run: mamba list -n obelix | grep pytest
 
     - name: Test with pytest
-      run: python -m pytest -v
+      run: mamba run -n obelix python -m pytest -v
       # `python -m pytest` is almost equivalent to invoking the command line
       # script pytest [...] directly, except that calling via python will also # add the current directory to sys.path. Since we do not opt to install # obelix package in development mode, obelix/ must be present in
       # sys. path for the tests to be able to import obelix/.
