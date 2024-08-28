@@ -1,0 +1,36 @@
+chemspax.main
+=============
+
+.. py:module:: chemspax.main
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   chemspax.main.current_directory
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   chemspax.main.initialize_complex
+   chemspax.main.main
+
+
+Module Contents
+---------------
+
+.. py:function:: initialize_complex(original_skeleton_name, source_data, substituent_name, path_to_database, path_to_skeletons, path_to_substituents)
+
+   Main function that takes command line arguments and passes them to attach_substituent.py's Complex class
+
+
+
+.. py:function:: main(skeleton_list, substituent_list, path_to_database, path_to_substituents, path_to_skeletons, working_directory, path_to_output)
+
+.. py:data:: current_directory
+

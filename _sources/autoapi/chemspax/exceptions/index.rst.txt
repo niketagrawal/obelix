@@ -1,0 +1,35 @@
+chemspax.exceptions
+===================
+
+.. py:module:: chemspax.exceptions
+
+
+Exceptions
+----------
+
+.. autoapisummary::
+
+   chemspax.exceptions.RotationMatrixError
+   chemspax.exceptions.InvalidRecursiveOrInitialArgumentError
+
+
+Module Contents
+---------------
+
+.. py:exception:: RotationMatrixError
+
+   Bases: :py:obj:`Exception`
+
+
+   Exception raised when c = -1.0
+   Checks if angle with normal-vector and v_x != 0 or 180 else c = -1.0 which gives 1/0 in rotation matrix.
+
+
+.. py:exception:: InvalidRecursiveOrInitialArgumentError
+
+   Bases: :py:obj:`Exception`
+
+
+   Common base class for all non-exit exceptions.
+
+

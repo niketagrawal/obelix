@@ -1,0 +1,21 @@
+API Reference
+=============
+
+This page contains auto-generated API reference documentation [#f1]_.
+
+.. toctree::
+   :titlesonly:
+
+   /autoapi/setup/index
+   /autoapi/obelix/index
+   /autoapi/chemspax/index
+   /autoapi/gjf_to_xyz/index
+   /autoapi/remove_hydrogens/index
+   /autoapi/example_workflow/index
+   /autoapi/get_neighbour_distance/index
+   /autoapi/convert_gaussian_job_cpu_time/index
+   /autoapi/get_neighbour_distance_search/index
+   /autoapi/draw_functionalization_strategy/index
+   /autoapi/set_neighbour_bond_distance_search/index
+
+.. [#f1] Created with `sphinx-autoapi <https://github.com/readthedocs/sphinx-autoapi>`_

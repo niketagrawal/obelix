@@ -1,0 +1,54 @@
+set_neighbour_bond_distance_search
+==================================
+
+.. py:module:: set_neighbour_bond_distance_search
+
+.. autoapi-nested-parse::
+
+   This script was used on the Cartesius cluster to scale bond distances for given atoms, this functionality was
+   also incorporated as a function in utilities.py
+
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   set_neighbour_bond_distance_search.ob_log_handler
+   set_neighbour_bond_distance_search.source_file
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   set_neighbour_bond_distance_search.scale
+   set_neighbour_bond_distance_search.set_neighbour_bond_distance_search
+
+
+Module Contents
+---------------
+
+.. py:data:: ob_log_handler
+
+.. py:function:: scale(starting_point, vector, length)
+
+.. py:function:: set_neighbour_bond_distance_search(source_mol_file, central_atom_atomic_num, search_this_atomic_num, new_length, new_atomic_num)
+
+   Use Openbabel's meethods to scale the distance of a specific atom type to a given atom type, the atoms should be
+   bonded and the specific atom type that is searched for should be searched by using it's atomic number.
+   For example, if you have a Mn pincer complex where Br is bonded to Mn and you want to replace Br with H
+   set_neighbour_bond_distance_search(filename, 25, 35, 1.68, 1)
+
+   :param source_mol_file:
+   :param central_atom_atomic_num:
+   :param search_this_atomic_num:
+   :param new_length
+   :param new_atomic_num
+   :return: Same xyz or mol file with atom replaced
+
+
+.. py:data:: source_file
+

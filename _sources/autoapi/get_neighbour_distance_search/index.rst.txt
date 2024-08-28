@@ -1,0 +1,49 @@
+get_neighbour_distance_search
+=============================
+
+.. py:module:: get_neighbour_distance_search
+
+.. autoapi-nested-parse::
+
+   This script uses openbabel dependency. It was used on the Cartesius cluster to extract bond distances for given atoms. This functionality is
+   also incorporated as a function in utilities.py
+
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   get_neighbour_distance_search.ob_log_handler
+   get_neighbour_distance_search.source_file
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   get_neighbour_distance_search.get_neighbour_bond_distance_search
+
+
+Module Contents
+---------------
+
+.. py:data:: ob_log_handler
+
+.. py:function:: get_neighbour_bond_distance_search(source_mol_file, central_atom_atomic_num, search_this_atomic_num)
+
+   Use Openbabel's meethods to find the distance of a specific atom type to a given atom type, the atoms should be
+   bonded and the specific atom type that is searched for should be searched by using it's atomic number.
+   This function is useful if the given atom does not have a known index in the molecule,
+   if you know the index of the central atom use get_neighbour_distance.py
+
+   :param source_mol_file:
+   :param central_atom_atomic_num:
+   :param search_this_atomic_num:
+   :return:
+
+
+.. py:data:: source_file
+

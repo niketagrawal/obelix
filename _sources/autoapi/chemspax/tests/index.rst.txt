@@ -1,0 +1,6 @@
+chemspax.tests
+==============
+
+.. py:module:: chemspax.tests
+
+

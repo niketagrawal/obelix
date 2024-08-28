@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>chemspax.utilities &mdash; obelix 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css?v=fd3f3429" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=01f34227"></script>
+        <script src="../../_static/doctools.js?v=9a2dae69"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            obelix
+          </a>
+              <div class="version">
+                0.1.0
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../autoapi/index.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">obelix</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">chemspax.utilities</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for chemspax.utilities</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*- </span>
+<span class="c1">#                                                     #</span>
+<span class="c1">#  __authors__ = Adarsh Kalikadien &amp; Vivek Sinha      #</span>
+<span class="c1">#  __institution__ = TU Delft                         #</span>
+<span class="c1">#                                                     #</span>
+<span class="kn">import</span> <span class="nn">ase.io</span> <span class="k">as</span> <span class="nn">io</span>
+<span class="kn">from</span> <span class="nn">ase.visualize</span> <span class="kn">import</span> <span class="n">view</span>
+<span class="kn">import</span> <span class="nn">ase.build</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">from</span> <span class="nn">openbabel</span> <span class="kn">import</span> <span class="n">openbabel</span>
+<span class="kn">from</span> <span class="nn">openbabel</span> <span class="kn">import</span> <span class="n">pybel</span>
+<span class="sd">&quot;&quot;&quot;This file contains utilities used in attach_substituent.py</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="c1"># reduce warnings from openbabel</span>
+<div class="viewcode-block" id="ob_log_handler">
+<a class="viewcode-back" href="../../autoapi/chemspax/utilities/index.html#chemspax.utilities.ob_log_handler">[docs]</a>
+<span class="n">ob_log_handler</span> <span class="o">=</span> <span class="n">openbabel</span><span class="o">.</span><span class="n">OBMessageHandler</span><span class="p">()</span></div>
+
+<span class="n">ob_log_handler</span><span class="o">.</span><span class="n">SetOutputLevel</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+<span class="n">openbabel</span><span class="o">.</span><span class="n">obErrorLog</span><span class="o">.</span><span class="n">SetOutputLevel</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="distance">
+<a class="viewcode-back" href="../../autoapi/chemspax/utilities/index.html#chemspax.utilities.distance">[docs]</a>
+<span class="k">def</span> <span class="nf">distance</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+    <span class="n">d</span> <span class="o">=</span> <span class="n">a</span> <span class="o">-</span> <span class="n">b</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">((</span><span class="n">d</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="p">(</span><span class="n">d</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="p">(</span><span class="n">d</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="visualize_xyz_file">
+<a class="viewcode-back" href="../../autoapi/chemspax/utilities/index.html#chemspax.utilities.visualize_xyz_file">[docs]</a>
+<span class="k">def</span> <span class="nf">visualize_xyz_file</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">save_picture</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">manually_generated</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Visualize an .xyz file, number_atoms at top of .xyz needs to be correct!</span>
+
+<span class="sd">    :param filename:</span>
+<span class="sd">    :param save_picture:</span>
+<span class="sd">    :param manually_generated:</span>
+<span class="sd">    :return: visualization of .xyz file</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">molecule</span> <span class="o">=</span> <span class="n">io</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+    <span class="n">view</span><span class="p">(</span><span class="n">molecule</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">save_picture</span><span class="p">:</span>  <span class="c1"># ToDo: use matplotlib for nicer visualizations</span>
+        <span class="k">if</span> <span class="n">manually_generated</span><span class="p">:</span>
+            <span class="n">io</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;substituents_xyz/visualizations/&#39;</span> <span class="o">+</span> <span class="n">filename</span><span class="p">[</span><span class="mi">35</span><span class="p">:</span><span class="o">-</span><span class="mi">4</span><span class="p">]</span> <span class="o">+</span> <span class="s1">&#39;.png&#39;</span><span class="p">,</span> <span class="n">molecule</span><span class="p">,</span> <span class="n">rotation</span><span class="o">=</span><span class="s1">&#39;45x,45y,0z&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">io</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;substituents_xyz/visualizations/&#39;</span> <span class="o">+</span> <span class="n">filename</span><span class="p">[</span><span class="mi">40</span><span class="p">:</span><span class="o">-</span><span class="mi">4</span><span class="p">]</span> <span class="o">+</span> <span class="s1">&#39;.png&#39;</span><span class="p">,</span> <span class="n">molecule</span><span class="p">,</span> <span class="n">rotation</span><span class="o">=</span><span class="s1">&#39;45x,45y,0z&#39;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span></div>
+
+
+
+<div class="viewcode-block" id="find_distance">
+<a class="viewcode-back" href="../../autoapi/chemspax/utilities/index.html#chemspax.utilities.find_distance">[docs]</a>
+<span class="k">def</span> <span class="nf">find_distance</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">index_of_atom_1</span><span class="p">,</span> <span class="n">index_of_atom_2</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Find distance between two atoms based on their index in .xyz file</span>
+
+<span class="sd">    :param filename:</span>
+<span class="sd">    :param index_of_atom_1:</span>
+<span class="sd">    :param index_of_atom_2:</span>
+<span class="sd">    :return: distance between atoms</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">molecule</span> <span class="o">=</span> <span class="n">io</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">molecule</span><span class="o">.</span><span class="n">get_distance</span><span class="p">(</span><span class="n">index_of_atom_1</span><span class="p">,</span> <span class="n">index_of_atom_2</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="remove_last_line">
+<a class="viewcode-back" href="../../autoapi/chemspax/utilities/index.html#chemspax.utilities.remove_last_line">[docs]</a>
+<span class="k">def</span> <span class="nf">remove_last_line</span><span class="p">(</span><span class="n">filename</span><span class="p">):</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">lines</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>
+        <span class="n">last</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="n">lines</span><span class="p">[</span><span class="n">last</span><span class="p">]</span> <span class="o">=</span> <span class="n">lines</span><span class="p">[</span><span class="n">last</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">wr</span><span class="p">:</span>
+        <span class="n">wr</span><span class="o">.</span><span class="n">writelines</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="create_molecule_and_write_xyz">
+<a class="viewcode-back" href="../../autoapi/chemspax/utilities/index.html#chemspax.utilities.create_molecule_and_write_xyz">[docs]</a>
+<span class="k">def</span> <span class="nf">create_molecule_and_write_xyz</span><span class="p">(</span><span class="n">input_molecule</span><span class="p">,</span> <span class="n">filename</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    https://wiki.fysik.dtu.dk/ase/ase/build/build.html?highlight=ase%20build%20molecule#ase.build.molecule</span>
+<span class="sd">    :param input_molecule: </span>
+<span class="sd">    :param filename: </span>
+<span class="sd">    :return: </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">molecule</span> <span class="o">=</span> <span class="n">ase</span><span class="o">.</span><span class="n">build</span><span class="o">.</span><span class="n">molecule</span><span class="p">(</span><span class="n">input_molecule</span><span class="p">)</span>
+    <span class="n">molecule</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s1">&#39;xyz&#39;</span><span class="p">)</span>
+    <span class="n">remove_last_line</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="scale_vector">
+<a class="viewcode-back" href="../../autoapi/chemspax/utilities/index.html#chemspax.utilities.scale_vector">[docs]</a>
+<span class="k">def</span> <span class="nf">scale_vector</span><span class="p">(</span><span class="n">starting_point</span><span class="p">,</span> <span class="n">vector</span><span class="p">,</span> <span class="n">length</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; Scales a vector with a given length</span>
+
+<span class="sd">    :param starting_point:</span>
+<span class="sd">    :param vector:</span>
+<span class="sd">    :param length:</span>
+<span class="sd">    :return: scaled vector</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">vector</span> <span class="o">=</span> <span class="n">vector</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">vector</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">starting_point</span> <span class="o">+</span> <span class="n">vector</span><span class="o">*</span><span class="n">length</span></div>
+
+
+
+<div class="viewcode-block" id="get_bonded_atoms">
+<a class="viewcode-back" href="../../autoapi/chemspax/utilities/index.html#chemspax.utilities.get_bonded_atoms">[docs]</a>
+<span class="k">def</span> <span class="nf">get_bonded_atoms</span><span class="p">(</span><span class="n">source_mol_file</span><span class="p">,</span> <span class="n">atom_index</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Use openbabel&#39;s methods to find the coordinates of all atoms that are bonded to a given atom</span>
+
+<span class="sd">    :param source_mol_file:</span>
+<span class="sd">    :param atom_index:</span>
+<span class="sd">    :return: numpy array of atoms bonded to a given atom</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># initalize openbabel classes</span>
+    <span class="n">obconversion</span> <span class="o">=</span> <span class="n">openbabel</span><span class="o">.</span><span class="n">OBConversion</span><span class="p">()</span>
+    <span class="c1"># both xyz and mol can be used as input but mol contains an accurate graph representation</span>
+    <span class="k">if</span> <span class="n">source_mol_file</span><span class="p">[</span><span class="o">-</span><span class="mi">4</span><span class="p">:]</span> <span class="o">==</span> <span class="s1">&#39;.mol&#39;</span><span class="p">:</span>
+        <span class="n">obconversion</span><span class="o">.</span><span class="n">SetInFormat</span><span class="p">(</span><span class="s1">&#39;mol&#39;</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">source_mol_file</span><span class="p">[</span><span class="o">-</span><span class="mi">4</span><span class="p">:]</span> <span class="o">==</span> <span class="s1">&#39;.xyz&#39;</span><span class="p">:</span>
+        <span class="n">obconversion</span><span class="o">.</span><span class="n">SetInFormat</span><span class="p">(</span><span class="s1">&#39;xyz&#39;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;file type is incorrect, .mol and .xyz are supported, not&#39;</span><span class="p">,</span> <span class="n">source_mol_file</span><span class="p">[</span><span class="o">-</span><span class="mi">4</span><span class="p">:])</span>
+    <span class="n">mol</span> <span class="o">=</span> <span class="n">openbabel</span><span class="o">.</span><span class="n">OBMol</span><span class="p">()</span>
+    <span class="n">obconversion</span><span class="o">.</span><span class="n">ReadFile</span><span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="n">source_mol_file</span><span class="p">)</span>
+
+    <span class="c1"># make atom object for atom we want</span>
+    <span class="n">atom</span> <span class="o">=</span> <span class="n">mol</span><span class="o">.</span><span class="n">GetAtom</span><span class="p">(</span><span class="n">atom_index</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>  <span class="c1"># for obmol get functions indexing starts from 1</span>
+
+    <span class="n">coordinates_list</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">neighbour_atom</span> <span class="ow">in</span> <span class="n">openbabel</span><span class="o">.</span><span class="n">OBAtomAtomIter</span><span class="p">(</span><span class="n">atom</span><span class="p">):</span>
+        <span class="c1"># there&#39;s also a .GetCoordinate() function but it returns a SWIG object...</span>
+        <span class="n">coordinates</span> <span class="o">=</span> <span class="p">[</span><span class="n">neighbour_atom</span><span class="o">.</span><span class="n">x</span><span class="p">(),</span> <span class="n">neighbour_atom</span><span class="o">.</span><span class="n">y</span><span class="p">(),</span> <span class="n">neighbour_atom</span><span class="o">.</span><span class="n">z</span><span class="p">()]</span>
+        <span class="n">coordinates_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">coordinates</span><span class="p">)</span>
+
+    <span class="n">coordinates_array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span> <span class="k">for</span> <span class="n">coords</span> <span class="ow">in</span> <span class="n">coordinates_list</span><span class="p">])</span>
+
+    <span class="k">return</span> <span class="n">coordinates_array</span></div>
+
+
+
+<div class="viewcode-block" id="get_neighbour_bond_distance">
+<a class="viewcode-back" href="../../autoapi/chemspax/utilities/index.html#chemspax.utilities.get_neighbour_bond_distance">[docs]</a>
+<span class="k">def</span> <span class="nf">get_neighbour_bond_distance</span><span class="p">(</span><span class="n">source_mol_file</span><span class="p">,</span> <span class="n">atom_index</span><span class="p">,</span> <span class="n">search_this_atomic_num</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Use Openbabel&#39;s meethods to find the distance of a specific atom type to a given atom, the atoms should be bonded</span>
+<span class="sd">    and the specific atom type that is searched for should be searched by using it&#39;s atomic number.</span>
+<span class="sd">    This function is useful if the given atom has a known index in the molecule</span>
+<span class="sd">    if you don&#39;t know the index of the central atom use get_neighbour_distance_search.py or</span>
+<span class="sd">    get_neighbour_bond_distance_search()</span>
+
+<span class="sd">    :param source_mol_file:</span>
+<span class="sd">    :param atom_index:</span>
+<span class="sd">    :param search_this_atomic_num:</span>
+<span class="sd">    :return: list of distance between indicated central atom and atoms that are bonded to it with given atomic number</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">atom_index</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">atom_index</span><span class="p">)</span>
+    <span class="n">search_this_atomic_num</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">search_this_atomic_num</span><span class="p">)</span>
+    <span class="c1"># initalize openbabel classes</span>
+    <span class="n">obconversion</span> <span class="o">=</span> <span class="n">openbabel</span><span class="o">.</span><span class="n">OBConversion</span><span class="p">()</span>
+    <span class="c1"># both xyz and mol can be used as input but mol contains an accurate graph representation</span>
+    <span class="k">if</span> <span class="n">source_mol_file</span><span class="p">[</span><span class="o">-</span><span class="mi">4</span><span class="p">:]</span> <span class="o">==</span> <span class="s1">&#39;.mol&#39;</span><span class="p">:</span>
+        <span class="n">obconversion</span><span class="o">.</span><span class="n">SetInFormat</span><span class="p">(</span><span class="s1">&#39;mol&#39;</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">source_mol_file</span><span class="p">[</span><span class="o">-</span><span class="mi">4</span><span class="p">:]</span> <span class="o">==</span> <span class="s1">&#39;.xyz&#39;</span><span class="p">:</span>
+        <span class="n">obconversion</span><span class="o">.</span><span class="n">SetInFormat</span><span class="p">(</span><span class="s1">&#39;xyz&#39;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;file type is incorrect, .mol and .xyz are supported, not&#39;</span><span class="p">,</span> <span class="n">source_mol_file</span><span class="p">[</span><span class="o">-</span><span class="mi">4</span><span class="p">:])</span>
+
+    <span class="n">mol</span> <span class="o">=</span> <span class="n">openbabel</span><span class="o">.</span><span class="n">OBMol</span><span class="p">()</span>
+    <span class="n">obconversion</span><span class="o">.</span><span class="n">ReadFile</span><span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="n">source_mol_file</span><span class="p">)</span>
+
+    <span class="c1"># make atom object for atom of whose bonds we want to look at</span>
+    <span class="n">atom</span> <span class="o">=</span> <span class="n">mol</span><span class="o">.</span><span class="n">GetAtom</span><span class="p">(</span><span class="n">atom_index</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>  <span class="c1"># for obmol get functions indexing starts from 1</span>
+
+    <span class="n">distance_list</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">neighbour_atom</span> <span class="ow">in</span> <span class="n">openbabel</span><span class="o">.</span><span class="n">OBAtomAtomIter</span><span class="p">(</span><span class="n">atom</span><span class="p">):</span>
+        <span class="n">atomic_number</span> <span class="o">=</span> <span class="n">neighbour_atom</span><span class="o">.</span><span class="n">GetAtomicNum</span><span class="p">()</span>
+        <span class="c1"># change this atomic number to change the atom you&#39;re looking for</span>
+        <span class="k">if</span> <span class="n">atomic_number</span> <span class="o">==</span> <span class="n">search_this_atomic_num</span><span class="p">:</span>
+            <span class="c1"># if this is the atom we&#39;re looking for, append the distance</span>
+            <span class="n">distance</span> <span class="o">=</span> <span class="n">neighbour_atom</span><span class="o">.</span><span class="n">GetDistance</span><span class="p">(</span><span class="n">atom</span><span class="p">)</span>
+            <span class="n">distance_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">distance</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">distance_list</span></div>
+
+
+
+<div class="viewcode-block" id="get_neighbour_bond_distance_search">
+<a class="viewcode-back" href="../../autoapi/chemspax/utilities/index.html#chemspax.utilities.get_neighbour_bond_distance_search">[docs]</a>
+<span class="k">def</span> <span class="nf">get_neighbour_bond_distance_search</span><span class="p">(</span><span class="n">source_mol_file</span><span class="p">,</span> <span class="n">central_atom_atomic_num</span><span class="p">,</span> <span class="n">search_this_atomic_num</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Use Openbabel&#39;s meethods to find the distance of a specific atom type to a given atom type, the atoms should be</span>
+<span class="sd">    bonded and the specific atom type that is searched for should be searched by using it&#39;s atomic number.</span>
+<span class="sd">    This function is useful if the given atom does not have a known index in the molecule,</span>
+<span class="sd">    if you know the index of the central atom use get_neighbour_distance.py or get_neighbour_bond_distance()</span>
+
+<span class="sd">    :param source_mol_file:</span>
+<span class="sd">    :param central_atom_atomic_num:</span>
+<span class="sd">    :param search_this_atomic_num:</span>
+<span class="sd">    :return: list of distance between a central atom with unknown index and atoms that are bonded to it</span>
+<span class="sd">    with given atomic number</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">central_atom_atomic_num</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">central_atom_atomic_num</span><span class="p">)</span>
+    <span class="n">search_this_atomic_num</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">search_this_atomic_num</span><span class="p">)</span>
+
+    <span class="c1"># initalize openbabel classes</span>
+    <span class="n">obconversion</span> <span class="o">=</span> <span class="n">openbabel</span><span class="o">.</span><span class="n">OBConversion</span><span class="p">()</span>
+    <span class="c1"># both xyz and mol can be used as input but mol contains an accurate graph representation</span>
+    <span class="k">if</span> <span class="n">source_mol_file</span><span class="p">[</span><span class="o">-</span><span class="mi">4</span><span class="p">:]</span> <span class="o">==</span> <span class="s1">&#39;.mol&#39;</span><span class="p">:</span>
+        <span class="n">obconversion</span><span class="o">.</span><span class="n">SetInFormat</span><span class="p">(</span><span class="s1">&#39;mol&#39;</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">source_mol_file</span><span class="p">[</span><span class="o">-</span><span class="mi">4</span><span class="p">:]</span> <span class="o">==</span> <span class="s1">&#39;.xyz&#39;</span><span class="p">:</span>
+        <span class="n">obconversion</span><span class="o">.</span><span class="n">SetInFormat</span><span class="p">(</span><span class="s1">&#39;xyz&#39;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;file type is incorrect, .mol and .xyz are supported, not&#39;</span><span class="p">,</span> <span class="n">source_mol_file</span><span class="p">[</span><span class="o">-</span><span class="mi">4</span><span class="p">:])</span>
+
+    <span class="n">mol</span> <span class="o">=</span> <span class="n">openbabel</span><span class="o">.</span><span class="n">OBMol</span><span class="p">()</span>
+    <span class="n">obconversion</span><span class="o">.</span><span class="n">ReadFile</span><span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="n">source_mol_file</span><span class="p">)</span>
+
+    <span class="n">distance_list</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="c1"># iterate over atoms in molecule to search the central atom</span>
+    <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">openbabel</span><span class="o">.</span><span class="n">OBMolAtomIter</span><span class="p">(</span><span class="n">mol</span><span class="p">):</span>
+        <span class="n">atomic_number</span> <span class="o">=</span> <span class="n">atom</span><span class="o">.</span><span class="n">GetAtomicNum</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">atomic_number</span> <span class="o">==</span> <span class="n">central_atom_atomic_num</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">neighbour_atom</span> <span class="ow">in</span> <span class="n">openbabel</span><span class="o">.</span><span class="n">OBAtomAtomIter</span><span class="p">(</span><span class="n">atom</span><span class="p">):</span>
+                <span class="n">atomic_number</span> <span class="o">=</span> <span class="n">neighbour_atom</span><span class="o">.</span><span class="n">GetAtomicNum</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">atomic_number</span> <span class="o">==</span> <span class="n">search_this_atomic_num</span><span class="p">:</span>
+                    <span class="n">distance</span> <span class="o">=</span> <span class="n">neighbour_atom</span><span class="o">.</span><span class="n">GetDistance</span><span class="p">(</span><span class="n">atom</span><span class="p">)</span>
+                    <span class="n">distance_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">distance</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">distance_list</span></div>
+
+
+
+<div class="viewcode-block" id="set_neighbour_bond_distance_search">
+<a class="viewcode-back" href="../../autoapi/chemspax/utilities/index.html#chemspax.utilities.set_neighbour_bond_distance_search">[docs]</a>
+<span class="k">def</span> <span class="nf">set_neighbour_bond_distance_search</span><span class="p">(</span><span class="n">source_mol_file</span><span class="p">,</span> <span class="n">central_atom_atomic_num</span><span class="p">,</span> <span class="n">search_this_atomic_num</span><span class="p">,</span>
+                                       <span class="n">new_length</span><span class="p">,</span> <span class="n">new_atomic_num</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Use Openbabel&#39;s meethods to scale the distance of a specific atom type to a given atom type, the atoms should be</span>
+<span class="sd">    bonded and the specific atom type that is searched for should be searched by using it&#39;s atomic number.</span>
+<span class="sd">    For example, if you have a Mn pincer complex where Br is bonded to Mn and you want to replace Br with H</span>
+<span class="sd">    set_neighbour_bond_distance_search(filename, 25, 35, 1.68, 1)</span>
+
+<span class="sd">    :param source_mol_file:</span>
+<span class="sd">    :param central_atom_atomic_num:</span>
+<span class="sd">    :param search_this_atomic_num:</span>
+<span class="sd">    :param new_length</span>
+<span class="sd">    :param new_atomic_num</span>
+<span class="sd">    :return: Same xyz or mol file with atom replaced</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">central_atom_atomic_num</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">central_atom_atomic_num</span><span class="p">)</span>
+    <span class="n">search_this_atomic_num</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">search_this_atomic_num</span><span class="p">)</span>
+
+    <span class="c1"># initalize openbabel classes</span>
+    <span class="n">obconversion</span> <span class="o">=</span> <span class="n">openbabel</span><span class="o">.</span><span class="n">OBConversion</span><span class="p">()</span>
+    <span class="c1"># both xyz and mol can be used as input but mol contains an accurate graph representation</span>
+    <span class="k">if</span> <span class="n">source_mol_file</span><span class="p">[</span><span class="o">-</span><span class="mi">4</span><span class="p">:]</span> <span class="o">==</span> <span class="s1">&#39;.mol&#39;</span><span class="p">:</span>
+        <span class="n">obconversion</span><span class="o">.</span><span class="n">SetInFormat</span><span class="p">(</span><span class="s1">&#39;mol&#39;</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">source_mol_file</span><span class="p">[</span><span class="o">-</span><span class="mi">4</span><span class="p">:]</span> <span class="o">==</span> <span class="s1">&#39;.xyz&#39;</span><span class="p">:</span>
+        <span class="n">obconversion</span><span class="o">.</span><span class="n">SetInFormat</span><span class="p">(</span><span class="s1">&#39;xyz&#39;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;file type is incorrect, .mol and .xyz are supported, not&#39;</span><span class="p">,</span> <span class="n">source_mol_file</span><span class="p">[</span><span class="o">-</span><span class="mi">4</span><span class="p">:])</span>
+
+    <span class="n">mol</span> <span class="o">=</span> <span class="n">openbabel</span><span class="o">.</span><span class="n">OBMol</span><span class="p">()</span>
+    <span class="n">obconversion</span><span class="o">.</span><span class="n">ReadFile</span><span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="n">source_mol_file</span><span class="p">)</span>
+
+    <span class="c1"># iterate over atoms in molecule to search the central atom</span>
+    <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">openbabel</span><span class="o">.</span><span class="n">OBMolAtomIter</span><span class="p">(</span><span class="n">mol</span><span class="p">):</span>
+        <span class="n">atomic_number</span> <span class="o">=</span> <span class="n">atom</span><span class="o">.</span><span class="n">GetAtomicNum</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">atomic_number</span> <span class="o">==</span> <span class="n">central_atom_atomic_num</span><span class="p">:</span>  <span class="c1"># central atom is found</span>
+            <span class="n">central_atom_vector</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">atom</span><span class="o">.</span><span class="n">x</span><span class="p">(),</span> <span class="n">atom</span><span class="o">.</span><span class="n">y</span><span class="p">(),</span> <span class="n">atom</span><span class="o">.</span><span class="n">z</span><span class="p">()])</span>
+            <span class="k">for</span> <span class="n">neighbour_atom</span> <span class="ow">in</span> <span class="n">openbabel</span><span class="o">.</span><span class="n">OBAtomAtomIter</span><span class="p">(</span><span class="n">atom</span><span class="p">):</span>
+                <span class="n">atomic_number</span> <span class="o">=</span> <span class="n">neighbour_atom</span><span class="o">.</span><span class="n">GetAtomicNum</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">atomic_number</span> <span class="o">==</span> <span class="n">search_this_atomic_num</span><span class="p">:</span>  <span class="c1"># atom that you were searching for was found</span>
+                    <span class="n">search_this_atom_vector</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">neighbour_atom</span><span class="o">.</span><span class="n">x</span><span class="p">(),</span> <span class="n">neighbour_atom</span><span class="o">.</span><span class="n">y</span><span class="p">(),</span> <span class="n">neighbour_atom</span><span class="o">.</span><span class="n">z</span><span class="p">()])</span>
+                    <span class="n">d</span> <span class="o">=</span> <span class="n">neighbour_atom</span><span class="o">.</span><span class="n">GetDistance</span><span class="p">(</span><span class="n">atom</span><span class="p">)</span>
+                    <span class="n">distance_vector</span> <span class="o">=</span> <span class="p">(</span><span class="n">search_this_atom_vector</span> <span class="o">-</span> <span class="n">central_atom_vector</span><span class="p">)</span><span class="o">/</span><span class="n">d</span>
+                    <span class="n">distance_vector</span> <span class="o">=</span> <span class="n">distance_vector</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">distance_vector</span><span class="p">)</span>
+                    <span class="n">new_vector</span> <span class="o">=</span> <span class="n">central_atom_vector</span> <span class="o">+</span> <span class="n">distance_vector</span> <span class="o">*</span> <span class="n">new_length</span>
+                    <span class="n">neighbour_atom</span><span class="o">.</span><span class="n">SetAtomicNum</span><span class="p">(</span><span class="n">new_atomic_num</span><span class="p">)</span>
+                    <span class="n">neighbour_atom</span><span class="o">.</span><span class="n">SetVector</span><span class="p">(</span><span class="n">new_vector</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">new_vector</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">new_vector</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+                    <span class="n">obconversion</span><span class="o">.</span><span class="n">WriteFile</span><span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="n">source_mol_file</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="convert_list_of_string_to_np_array">
+<a class="viewcode-back" href="../../autoapi/chemspax/utilities/index.html#chemspax.utilities.convert_list_of_string_to_np_array">[docs]</a>
+<span class="k">def</span> <span class="nf">convert_list_of_string_to_np_array</span><span class="p">(</span><span class="n">array_string</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Pandas is importing np arrays as strings, use this converter to convert the list of 1 string to a np.array</span>
+<span class="sd">    https://stackoverflow.com/questions/42755214/how-to-keep-numpy-array-when-saving-pandas-dataframe-to-csv</span>
+<span class="sd">    :param array_string: example: [&#39;[-0.33332174004836124 0.9428131403470853 0.0]&#39;] dtype=list</span>
+<span class="sd">    :return: np.array(interpretation_of_array_string)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">array_string</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">array_string</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;[&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;]&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="s1">&#39;, &#39;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;&#39;&quot;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;, &#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="nb">float</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">array_string</span><span class="p">)])</span></div>
+
+
+
+<div class="viewcode-block" id="generate_random_rotation_matrix">
+<a class="viewcode-back" href="../../autoapi/chemspax/utilities/index.html#chemspax.utilities.generate_random_rotation_matrix">[docs]</a>
+<span class="k">def</span> <span class="nf">generate_random_rotation_matrix</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;https://math.stackexchange.com/questions/442418/random-generation-of-rotation-matrices</span>
+
+<span class="sd">    :return: uniformly random rotation matrix</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">q</span><span class="p">,</span> <span class="n">r</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">qr</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">q</span></div>
+
+
+
+<div class="viewcode-block" id="read_connectivity_from_mol_file">
+<a class="viewcode-back" href="../../autoapi/chemspax/utilities/index.html#chemspax.utilities.read_connectivity_from_mol_file">[docs]</a>
+<span class="k">def</span> <span class="nf">read_connectivity_from_mol_file</span><span class="p">(</span><span class="n">source_file</span><span class="p">,</span> <span class="n">n_atoms</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Reads connectivity from a .mol file, each number in .mol file has 3 allocated spaces and the file looks like:</span>
+<span class="sd">    idx1 idx2 bond_type bond_stereochemistry 0 0 0</span>
+<span class="sd">    :param source_file:</span>
+<span class="sd">    :param n_atoms:</span>
+<span class="sd">    :return: connectivity block from .mol file except &#39;M  END&#39; line</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># https://chem.libretexts.org/Courses/University_of_Arkansas_Little_Rock/ChemInformatics_(2017)%3A_Chem_4399%2F%2F5399/2.2%3A_Chemical_Representations_on_Computer%3A_Part_II/2.2.2%3A_Anatomy_of_a_MOL_file</span>
+    <span class="n">skip_rows</span> <span class="o">=</span> <span class="n">n_atoms</span> <span class="o">+</span> <span class="mi">4</span>  <span class="c1"># title line, whiteline, comment line, n_atoms &amp; n_bonds line = 4 lines to skip</span>
+    <span class="n">connectivity_data</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">source_file</span><span class="p">)</span><span class="o">.</span><span class="n">readlines</span><span class="p">()[</span><span class="n">skip_rows</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="n">connectivity_list</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="c1"># each item has 3 spaces, based on this the item can be loaded in a dataframe</span>
+    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">connectivity_data</span><span class="p">:</span>
+        <span class="n">idx1</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">line</span><span class="p">[:</span><span class="mi">3</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">))</span>
+        <span class="n">idx2</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">line</span><span class="p">[</span><span class="mi">3</span><span class="p">:</span><span class="mi">6</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">))</span>
+        <span class="n">bond</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">line</span><span class="p">[</span><span class="mi">6</span><span class="p">:</span><span class="mi">9</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">))</span>
+        <span class="n">stereochem</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">line</span><span class="p">[</span><span class="mi">9</span><span class="p">:</span><span class="mi">12</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">))</span>
+        <span class="n">other_info</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">line</span><span class="p">[</span><span class="mi">12</span><span class="p">:</span><span class="mi">15</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">))</span>
+        <span class="n">other_info2</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">line</span><span class="p">[</span><span class="mi">15</span><span class="p">:</span><span class="mi">18</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">))</span>
+        <span class="n">other_info3</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">line</span><span class="p">[</span><span class="mi">18</span><span class="p">:</span><span class="mi">21</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">))</span>
+        <span class="c1"># print([idx1, idx2, bond, stereochem, other_info, other_info2, other_info3])</span>
+        <span class="n">connectivity_list</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">idx1</span><span class="p">,</span> <span class="n">idx2</span><span class="p">,</span> <span class="n">bond</span><span class="p">,</span> <span class="n">stereochem</span><span class="p">,</span> <span class="n">other_info</span><span class="p">,</span> <span class="n">other_info2</span><span class="p">,</span> <span class="n">other_info3</span><span class="p">])</span>
+    <span class="n">connectivity</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">connectivity_list</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">6</span><span class="p">])</span>
+
+    <span class="c1"># old approach</span>
+    <span class="c1"># connectivity = pd.read_table(source_file, skiprows=skip_rows, delim_whitespace=True, header=None)</span>
+    <span class="c1">#</span>
+    <span class="c1"># # drop last &#39;M END&#39; line</span>
+    <span class="c1"># connectivity = connectivity.drop([len(connectivity) - 1])</span>
+    <span class="c1">#</span>
+    <span class="c1"># connectivity = connectivity.fillna(0)</span>
+    <span class="c1"># connectivity = connectivity.astype(int)</span>
+    <span class="c1"># #</span>
+    <span class="c1"># # if there is no space between idx1 and idx2 the numbers still need to be separated</span>
+    <span class="c1"># # this happens if idx2 &gt; 99, for example: 56 103 --&gt; 56103 or if idx1 and idx2 are &gt; 99 for ex: 100 100 --&gt; 100100</span>
+    <span class="c1"># for i in range(len(connectivity)):</span>
+    <span class="c1">#     current_row = connectivity.loc[i, [0]]</span>
+    <span class="c1">#     if current_row[0] &gt; 1100:  # 1 100 is the lowest set of integers for which this problem will occur</span>
+    <span class="c1">#         row_string = str(current_row[0]).strip()</span>
+    <span class="c1">#         if len(row_string) == 5:</span>
+    <span class="c1">#             connectivity.loc[i, [0, 1, 2]] = int(row_string[:2]), int(row_string[2:]), int(connectivity.loc[i, [1]].</span>
+    <span class="c1">#                                                                                            values)</span>
+    <span class="c1">#         elif len(row_string) == 6:</span>
+    <span class="c1">#             connectivity.loc[i, [0, 1, 2]] = int(row_string[:3]), int(row_string[3:]), int(connectivity.loc[i, [1]].</span>
+    <span class="c1">#                                                                                            values)</span>
+    <span class="k">return</span> <span class="n">connectivity</span></div>
+
+
+
+<div class="viewcode-block" id="convert_xyz_2_mol_file">
+<a class="viewcode-back" href="../../autoapi/chemspax/utilities/index.html#chemspax.utilities.convert_xyz_2_mol_file">[docs]</a>
+<span class="k">def</span> <span class="nf">convert_xyz_2_mol_file</span><span class="p">(</span><span class="n">source_file</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Converts .xyz to .mol file with the same filename</span>
+
+<span class="sd">    :param source_file:</span>
+<span class="sd">    :return: .mol file with same filename as .xyz file</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">obConversion</span> <span class="o">=</span> <span class="n">openbabel</span><span class="o">.</span><span class="n">OBConversion</span><span class="p">()</span>
+    <span class="n">obConversion</span><span class="o">.</span><span class="n">SetInAndOutFormats</span><span class="p">(</span><span class="s2">&quot;xyz&quot;</span><span class="p">,</span> <span class="s2">&quot;mol&quot;</span><span class="p">)</span>
+    <span class="n">mol</span> <span class="o">=</span> <span class="n">openbabel</span><span class="o">.</span><span class="n">OBMol</span><span class="p">()</span>
+    <span class="n">obConversion</span><span class="o">.</span><span class="n">ReadFile</span><span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="n">source_file</span><span class="p">)</span>
+    <span class="n">target_filename</span> <span class="o">=</span> <span class="n">source_file</span><span class="p">[:</span><span class="o">-</span><span class="mi">4</span><span class="p">]</span> <span class="o">+</span> <span class="s1">&#39;.mol&#39;</span>
+    <span class="n">obConversion</span><span class="o">.</span><span class="n">WriteFile</span><span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="n">target_filename</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="convert_mol_2_xyz_file">
+<a class="viewcode-back" href="../../autoapi/chemspax/utilities/index.html#chemspax.utilities.convert_mol_2_xyz_file">[docs]</a>
+<span class="k">def</span> <span class="nf">convert_mol_2_xyz_file</span><span class="p">(</span><span class="n">source_file</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Converts .mol to .xyz file with the same filename</span>
+
+<span class="sd">        :param source_file:</span>
+<span class="sd">        :return: .xyz file with same filename as .mol file</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">obConversion</span> <span class="o">=</span> <span class="n">openbabel</span><span class="o">.</span><span class="n">OBConversion</span><span class="p">()</span>
+    <span class="n">obConversion</span><span class="o">.</span><span class="n">SetInAndOutFormats</span><span class="p">(</span><span class="s2">&quot;mol&quot;</span><span class="p">,</span> <span class="s2">&quot;xyz&quot;</span><span class="p">)</span>
+    <span class="n">mol</span> <span class="o">=</span> <span class="n">openbabel</span><span class="o">.</span><span class="n">OBMol</span><span class="p">()</span>
+    <span class="n">obConversion</span><span class="o">.</span><span class="n">ReadFile</span><span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="n">source_file</span><span class="p">)</span>
+    <span class="n">target_filename</span> <span class="o">=</span> <span class="n">source_file</span><span class="p">[:</span><span class="o">-</span><span class="mi">4</span><span class="p">]</span> <span class="o">+</span> <span class="s1">&#39;.xyz&#39;</span>
+    <span class="n">obConversion</span><span class="o">.</span><span class="n">WriteFile</span><span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="n">target_filename</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="print_mol_counts_block">
+<a class="viewcode-back" href="../../autoapi/chemspax/utilities/index.html#chemspax.utilities.print_mol_counts_block">[docs]</a>
+<span class="k">def</span> <span class="nf">print_mol_counts_block</span><span class="p">(</span><span class="n">old_string</span><span class="p">,</span> <span class="n">n_atoms</span><span class="p">,</span> <span class="n">n_bonds</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;The counts block in a .mol file is corrected based on bonds and atoms given</span>
+
+<span class="sd">    :param old_string:</span>
+<span class="sd">    :param n_atoms:</span>
+<span class="sd">    :param n_bonds:</span>
+<span class="sd">    :return: corrected counts block of .mol file</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">n_atoms</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">n_atoms</span><span class="p">)</span>
+    <span class="n">n_bonds</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">n_bonds</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="n">n_bonds</span> <span class="ow">or</span> <span class="n">n_atoms</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">999</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;n_atoms or n_bonds can not have more than 3 digits&#39;</span><span class="p">)</span>
+
+    <span class="n">n_atoms</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">n_atoms</span><span class="p">)</span>
+    <span class="n">n_bonds</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">n_bonds</span><span class="p">)</span>
+    <span class="n">static_part</span> <span class="o">=</span> <span class="n">old_string</span><span class="p">[</span><span class="mi">6</span><span class="p">:]</span>
+
+    <span class="c1"># the first 6 places are reserved for n_atoms and n_bonds, these need to be formattted correctly</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">n_atoms</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">new_string</span> <span class="o">=</span> <span class="s1">&#39;  &#39;</span> <span class="o">+</span> <span class="n">n_atoms</span>
+    <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">n_atoms</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="n">new_string</span> <span class="o">=</span> <span class="s1">&#39; &#39;</span> <span class="o">+</span> <span class="n">n_atoms</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">new_string</span> <span class="o">=</span> <span class="n">n_atoms</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">n_bonds</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">new_string</span> <span class="o">+=</span> <span class="s1">&#39;  &#39;</span> <span class="o">+</span> <span class="n">n_bonds</span>
+    <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">n_bonds</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="n">new_string</span> <span class="o">+=</span> <span class="s1">&#39; &#39;</span> <span class="o">+</span> <span class="n">n_bonds</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">new_string</span> <span class="o">+=</span> <span class="n">n_bonds</span>
+    <span class="c1"># the rest of the string stays the same and can be added back</span>
+    <span class="n">new_string</span> <span class="o">+=</span> <span class="n">static_part</span>
+
+    <span class="k">return</span> <span class="n">new_string</span></div>
+
+
+
+<div class="viewcode-block" id="print_correct_connectivity_line">
+<a class="viewcode-back" href="../../autoapi/chemspax/utilities/index.html#chemspax.utilities.print_correct_connectivity_line">[docs]</a>
+<span class="k">def</span> <span class="nf">print_correct_connectivity_line</span><span class="p">(</span><span class="n">line</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;A line delimited by 2 spaces is read and correctly formatted to correspond with the official .mol format.</span>
+<span class="sd">    Each number has 3 allocated spaces, as explained in the docstring of read_connectivity_from_mol_file there are 7</span>
+<span class="sd">    numbers. This means that the line is formatted as:</span>
+<span class="sd">    &#39;...&#39;&#39;...&#39;&#39;...&#39;&#39;...&#39;&#39;...&#39;&#39;...&#39;&#39;...&#39; the most right space is allocated to the first number and if the tens are</span>
+<span class="sd">    reached the middle space is allocated as well, the left space is allocated ones the hundreds are reached.</span>
+<span class="sd">    So the possibilities are (where \w == a whitespace):</span>
+<span class="sd">    &#39;\w\w1&#39; &#39;\w10&#39; &#39;100&#39;</span>
+<span class="sd">    Notice that this function currently only supports indexes that are &lt; 1000.</span>
+<span class="sd">    :param line:</span>
+<span class="sd">    :return: correctly formatted line in connectivity block of .mol file</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">line_list</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;  &#39;</span><span class="p">)</span>
+    <span class="n">to_return</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;  &#39;</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">16</span><span class="p">)]</span>  <span class="c1"># initialize empty list with 2 spaces as separator</span>
+
+    <span class="c1"># 6 cases, either idx 1 is 1 10 100 or idx is 1 10 100</span>
+    <span class="n">atom_index_1</span> <span class="o">=</span> <span class="n">line_list</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">atom_index_1</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+        <span class="n">to_return</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">atom_index_1</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">to_return</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">atom_index_1</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">to_return</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">atom_index_1</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+    <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">atom_index_1</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="n">to_return</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39; &#39;</span>
+        <span class="n">to_return</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">atom_index_1</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">to_return</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">atom_index_1</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">atom_index_1</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">to_return</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39; &#39;</span>
+        <span class="n">to_return</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39; &#39;</span>
+        <span class="n">to_return</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">atom_index_1</span>
+
+    <span class="n">atom_index_2</span> <span class="o">=</span> <span class="n">line_list</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">atom_index_2</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+        <span class="n">to_return</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="n">atom_index_2</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">to_return</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span> <span class="o">=</span> <span class="n">atom_index_2</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">to_return</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span> <span class="o">=</span> <span class="n">atom_index_2</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+    <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">atom_index_2</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="n">to_return</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39; &#39;</span>
+        <span class="n">to_return</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span> <span class="o">=</span> <span class="n">atom_index_2</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">to_return</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span> <span class="o">=</span> <span class="n">atom_index_2</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">atom_index_2</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">to_return</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39; &#39;</span>
+        <span class="n">to_return</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39; &#39;</span>
+        <span class="n">to_return</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span> <span class="o">=</span> <span class="n">atom_index_2</span>
+
+    <span class="c1"># the rest of the line is static with 2 spaces as separator</span>
+    <span class="n">to_return</span><span class="p">[</span><span class="mi">7</span><span class="p">]</span> <span class="o">=</span> <span class="n">line_list</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+    <span class="n">to_return</span><span class="p">[</span><span class="mi">9</span><span class="p">]</span> <span class="o">=</span> <span class="n">line_list</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+    <span class="n">to_return</span><span class="p">[</span><span class="mi">11</span><span class="p">]</span> <span class="o">=</span> <span class="n">line_list</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span>
+    <span class="n">to_return</span><span class="p">[</span><span class="mi">13</span><span class="p">]</span> <span class="o">=</span> <span class="n">line_list</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span>
+    <span class="n">to_return</span><span class="p">[</span><span class="mi">15</span><span class="p">]</span> <span class="o">=</span> <span class="n">line_list</span><span class="p">[</span><span class="mi">6</span><span class="p">]</span>
+
+    <span class="n">to_return</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="nb">str</span><span class="p">(</span><span class="n">elem</span><span class="p">)</span> <span class="k">for</span> <span class="n">elem</span> <span class="ow">in</span> <span class="n">to_return</span><span class="p">])</span>  <span class="c1"># turn list into string</span>
+    <span class="k">return</span> <span class="n">to_return</span></div>
+
+
+
+<div class="viewcode-block" id="ff_optimize">
+<a class="viewcode-back" href="../../autoapi/chemspax/utilities/index.html#chemspax.utilities.ff_optimize">[docs]</a>
+<span class="k">def</span> <span class="nf">ff_optimize</span><span class="p">(</span><span class="n">source_file</span><span class="p">,</span> <span class="n">ff_method</span><span class="o">=</span><span class="s1">&#39;uff&#39;</span><span class="p">,</span> <span class="n">list_of_indices_to_freeze</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Uses openbabenl&#39;s ff optimization to locally optimize a molecule and write it back to the same file</span>
+
+<span class="sd">    :param source_file:</span>
+<span class="sd">    :param ff_method:</span>
+<span class="sd">    :param list_of_indices_to_freeze:</span>
+<span class="sd">    :return: optimized .mol file with the same filename</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">obconversion</span> <span class="o">=</span> <span class="n">openbabel</span><span class="o">.</span><span class="n">OBConversion</span><span class="p">()</span>
+    <span class="n">obconversion</span><span class="o">.</span><span class="n">SetInFormat</span><span class="p">(</span><span class="s1">&#39;mol&#39;</span><span class="p">)</span>
+    <span class="n">mol</span> <span class="o">=</span> <span class="n">openbabel</span><span class="o">.</span><span class="n">OBMol</span><span class="p">()</span>
+    <span class="n">obconversion</span><span class="o">.</span><span class="n">ReadFile</span><span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="n">source_file</span><span class="p">)</span>
+
+    <span class="c1"># old fashioned method: setup forcefield and do optimization. More customizable</span>
+    <span class="n">constr</span> <span class="o">=</span> <span class="n">openbabel</span><span class="o">.</span><span class="n">OBFFConstraints</span><span class="p">()</span>
+    <span class="c1"># freeze skeleton atoms</span>
+    <span class="k">if</span> <span class="n">list_of_indices_to_freeze</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="n">list_of_indices_to_freeze</span><span class="p">:</span>
+            <span class="c1"># indexing of atoms starts from 1 in openbabel</span>
+            <span class="n">constr</span><span class="o">.</span><span class="n">AddAtomConstraint</span><span class="p">(</span><span class="n">idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+
+    <span class="n">forcefield</span> <span class="o">=</span> <span class="n">openbabel</span><span class="o">.</span><span class="n">OBForceField</span><span class="o">.</span><span class="n">FindForceField</span><span class="p">(</span><span class="n">ff_method</span><span class="p">)</span>
+    <span class="n">s</span> <span class="o">=</span> <span class="n">forcefield</span><span class="o">.</span><span class="n">Setup</span><span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="n">constr</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">s</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;forcefield setup failed.&#39;</span><span class="p">)</span>
+        <span class="n">exit</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">forcefield</span><span class="o">.</span><span class="n">SteepestDescent</span><span class="p">(</span><span class="mi">1000</span><span class="p">)</span>
+        <span class="n">forcefield</span><span class="o">.</span><span class="n">GetCoordinates</span><span class="p">(</span><span class="n">mol</span><span class="p">)</span>
+    <span class="n">obconversion</span><span class="o">.</span><span class="n">WriteFile</span><span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="n">source_file</span><span class="p">)</span></div>
+
+
+    <span class="c1"># modern method: use pybel&#39;s Molecule class and let it do the ff opt, it is already implemented.</span>
+    <span class="c1"># mol = pybel.Molecule(mol)</span>
+    <span class="c1"># mol.localopt(ff_method, 1000)</span>
+    <span class="c1"># mol.write(&#39;mol&#39;, filename=source_file, overwrite=True)</span>
+
+
+<div class="viewcode-block" id="xyz_2_smiles">
+<a class="viewcode-back" href="../../autoapi/chemspax/utilities/index.html#chemspax.utilities.xyz_2_smiles">[docs]</a>
+<span class="k">def</span> <span class="nf">xyz_2_smiles</span><span class="p">(</span><span class="n">file_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="c1"># https://www.kaggle.com/roccomeli/easy-xyz-to-smiles-conversion</span>
+    <span class="n">mol</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">pybel</span><span class="o">.</span><span class="n">readfile</span><span class="p">(</span><span class="s2">&quot;xyz&quot;</span><span class="p">,</span> <span class="n">file_name</span><span class="p">))</span>
+    <span class="n">smi</span> <span class="o">=</span> <span class="n">mol</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="nb">format</span><span class="o">=</span><span class="s2">&quot;smi&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">smi</span><span class="o">.</span><span class="n">split</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span></div>
+
+
+
+<div class="viewcode-block" id="check_overlap">
+<a class="viewcode-back" href="../../autoapi/chemspax/utilities/index.html#chemspax.utilities.check_overlap">[docs]</a>
+<span class="k">def</span> <span class="nf">check_overlap</span><span class="p">(</span><span class="n">dataframe_xyz</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Given a pandas dataframe, iterates over all the atoms and checks if they&#39;re overlapping</span>
+
+<span class="sd">    :param dataframe_xyz:</span>
+<span class="sd">    :return:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">overlap</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">n_atoms</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">dataframe_xyz</span><span class="p">)</span>
+    <span class="n">overlap_bool</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">n_atoms</span><span class="p">):</span>
+        <span class="n">current_atom</span> <span class="o">=</span> <span class="n">dataframe_xyz</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:]</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">n_atoms</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">distance</span><span class="p">(</span><span class="n">current_atom</span><span class="p">,</span> <span class="n">dataframe_xyz</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="p">:])</span> <span class="o">&lt;=</span> <span class="mf">0.8</span><span class="p">:</span>
+                <span class="n">overlap</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">j</span> <span class="o">+</span> <span class="mi">1</span><span class="p">])</span>
+                <span class="n">overlap_bool</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">return</span> <span class="n">overlap_bool</span><span class="p">,</span> <span class="n">overlap</span></div>
+
+
+
+<div class="viewcode-block" id="remove_hydrogens_and_write">
+<a class="viewcode-back" href="../../autoapi/chemspax/utilities/index.html#chemspax.utilities.remove_hydrogens_and_write">[docs]</a>
+<span class="k">def</span> <span class="nf">remove_hydrogens_and_write</span><span class="p">(</span><span class="n">source_mol_file</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Use Openbabel&#39;s meethods to delete all hydrogens of a molecule and return the same file type with the same</span>
+<span class="sd">    filename</span>
+
+<span class="sd">    :param source_mol_file:</span>
+<span class="sd">    :return: output file of molecule without hydrogens, same file type as input</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># initalize openbabel classes</span>
+    <span class="n">obconversion</span> <span class="o">=</span> <span class="n">openbabel</span><span class="o">.</span><span class="n">OBConversion</span><span class="p">()</span>
+    <span class="c1"># both xyz and mol can be used as input but mol contains an accurate graph representation</span>
+    <span class="k">if</span> <span class="n">source_mol_file</span><span class="p">[</span><span class="o">-</span><span class="mi">4</span><span class="p">:]</span> <span class="o">==</span> <span class="s1">&#39;.mol&#39;</span><span class="p">:</span>
+        <span class="n">obconversion</span><span class="o">.</span><span class="n">SetInFormat</span><span class="p">(</span><span class="s1">&#39;mol&#39;</span><span class="p">)</span>
+        <span class="n">obconversion</span><span class="o">.</span><span class="n">SetOutFormat</span><span class="p">(</span><span class="s1">&#39;mol&#39;</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">source_mol_file</span><span class="p">[</span><span class="o">-</span><span class="mi">4</span><span class="p">:]</span> <span class="o">==</span> <span class="s1">&#39;.xyz&#39;</span><span class="p">:</span>
+        <span class="n">obconversion</span><span class="o">.</span><span class="n">SetInFormat</span><span class="p">(</span><span class="s1">&#39;xyz&#39;</span><span class="p">)</span>
+        <span class="n">obconversion</span><span class="o">.</span><span class="n">SetOutFormat</span><span class="p">(</span><span class="s1">&#39;xyz&#39;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;file type is incorrect, .mol and .xyz are supported, not&#39;</span><span class="p">,</span> <span class="n">source_mol_file</span><span class="p">[</span><span class="o">-</span><span class="mi">4</span><span class="p">:])</span>
+    <span class="c1"># intialize class and read file</span>
+    <span class="n">mol</span> <span class="o">=</span> <span class="n">openbabel</span><span class="o">.</span><span class="n">OBMol</span><span class="p">()</span>
+    <span class="n">obconversion</span><span class="o">.</span><span class="n">ReadFile</span><span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="n">source_mol_file</span><span class="p">)</span>
+    <span class="c1"># remove all hydrogens and write file</span>
+    <span class="n">mol</span><span class="o">.</span><span class="n">DeleteHydrogens</span><span class="p">()</span>
+    <span class="n">obconversion</span><span class="o">.</span><span class="n">WriteFile</span><span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="n">source_mol_file</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="copy_functionalization_list_xyz_2_mol">
+<a class="viewcode-back" href="../../autoapi/chemspax/utilities/index.html#chemspax.utilities.copy_functionalization_list_xyz_2_mol">[docs]</a>
+<span class="k">def</span> <span class="nf">copy_functionalization_list_xyz_2_mol</span><span class="p">(</span><span class="n">source_xyz_file</span><span class="p">,</span> <span class="n">target_mol_file</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Copy the functionalization list from a xyz file to a mol file</span>
+
+<span class="sd">    :param source_xyz_file:</span>
+<span class="sd">    :param target_mol_file:</span>
+<span class="sd">    :return:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># get the functionalization list from the xyz file</span>
+    <span class="n">functionalization_list</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">source_xyz_file</span><span class="p">)</span><span class="o">.</span><span class="n">readlines</span><span class="p">()[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="c1"># write the functionalization list to the mol file</span>
+    <span class="n">molfile_handle</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">target_mol_file</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>
+    <span class="n">molfile_handle</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">functionalization_list</span>
+    <span class="nb">open</span><span class="p">(</span><span class="n">target_mol_file</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">writelines</span><span class="p">(</span><span class="n">molfile_handle</span><span class="p">)</span></div>
+
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="c1"># molec = &#39;H2O&#39;</span>
+    <span class="c1"># create_molecule_and_write_xyz(&#39;H2O&#39;, &#39;substituents_xyz/automatically_generated/&#39; + molec + &#39;.xyz&#39;)</span>
+    <span class="c1"># visualize_xyz_file(&#39;substituents_xyz/automatically_generated/something.xyz&#39;, True, False)</span>
+    <span class="c1"># visualize_xyz_file(&#39;skeletons/RuPNP_iPr_skl.xyz&#39;, False, False)</span>
+    <span class="c1"># print(convert_list_of_string_to_np_array([&#39;[-0.33332174004836124 0.9428131403470853 0.0]&#39;]))</span>
+    <span class="c1"># print(read_central_atom_index(&#39;substituents_xyz/automatically_generated/CH4.xyz&#39;))</span>
+    <span class="c1"># print(find_distance(&#39;substituents_xyz/automatically_generated/CH4.xyz&#39;, 2, 3)==1.7473026804689453)</span>
+    <span class="c1"># print(read_connectivity_from_mol_file(&#39;substituents_xyz/manually_generated/F.mol&#39;, 1))</span>
+    <span class="c1"># convert_mol_2_xyz_file(&#39;random.mol&#39;)</span>
+    <span class="c1"># convert_xyz_2_mol_file(&#39;substituents_xyz/automatically_generated/something_2.xyz&#39;)</span>
+    <span class="c1"># print(print_mol_counts_block(15, 15, 0))</span>
+    <span class="c1"># print_correct_connectivity_line(&#39;120  113  1  0  0  0  0&#39;)</span>
+    <span class="c1"># ff_optimize(&#39;Ru(trop2dad)_sigma_func_14.mol&#39;, &#39;uff&#39;, None)</span>
+    <span class="c1"># print(xyz_2_smiles(&#39;skeletons/RuPNP_aromatic_tBu.xyz&#39;))</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">get_bonded_atoms</span><span class="p">(</span><span class="s1">&#39;substituents_xyz/manually_generated/C6H6.mol&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+    <span class="c1"># xyz_coords_from_mol = pd.read_table(&#39;skeletons_temp/PCP-cy.mol&#39;, skiprows=4, delim_whitespace=True,</span>
+    <span class="c1">#                                     names=[&#39;x&#39;, &#39;y&#39;, &#39;z&#39;, &#39;atom&#39;, 0,1,2,3,4,5,6,7,8,9,10,11,12])</span>
+    <span class="c1"># print(xyz_coords_from_mol.loc[:, [&#39;x&#39;, &#39;y&#39;, &#39;z&#39;]])</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, TU Delft.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

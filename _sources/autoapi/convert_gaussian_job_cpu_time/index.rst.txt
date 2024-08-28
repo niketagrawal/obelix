@@ -1,0 +1,37 @@
+convert_gaussian_job_cpu_time
+=============================
+
+.. py:module:: convert_gaussian_job_cpu_time
+
+.. autoapi-nested-parse::
+
+   This script was used in combination with get_log_gaussian_descriptors.sh to convert the job cpu time to seconds
+   such that jobs' CPU time became easily comparable
+
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   convert_gaussian_job_cpu_time.days
+   convert_gaussian_job_cpu_time.hours
+   convert_gaussian_job_cpu_time.minutes
+   convert_gaussian_job_cpu_time.seconds
+   convert_gaussian_job_cpu_time.total_time
+
+
+Module Contents
+---------------
+
+.. py:data:: days
+
+.. py:data:: hours
+
+.. py:data:: minutes
+
+.. py:data:: seconds
+
+.. py:data:: total_time
+

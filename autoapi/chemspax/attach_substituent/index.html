@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>chemspax.attach_substituent &mdash; obelix 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css?v=fd3f3429" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../../_static/documentation_options.js?v=01f34227"></script>
+        <script src="../../../_static/doctools.js?v=9a2dae69"></script>
+        <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="chemspax.data_preparation" href="../data_preparation/index.html" />
+    <link rel="prev" title="chemspax.tests" href="../tests/index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            obelix
+          </a>
+              <div class="version">
+                0.1.0
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">API Reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../setup/index.html">setup</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../obelix/index.html">obelix</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html">chemspax</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../index.html#subpackages">Subpackages</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../index.html#submodules">Submodules</a><ul class="current">
+<li class="toctree-l4 current"><a class="current reference internal" href="#">chemspax.attach_substituent</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../data_preparation/index.html">chemspax.data_preparation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../exceptions/index.html">chemspax.exceptions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../main/index.html">chemspax.main</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../test/index.html">chemspax.test</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../utilities/index.html">chemspax.utilities</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../gjf_to_xyz/index.html">gjf_to_xyz</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../remove_hydrogens/index.html">remove_hydrogens</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../example_workflow/index.html">example_workflow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../get_neighbour_distance/index.html">get_neighbour_distance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../convert_gaussian_job_cpu_time/index.html">convert_gaussian_job_cpu_time</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../get_neighbour_distance_search/index.html">get_neighbour_distance_search</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../draw_functionalization_strategy/index.html">draw_functionalization_strategy</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../set_neighbour_bond_distance_search/index.html">set_neighbour_bond_distance_search</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">obelix</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">API Reference</a></li>
+          <li class="breadcrumb-item"><a href="../index.html">chemspax</a></li>
+      <li class="breadcrumb-item active">chemspax.attach_substituent</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../_sources/autoapi/chemspax/attach_substituent/index.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-chemspax.attach_substituent">
+<span id="chemspax-attach-substituent"></span><h1>chemspax.attach_substituent<a class="headerlink" href="#module-chemspax.attach_substituent" title="Link to this heading"></a></h1>
+<section id="attributes">
+<h2>Attributes<a class="headerlink" href="#attributes" title="Link to this heading"></a></h2>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#chemspax.attach_substituent.folder_name" title="chemspax.attach_substituent.folder_name"><code class="xref py py-obj docutils literal notranslate"><span class="pre">folder_name</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="classes">
+<h2>Classes<a class="headerlink" href="#classes" title="Link to this heading"></a></h2>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#chemspax.attach_substituent.Substituent" title="chemspax.attach_substituent.Substituent"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Substituent</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#chemspax.attach_substituent.Complex" title="chemspax.attach_substituent.Complex"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Complex</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="module-contents">
+<h2>Module Contents<a class="headerlink" href="#module-contents" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="chemspax.attach_substituent.Substituent">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">chemspax.attach_substituent.</span></span><span class="sig-name descname"><span class="pre">Substituent</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">molecule</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">path_to_substituents</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">central_atom</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bond_length</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.2</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/chemspax/attach_substituent.html#Substituent"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#chemspax.attach_substituent.Substituent" title="Link to this definition"></a></dt>
+<dd><dl class="py attribute">
+<dt class="sig sig-object py" id="chemspax.attach_substituent.Substituent.substituents_folder">
+<span class="sig-name descname"><span class="pre">substituents_folder</span></span><a class="reference internal" href="../../../_modules/chemspax/attach_substituent.html#Substituent.substituents_folder"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#chemspax.attach_substituent.Substituent.substituents_folder" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chemspax.attach_substituent.Substituent.extension">
+<span class="sig-name descname"><span class="pre">extension</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'.xyz'</span></em><a class="reference internal" href="../../../_modules/chemspax/attach_substituent.html#Substituent.extension"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#chemspax.attach_substituent.Substituent.extension" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chemspax.attach_substituent.Substituent.molecule">
+<span class="sig-name descname"><span class="pre">molecule</span></span><a class="reference internal" href="../../../_modules/chemspax/attach_substituent.html#Substituent.molecule"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#chemspax.attach_substituent.Substituent.molecule" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chemspax.attach_substituent.Substituent.path">
+<span class="sig-name descname"><span class="pre">path</span></span><a class="reference internal" href="../../../_modules/chemspax/attach_substituent.html#Substituent.path"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#chemspax.attach_substituent.Substituent.path" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chemspax.attach_substituent.Substituent.bond_length">
+<span class="sig-name descname"><span class="pre">bond_length</span></span><a class="reference internal" href="../../../_modules/chemspax/attach_substituent.html#Substituent.bond_length"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#chemspax.attach_substituent.Substituent.bond_length" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chemspax.attach_substituent.Substituent.data_matrix">
+<span class="sig-name descname"><span class="pre">data_matrix</span></span><a class="reference internal" href="../../../_modules/chemspax/attach_substituent.html#Substituent.data_matrix"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#chemspax.attach_substituent.Substituent.data_matrix" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chemspax.attach_substituent.Substituent.central_atom_index">
+<span class="sig-name descname"><span class="pre">central_atom_index</span></span><a class="reference internal" href="../../../_modules/chemspax/attach_substituent.html#Substituent.central_atom_index"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#chemspax.attach_substituent.Substituent.central_atom_index" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chemspax.attach_substituent.Substituent.central_atom">
+<span class="sig-name descname"><span class="pre">central_atom</span></span><a class="reference internal" href="../../../_modules/chemspax/attach_substituent.html#Substituent.central_atom"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#chemspax.attach_substituent.Substituent.central_atom" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="chemspax.attach_substituent.Substituent.scale">
+<span class="sig-name descname"><span class="pre">scale</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vector</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">central_atom</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/chemspax/attach_substituent.html#Substituent.scale"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#chemspax.attach_substituent.Substituent.scale" title="Link to this definition"></a></dt>
+<dd><p>Function used to scale a vector to the given input bond length</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>vector</strong> – vector to be scaled</p></li>
+<li><p><strong>central_atom</strong> – xyz coordinates of central atom</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>scaled vector</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="chemspax.attach_substituent.Substituent.first_coordination">
+<span class="sig-name descname"><span class="pre">first_coordination</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/chemspax/attach_substituent.html#Substituent.first_coordination"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#chemspax.attach_substituent.Substituent.first_coordination" title="Link to this definition"></a></dt>
+<dd><p>Find centroid around a central atom, it is assumed that central atom has 3 bonds
+the atom can be symmetrical or asymmetrical, say: C-X C-Y C-Z and a free electron pair for bonding</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>centroid vector of substituent group</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="chemspax.attach_substituent.Substituent.write_central_atom_and_centroid_to_csv">
+<span class="sig-name descname"><span class="pre">write_central_atom_and_centroid_to_csv</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/chemspax/attach_substituent.html#Substituent.write_central_atom_and_centroid_to_csv"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#chemspax.attach_substituent.Substituent.write_central_atom_and_centroid_to_csv" title="Link to this definition"></a></dt>
+<dd><p>Write the central atom and centroid data of the substituent to the csv database</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>manually_or_automatically_generated</strong> – folder where substituent.xyz should be read from</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>new entry to csv database with molecule name, index of central atom, centroid vector for the s</p>
+</dd>
+</dl>
+<p>substituent</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="chemspax.attach_substituent.Complex">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">chemspax.attach_substituent.</span></span><span class="sig-name descname"><span class="pre">Complex</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">original_skeleton_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source_data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">substituent_to_be_attached</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">path_to_database</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">path_to_skeletons</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">path_to_substituents</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/chemspax/attach_substituent.html#Complex"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#chemspax.attach_substituent.Complex" title="Link to this definition"></a></dt>
+<dd><dl class="py attribute">
+<dt class="sig sig-object py" id="chemspax.attach_substituent.Complex.skeleton_folder">
+<span class="sig-name descname"><span class="pre">skeleton_folder</span></span><a class="reference internal" href="../../../_modules/chemspax/attach_substituent.html#Complex.skeleton_folder"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#chemspax.attach_substituent.Complex.skeleton_folder" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chemspax.attach_substituent.Complex.extension">
+<span class="sig-name descname"><span class="pre">extension</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'.xyz'</span></em><a class="reference internal" href="../../../_modules/chemspax/attach_substituent.html#Complex.extension"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#chemspax.attach_substituent.Complex.extension" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chemspax.attach_substituent.Complex.original_skeleton_path">
+<span class="sig-name descname"><span class="pre">original_skeleton_path</span></span><a class="reference internal" href="../../../_modules/chemspax/attach_substituent.html#Complex.original_skeleton_path"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#chemspax.attach_substituent.Complex.original_skeleton_path" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chemspax.attach_substituent.Complex.skeleton_path">
+<span class="sig-name descname"><span class="pre">skeleton_path</span></span><a class="reference internal" href="../../../_modules/chemspax/attach_substituent.html#Complex.skeleton_path"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#chemspax.attach_substituent.Complex.skeleton_path" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chemspax.attach_substituent.Complex.substituent_molecule">
+<span class="sig-name descname"><span class="pre">substituent_molecule</span></span><a class="reference internal" href="../../../_modules/chemspax/attach_substituent.html#Complex.substituent_molecule"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#chemspax.attach_substituent.Complex.substituent_molecule" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chemspax.attach_substituent.Complex.substituent_folder">
+<span class="sig-name descname"><span class="pre">substituent_folder</span></span><a class="reference internal" href="../../../_modules/chemspax/attach_substituent.html#Complex.substituent_folder"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#chemspax.attach_substituent.Complex.substituent_folder" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chemspax.attach_substituent.Complex.substituent_path">
+<span class="sig-name descname"><span class="pre">substituent_path</span></span><a class="reference internal" href="../../../_modules/chemspax/attach_substituent.html#Complex.substituent_path"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#chemspax.attach_substituent.Complex.substituent_path" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chemspax.attach_substituent.Complex.substituent_xyz">
+<span class="sig-name descname"><span class="pre">substituent_xyz</span></span><a class="reference internal" href="../../../_modules/chemspax/attach_substituent.html#Complex.substituent_xyz"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#chemspax.attach_substituent.Complex.substituent_xyz" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chemspax.attach_substituent.Complex.database_df">
+<span class="sig-name descname"><span class="pre">database_df</span></span><a class="reference internal" href="../../../_modules/chemspax/attach_substituent.html#Complex.database_df"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#chemspax.attach_substituent.Complex.database_df" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chemspax.attach_substituent.Complex.substituent_central_atom_index">
+<span class="sig-name descname"><span class="pre">substituent_central_atom_index</span></span><a class="reference internal" href="../../../_modules/chemspax/attach_substituent.html#Complex.substituent_central_atom_index"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#chemspax.attach_substituent.Complex.substituent_central_atom_index" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chemspax.attach_substituent.Complex.substituent_centroid_vector">
+<span class="sig-name descname"><span class="pre">substituent_centroid_vector</span></span><a class="reference internal" href="../../../_modules/chemspax/attach_substituent.html#Complex.substituent_centroid_vector"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#chemspax.attach_substituent.Complex.substituent_centroid_vector" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chemspax.attach_substituent.Complex.substituent_central_atom_xyz">
+<span class="sig-name descname"><span class="pre">substituent_central_atom_xyz</span></span><a class="reference internal" href="../../../_modules/chemspax/attach_substituent.html#Complex.substituent_central_atom_xyz"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#chemspax.attach_substituent.Complex.substituent_central_atom_xyz" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chemspax.attach_substituent.Complex.skeleton_atom_to_be_functionalized_xyz">
+<span class="sig-name descname"><span class="pre">skeleton_atom_to_be_functionalized_xyz</span></span><a class="reference internal" href="../../../_modules/chemspax/attach_substituent.html#Complex.skeleton_atom_to_be_functionalized_xyz"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#chemspax.attach_substituent.Complex.skeleton_atom_to_be_functionalized_xyz" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chemspax.attach_substituent.Complex.skeleton_bonded_atom_xyz">
+<span class="sig-name descname"><span class="pre">skeleton_bonded_atom_xyz</span></span><a class="reference internal" href="../../../_modules/chemspax/attach_substituent.html#Complex.skeleton_bonded_atom_xyz"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#chemspax.attach_substituent.Complex.skeleton_bonded_atom_xyz" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chemspax.attach_substituent.Complex.bond_length">
+<span class="sig-name descname"><span class="pre">bond_length</span></span><a class="reference internal" href="../../../_modules/chemspax/attach_substituent.html#Complex.bond_length"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#chemspax.attach_substituent.Complex.bond_length" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chemspax.attach_substituent.Complex.normalized_bond_vector">
+<span class="sig-name descname"><span class="pre">normalized_bond_vector</span></span><a class="reference internal" href="../../../_modules/chemspax/attach_substituent.html#Complex.normalized_bond_vector"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#chemspax.attach_substituent.Complex.normalized_bond_vector" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="chemspax.attach_substituent.Complex.create_functionalization_list_dummy_atom">
+<span class="sig-name descname"><span class="pre">create_functionalization_list_dummy_atom</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atomic_nr_of_dummy_atom</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/chemspax/attach_substituent.html#Complex.create_functionalization_list_dummy_atom"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#chemspax.attach_substituent.Complex.create_functionalization_list_dummy_atom" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="chemspax.attach_substituent.Complex.generate_substituent_group_vector">
+<span class="sig-name descname"><span class="pre">generate_substituent_group_vector</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">length_skeleton_bonded_substituent_central</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.84</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/chemspax/attach_substituent.html#Complex.generate_substituent_group_vector"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#chemspax.attach_substituent.Complex.generate_substituent_group_vector" title="Link to this definition"></a></dt>
+<dd><p>Used to translate and rotate the substituent group for correct placement on the skeleton</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>length_skeleton_bonded_substituent_central</strong> – bond length between the substituent group and skeleton</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>xyz matrix with correctly rotated and translated coordinates of substituent group’s atoms</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="chemspax.attach_substituent.Complex.write_connectivity_in_file">
+<span class="sig-name descname"><span class="pre">write_connectivity_in_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">target_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">new_connectivity_data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/chemspax/attach_substituent.html#Complex.write_connectivity_in_file"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#chemspax.attach_substituent.Complex.write_connectivity_in_file" title="Link to this definition"></a></dt>
+<dd><p>Used to write given connectivity data to a MDL molfile. This necessary to add correct bonding information
+from the input substituent and skeleton file to prevent weird bonds from being formed upon file conversions.
+This assumes that the MDL molfile for substituents and skeletons are correct.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>target_path</strong> – path to MDL molfile</p></li>
+<li><p><strong>new_connectivity_data</strong> – dataframe of new connectivity data</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>same input MDL molfile but now with bonding information from given connectivity data</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="chemspax.attach_substituent.Complex.generate_substituent_and_write_xyz">
+<span class="sig-name descname"><span class="pre">generate_substituent_and_write_xyz</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">target_filename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">path_to_output</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">length_skeleton_bonded_substituent_central</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.84</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_xtb_script_after</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/chemspax/attach_substituent.html#Complex.generate_substituent_and_write_xyz"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#chemspax.attach_substituent.Complex.generate_substituent_and_write_xyz" title="Link to this definition"></a></dt>
+<dd><p>Used to generate translated and rotated vectors for substituents and attaching them to the skeleton</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>target_filename</strong> – name of target xyz file that will be written</p></li>
+<li><p><strong>length_skeleton_bonded_substituent_central</strong> – bond length between the skeleton and substituent group</p></li>
+</ul>
+</dd>
+</dl>
+<p>(does not really matter since force field optimization is used after placement of a new substituent)
+:param use_xtb_script_after: REDUNDANT parameter, was used to enable xtb optimization after a functionalization.
+This can still be done by uncommenting last part of this function if desired.
+:return: xyz file of substituent attached to skeleton and FF optimized MDL molfile of substituent attached to
+skeleton</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="chemspax.attach_substituent.folder_name">
+<span class="sig-prename descclassname"><span class="pre">chemspax.attach_substituent.</span></span><span class="sig-name descname"><span class="pre">folder_name</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'../substituents_xyz/automatically_generated/'</span></em><a class="reference internal" href="../../../_modules/chemspax/attach_substituent.html#folder_name"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#chemspax.attach_substituent.folder_name" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../tests/index.html" class="btn btn-neutral float-left" title="chemspax.tests" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../data_preparation/index.html" class="btn btn-neutral float-right" title="chemspax.data_preparation" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, TU Delft.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,25 @@
+gjf_to_xyz
+==========
+
+.. py:module:: gjf_to_xyz
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   gjf_to_xyz.remove_last_line
+   gjf_to_xyz.count_atoms_and_write
+   gjf_to_xyz.convert_gjf_to_xyz_processing
+
+
+Module Contents
+---------------
+
+.. py:function:: remove_last_line(filename)
+
+.. py:function:: count_atoms_and_write(filename)
+
+.. py:function:: convert_gjf_to_xyz_processing()
+

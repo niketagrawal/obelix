@@ -1,0 +1,25 @@
+draw_functionalization_strategy
+===============================
+
+.. py:module:: draw_functionalization_strategy
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   draw_functionalization_strategy.find_n_atoms
+   draw_functionalization_strategy.replace_func_strategy_with_x
+   draw_functionalization_strategy.replace_all_h_with_x
+
+
+Module Contents
+---------------
+
+.. py:function:: find_n_atoms(filename)
+
+.. py:function:: replace_func_strategy_with_x(source_filename)
+
+.. py:function:: replace_all_h_with_x(source_filename)
+

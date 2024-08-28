@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>chemspax.utilities &mdash; obelix 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css?v=fd3f3429" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../../_static/documentation_options.js?v=01f34227"></script>
+        <script src="../../../_static/doctools.js?v=9a2dae69"></script>
+        <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="gjf_to_xyz" href="../../gjf_to_xyz/index.html" />
+    <link rel="prev" title="chemspax.test" href="../test/index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            obelix
+          </a>
+              <div class="version">
+                0.1.0
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">API Reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../setup/index.html">setup</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../obelix/index.html">obelix</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html">chemspax</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../index.html#subpackages">Subpackages</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../index.html#submodules">Submodules</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="../attach_substituent/index.html">chemspax.attach_substituent</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../data_preparation/index.html">chemspax.data_preparation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../exceptions/index.html">chemspax.exceptions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../main/index.html">chemspax.main</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../test/index.html">chemspax.test</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">chemspax.utilities</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../gjf_to_xyz/index.html">gjf_to_xyz</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../remove_hydrogens/index.html">remove_hydrogens</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../example_workflow/index.html">example_workflow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../get_neighbour_distance/index.html">get_neighbour_distance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../convert_gaussian_job_cpu_time/index.html">convert_gaussian_job_cpu_time</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../get_neighbour_distance_search/index.html">get_neighbour_distance_search</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../draw_functionalization_strategy/index.html">draw_functionalization_strategy</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../set_neighbour_bond_distance_search/index.html">set_neighbour_bond_distance_search</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">obelix</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">API Reference</a></li>
+          <li class="breadcrumb-item"><a href="../index.html">chemspax</a></li>
+      <li class="breadcrumb-item active">chemspax.utilities</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../_sources/autoapi/chemspax/utilities/index.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-chemspax.utilities">
+<span id="chemspax-utilities"></span><h1>chemspax.utilities<a class="headerlink" href="#module-chemspax.utilities" title="Link to this heading"></a></h1>
+<section id="attributes">
+<h2>Attributes<a class="headerlink" href="#attributes" title="Link to this heading"></a></h2>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#chemspax.utilities.ob_log_handler" title="chemspax.utilities.ob_log_handler"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ob_log_handler</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="functions">
+<h2>Functions<a class="headerlink" href="#functions" title="Link to this heading"></a></h2>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#chemspax.utilities.distance" title="chemspax.utilities.distance"><code class="xref py py-obj docutils literal notranslate"><span class="pre">distance</span></code></a>(a, b)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#chemspax.utilities.visualize_xyz_file" title="chemspax.utilities.visualize_xyz_file"><code class="xref py py-obj docutils literal notranslate"><span class="pre">visualize_xyz_file</span></code></a>(filename[, save_picture, ...])</p></td>
+<td><p>Visualize an .xyz file, number_atoms at top of .xyz needs to be correct!</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#chemspax.utilities.find_distance" title="chemspax.utilities.find_distance"><code class="xref py py-obj docutils literal notranslate"><span class="pre">find_distance</span></code></a>(filename, index_of_atom_1, index_of_atom_2)</p></td>
+<td><p>Find distance between two atoms based on their index in .xyz file</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#chemspax.utilities.remove_last_line" title="chemspax.utilities.remove_last_line"><code class="xref py py-obj docutils literal notranslate"><span class="pre">remove_last_line</span></code></a>(filename)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#chemspax.utilities.create_molecule_and_write_xyz" title="chemspax.utilities.create_molecule_and_write_xyz"><code class="xref py py-obj docutils literal notranslate"><span class="pre">create_molecule_and_write_xyz</span></code></a>(input_molecule, filename)</p></td>
+<td><p><a class="reference external" href="https://wiki.fysik.dtu.dk/ase/ase/build/build.html?highlight=ase%20build%20molecule#ase.build.molecule">https://wiki.fysik.dtu.dk/ase/ase/build/build.html?highlight=ase%20build%20molecule#ase.build.molecule</a></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#chemspax.utilities.scale_vector" title="chemspax.utilities.scale_vector"><code class="xref py py-obj docutils literal notranslate"><span class="pre">scale_vector</span></code></a>(starting_point, vector, length)</p></td>
+<td><p>Scales a vector with a given length</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#chemspax.utilities.get_bonded_atoms" title="chemspax.utilities.get_bonded_atoms"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_bonded_atoms</span></code></a>(source_mol_file, atom_index)</p></td>
+<td><p>Use openbabel's methods to find the coordinates of all atoms that are bonded to a given atom</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#chemspax.utilities.get_neighbour_bond_distance" title="chemspax.utilities.get_neighbour_bond_distance"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_neighbour_bond_distance</span></code></a>(source_mol_file, ...)</p></td>
+<td><p>Use Openbabel's meethods to find the distance of a specific atom type to a given atom, the atoms should be bonded</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#chemspax.utilities.get_neighbour_bond_distance_search" title="chemspax.utilities.get_neighbour_bond_distance_search"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_neighbour_bond_distance_search</span></code></a>(source_mol_file, ...)</p></td>
+<td><p>Use Openbabel's meethods to find the distance of a specific atom type to a given atom type, the atoms should be</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#chemspax.utilities.set_neighbour_bond_distance_search" title="chemspax.utilities.set_neighbour_bond_distance_search"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_neighbour_bond_distance_search</span></code></a>(source_mol_file, ...)</p></td>
+<td><p>Use Openbabel's meethods to scale the distance of a specific atom type to a given atom type, the atoms should be</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#chemspax.utilities.convert_list_of_string_to_np_array" title="chemspax.utilities.convert_list_of_string_to_np_array"><code class="xref py py-obj docutils literal notranslate"><span class="pre">convert_list_of_string_to_np_array</span></code></a>(array_string)</p></td>
+<td><p>Pandas is importing np arrays as strings, use this converter to convert the list of 1 string to a np.array</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#chemspax.utilities.generate_random_rotation_matrix" title="chemspax.utilities.generate_random_rotation_matrix"><code class="xref py py-obj docutils literal notranslate"><span class="pre">generate_random_rotation_matrix</span></code></a>()</p></td>
+<td><p><a class="reference external" href="https://math.stackexchange.com/questions/442418/random-generation-of-rotation-matrices">https://math.stackexchange.com/questions/442418/random-generation-of-rotation-matrices</a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#chemspax.utilities.read_connectivity_from_mol_file" title="chemspax.utilities.read_connectivity_from_mol_file"><code class="xref py py-obj docutils literal notranslate"><span class="pre">read_connectivity_from_mol_file</span></code></a>(source_file, n_atoms)</p></td>
+<td><p>Reads connectivity from a .mol file, each number in .mol file has 3 allocated spaces and the file looks like:</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#chemspax.utilities.convert_xyz_2_mol_file" title="chemspax.utilities.convert_xyz_2_mol_file"><code class="xref py py-obj docutils literal notranslate"><span class="pre">convert_xyz_2_mol_file</span></code></a>(source_file)</p></td>
+<td><p>Converts .xyz to .mol file with the same filename</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#chemspax.utilities.convert_mol_2_xyz_file" title="chemspax.utilities.convert_mol_2_xyz_file"><code class="xref py py-obj docutils literal notranslate"><span class="pre">convert_mol_2_xyz_file</span></code></a>(source_file)</p></td>
+<td><p>Converts .mol to .xyz file with the same filename</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#chemspax.utilities.print_mol_counts_block" title="chemspax.utilities.print_mol_counts_block"><code class="xref py py-obj docutils literal notranslate"><span class="pre">print_mol_counts_block</span></code></a>(old_string, n_atoms, n_bonds)</p></td>
+<td><p>The counts block in a .mol file is corrected based on bonds and atoms given</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#chemspax.utilities.print_correct_connectivity_line" title="chemspax.utilities.print_correct_connectivity_line"><code class="xref py py-obj docutils literal notranslate"><span class="pre">print_correct_connectivity_line</span></code></a>(line)</p></td>
+<td><p>A line delimited by 2 spaces is read and correctly formatted to correspond with the official .mol format.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#chemspax.utilities.ff_optimize" title="chemspax.utilities.ff_optimize"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ff_optimize</span></code></a>(source_file[, ff_method, ...])</p></td>
+<td><p>Uses openbabenl's ff optimization to locally optimize a molecule and write it back to the same file</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#chemspax.utilities.xyz_2_smiles" title="chemspax.utilities.xyz_2_smiles"><code class="xref py py-obj docutils literal notranslate"><span class="pre">xyz_2_smiles</span></code></a>(→ str)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#chemspax.utilities.check_overlap" title="chemspax.utilities.check_overlap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">check_overlap</span></code></a>(dataframe_xyz)</p></td>
+<td><p>Given a pandas dataframe, iterates over all the atoms and checks if they're overlapping</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#chemspax.utilities.remove_hydrogens_and_write" title="chemspax.utilities.remove_hydrogens_and_write"><code class="xref py py-obj docutils literal notranslate"><span class="pre">remove_hydrogens_and_write</span></code></a>(source_mol_file)</p></td>
+<td><p>Use Openbabel's meethods to delete all hydrogens of a molecule and return the same file type with the same</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#chemspax.utilities.copy_functionalization_list_xyz_2_mol" title="chemspax.utilities.copy_functionalization_list_xyz_2_mol"><code class="xref py py-obj docutils literal notranslate"><span class="pre">copy_functionalization_list_xyz_2_mol</span></code></a>(source_xyz_file, ...)</p></td>
+<td><p>Copy the functionalization list from a xyz file to a mol file</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="module-contents">
+<h2>Module Contents<a class="headerlink" href="#module-contents" title="Link to this heading"></a></h2>
+<dl class="py data">
+<dt class="sig sig-object py" id="chemspax.utilities.ob_log_handler">
+<span class="sig-prename descclassname"><span class="pre">chemspax.utilities.</span></span><span class="sig-name descname"><span class="pre">ob_log_handler</span></span><a class="reference internal" href="../../../_modules/chemspax/utilities.html#ob_log_handler"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#chemspax.utilities.ob_log_handler" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="chemspax.utilities.distance">
+<span class="sig-prename descclassname"><span class="pre">chemspax.utilities.</span></span><span class="sig-name descname"><span class="pre">distance</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/chemspax/utilities.html#distance"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#chemspax.utilities.distance" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="chemspax.utilities.visualize_xyz_file">
+<span class="sig-prename descclassname"><span class="pre">chemspax.utilities.</span></span><span class="sig-name descname"><span class="pre">visualize_xyz_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_picture</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">manually_generated</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/chemspax/utilities.html#visualize_xyz_file"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#chemspax.utilities.visualize_xyz_file" title="Link to this definition"></a></dt>
+<dd><p>Visualize an .xyz file, number_atoms at top of .xyz needs to be correct!</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>filename</strong></p></li>
+<li><p><strong>save_picture</strong></p></li>
+<li><p><strong>manually_generated</strong></p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>visualization of .xyz file</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="chemspax.utilities.find_distance">
+<span class="sig-prename descclassname"><span class="pre">chemspax.utilities.</span></span><span class="sig-name descname"><span class="pre">find_distance</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">index_of_atom_1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">index_of_atom_2</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/chemspax/utilities.html#find_distance"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#chemspax.utilities.find_distance" title="Link to this definition"></a></dt>
+<dd><p>Find distance between two atoms based on their index in .xyz file</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>filename</strong></p></li>
+<li><p><strong>index_of_atom_1</strong></p></li>
+<li><p><strong>index_of_atom_2</strong></p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>distance between atoms</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="chemspax.utilities.remove_last_line">
+<span class="sig-prename descclassname"><span class="pre">chemspax.utilities.</span></span><span class="sig-name descname"><span class="pre">remove_last_line</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/chemspax/utilities.html#remove_last_line"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#chemspax.utilities.remove_last_line" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="chemspax.utilities.create_molecule_and_write_xyz">
+<span class="sig-prename descclassname"><span class="pre">chemspax.utilities.</span></span><span class="sig-name descname"><span class="pre">create_molecule_and_write_xyz</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_molecule</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filename</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/chemspax/utilities.html#create_molecule_and_write_xyz"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#chemspax.utilities.create_molecule_and_write_xyz" title="Link to this definition"></a></dt>
+<dd><p><a class="reference external" href="https://wiki.fysik.dtu.dk/ase/ase/build/build.html?highlight=ase%20build%20molecule#ase.build.molecule">https://wiki.fysik.dtu.dk/ase/ase/build/build.html?highlight=ase%20build%20molecule#ase.build.molecule</a>
+:param input_molecule:
+:param filename:
+:return:</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="chemspax.utilities.scale_vector">
+<span class="sig-prename descclassname"><span class="pre">chemspax.utilities.</span></span><span class="sig-name descname"><span class="pre">scale_vector</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">starting_point</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vector</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">length</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/chemspax/utilities.html#scale_vector"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#chemspax.utilities.scale_vector" title="Link to this definition"></a></dt>
+<dd><p>Scales a vector with a given length</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>starting_point</strong></p></li>
+<li><p><strong>vector</strong></p></li>
+<li><p><strong>length</strong></p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>scaled vector</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="chemspax.utilities.get_bonded_atoms">
+<span class="sig-prename descclassname"><span class="pre">chemspax.utilities.</span></span><span class="sig-name descname"><span class="pre">get_bonded_atoms</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source_mol_file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atom_index</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/chemspax/utilities.html#get_bonded_atoms"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#chemspax.utilities.get_bonded_atoms" title="Link to this definition"></a></dt>
+<dd><p>Use openbabel’s methods to find the coordinates of all atoms that are bonded to a given atom</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>source_mol_file</strong></p></li>
+<li><p><strong>atom_index</strong></p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>numpy array of atoms bonded to a given atom</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="chemspax.utilities.get_neighbour_bond_distance">
+<span class="sig-prename descclassname"><span class="pre">chemspax.utilities.</span></span><span class="sig-name descname"><span class="pre">get_neighbour_bond_distance</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source_mol_file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atom_index</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">search_this_atomic_num</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/chemspax/utilities.html#get_neighbour_bond_distance"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#chemspax.utilities.get_neighbour_bond_distance" title="Link to this definition"></a></dt>
+<dd><p>Use Openbabel’s meethods to find the distance of a specific atom type to a given atom, the atoms should be bonded
+and the specific atom type that is searched for should be searched by using it’s atomic number.
+This function is useful if the given atom has a known index in the molecule
+if you don’t know the index of the central atom use get_neighbour_distance_search.py or
+get_neighbour_bond_distance_search()</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>source_mol_file</strong></p></li>
+<li><p><strong>atom_index</strong></p></li>
+<li><p><strong>search_this_atomic_num</strong></p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>list of distance between indicated central atom and atoms that are bonded to it with given atomic number</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="chemspax.utilities.get_neighbour_bond_distance_search">
+<span class="sig-prename descclassname"><span class="pre">chemspax.utilities.</span></span><span class="sig-name descname"><span class="pre">get_neighbour_bond_distance_search</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source_mol_file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">central_atom_atomic_num</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">search_this_atomic_num</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/chemspax/utilities.html#get_neighbour_bond_distance_search"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#chemspax.utilities.get_neighbour_bond_distance_search" title="Link to this definition"></a></dt>
+<dd><p>Use Openbabel’s meethods to find the distance of a specific atom type to a given atom type, the atoms should be
+bonded and the specific atom type that is searched for should be searched by using it’s atomic number.
+This function is useful if the given atom does not have a known index in the molecule,
+if you know the index of the central atom use get_neighbour_distance.py or get_neighbour_bond_distance()</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>source_mol_file</strong></p></li>
+<li><p><strong>central_atom_atomic_num</strong></p></li>
+<li><p><strong>search_this_atomic_num</strong></p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>list of distance between a central atom with unknown index and atoms that are bonded to it</p>
+</dd>
+</dl>
+<p>with given atomic number</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="chemspax.utilities.set_neighbour_bond_distance_search">
+<span class="sig-prename descclassname"><span class="pre">chemspax.utilities.</span></span><span class="sig-name descname"><span class="pre">set_neighbour_bond_distance_search</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source_mol_file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">central_atom_atomic_num</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">search_this_atomic_num</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">new_length</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">new_atomic_num</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/chemspax/utilities.html#set_neighbour_bond_distance_search"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#chemspax.utilities.set_neighbour_bond_distance_search" title="Link to this definition"></a></dt>
+<dd><p>Use Openbabel’s meethods to scale the distance of a specific atom type to a given atom type, the atoms should be
+bonded and the specific atom type that is searched for should be searched by using it’s atomic number.
+For example, if you have a Mn pincer complex where Br is bonded to Mn and you want to replace Br with H
+set_neighbour_bond_distance_search(filename, 25, 35, 1.68, 1)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>source_mol_file</strong></p></li>
+<li><p><strong>central_atom_atomic_num</strong></p></li>
+<li><p><strong>search_this_atomic_num</strong></p></li>
+</ul>
+</dd>
+</dl>
+<p>:param new_length
+:param new_atomic_num
+:return: Same xyz or mol file with atom replaced</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="chemspax.utilities.convert_list_of_string_to_np_array">
+<span class="sig-prename descclassname"><span class="pre">chemspax.utilities.</span></span><span class="sig-name descname"><span class="pre">convert_list_of_string_to_np_array</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">array_string</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/chemspax/utilities.html#convert_list_of_string_to_np_array"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#chemspax.utilities.convert_list_of_string_to_np_array" title="Link to this definition"></a></dt>
+<dd><p>Pandas is importing np arrays as strings, use this converter to convert the list of 1 string to a np.array
+<a class="reference external" href="https://stackoverflow.com/questions/42755214/how-to-keep-numpy-array-when-saving-pandas-dataframe-to-csv">https://stackoverflow.com/questions/42755214/how-to-keep-numpy-array-when-saving-pandas-dataframe-to-csv</a>
+:param array_string: example: [‘[-0.33332174004836124 0.9428131403470853 0.0]’] dtype=list
+:return: np.array(interpretation_of_array_string)</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="chemspax.utilities.generate_random_rotation_matrix">
+<span class="sig-prename descclassname"><span class="pre">chemspax.utilities.</span></span><span class="sig-name descname"><span class="pre">generate_random_rotation_matrix</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/chemspax/utilities.html#generate_random_rotation_matrix"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#chemspax.utilities.generate_random_rotation_matrix" title="Link to this definition"></a></dt>
+<dd><p><a class="reference external" href="https://math.stackexchange.com/questions/442418/random-generation-of-rotation-matrices">https://math.stackexchange.com/questions/442418/random-generation-of-rotation-matrices</a></p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>uniformly random rotation matrix</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="chemspax.utilities.read_connectivity_from_mol_file">
+<span class="sig-prename descclassname"><span class="pre">chemspax.utilities.</span></span><span class="sig-name descname"><span class="pre">read_connectivity_from_mol_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source_file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_atoms</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/chemspax/utilities.html#read_connectivity_from_mol_file"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#chemspax.utilities.read_connectivity_from_mol_file" title="Link to this definition"></a></dt>
+<dd><p>Reads connectivity from a .mol file, each number in .mol file has 3 allocated spaces and the file looks like:
+idx1 idx2 bond_type bond_stereochemistry 0 0 0
+:param source_file:
+:param n_atoms:
+:return: connectivity block from .mol file except ‘M  END’ line</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="chemspax.utilities.convert_xyz_2_mol_file">
+<span class="sig-prename descclassname"><span class="pre">chemspax.utilities.</span></span><span class="sig-name descname"><span class="pre">convert_xyz_2_mol_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source_file</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/chemspax/utilities.html#convert_xyz_2_mol_file"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#chemspax.utilities.convert_xyz_2_mol_file" title="Link to this definition"></a></dt>
+<dd><p>Converts .xyz to .mol file with the same filename</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>source_file</strong></p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>.mol file with same filename as .xyz file</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="chemspax.utilities.convert_mol_2_xyz_file">
+<span class="sig-prename descclassname"><span class="pre">chemspax.utilities.</span></span><span class="sig-name descname"><span class="pre">convert_mol_2_xyz_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source_file</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/chemspax/utilities.html#convert_mol_2_xyz_file"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#chemspax.utilities.convert_mol_2_xyz_file" title="Link to this definition"></a></dt>
+<dd><p>Converts .mol to .xyz file with the same filename</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>source_file</strong></p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>.xyz file with same filename as .mol file</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="chemspax.utilities.print_mol_counts_block">
+<span class="sig-prename descclassname"><span class="pre">chemspax.utilities.</span></span><span class="sig-name descname"><span class="pre">print_mol_counts_block</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">old_string</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_bonds</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/chemspax/utilities.html#print_mol_counts_block"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#chemspax.utilities.print_mol_counts_block" title="Link to this definition"></a></dt>
+<dd><p>The counts block in a .mol file is corrected based on bonds and atoms given</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>old_string</strong></p></li>
+<li><p><strong>n_atoms</strong></p></li>
+<li><p><strong>n_bonds</strong></p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>corrected counts block of .mol file</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="chemspax.utilities.print_correct_connectivity_line">
+<span class="sig-prename descclassname"><span class="pre">chemspax.utilities.</span></span><span class="sig-name descname"><span class="pre">print_correct_connectivity_line</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">line</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/chemspax/utilities.html#print_correct_connectivity_line"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#chemspax.utilities.print_correct_connectivity_line" title="Link to this definition"></a></dt>
+<dd><p>A line delimited by 2 spaces is read and correctly formatted to correspond with the official .mol format.
+Each number has 3 allocated spaces, as explained in the docstring of read_connectivity_from_mol_file there are 7
+numbers. This means that the line is formatted as:
+‘…’’…’’…’’…’’…’’…’’…’ the most right space is allocated to the first number and if the tens are
+reached the middle space is allocated as well, the left space is allocated ones the hundreds are reached.
+So the possibilities are (where w == a whitespace):
+‘ww1’ ‘w10’ ‘100’
+Notice that this function currently only supports indexes that are &lt; 1000.
+:param line:
+:return: correctly formatted line in connectivity block of .mol file</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="chemspax.utilities.ff_optimize">
+<span class="sig-prename descclassname"><span class="pre">chemspax.utilities.</span></span><span class="sig-name descname"><span class="pre">ff_optimize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source_file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ff_method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'uff'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">list_of_indices_to_freeze</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/chemspax/utilities.html#ff_optimize"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#chemspax.utilities.ff_optimize" title="Link to this definition"></a></dt>
+<dd><p>Uses openbabenl’s ff optimization to locally optimize a molecule and write it back to the same file</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>source_file</strong></p></li>
+<li><p><strong>ff_method</strong></p></li>
+<li><p><strong>list_of_indices_to_freeze</strong></p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>optimized .mol file with the same filename</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="chemspax.utilities.xyz_2_smiles">
+<span class="sig-prename descclassname"><span class="pre">chemspax.utilities.</span></span><span class="sig-name descname"><span class="pre">xyz_2_smiles</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span></span><a class="reference internal" href="../../../_modules/chemspax/utilities.html#xyz_2_smiles"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#chemspax.utilities.xyz_2_smiles" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="chemspax.utilities.check_overlap">
+<span class="sig-prename descclassname"><span class="pre">chemspax.utilities.</span></span><span class="sig-name descname"><span class="pre">check_overlap</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataframe_xyz</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/chemspax/utilities.html#check_overlap"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#chemspax.utilities.check_overlap" title="Link to this definition"></a></dt>
+<dd><p>Given a pandas dataframe, iterates over all the atoms and checks if they’re overlapping</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>dataframe_xyz</strong></p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="chemspax.utilities.remove_hydrogens_and_write">
+<span class="sig-prename descclassname"><span class="pre">chemspax.utilities.</span></span><span class="sig-name descname"><span class="pre">remove_hydrogens_and_write</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source_mol_file</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/chemspax/utilities.html#remove_hydrogens_and_write"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#chemspax.utilities.remove_hydrogens_and_write" title="Link to this definition"></a></dt>
+<dd><p>Use Openbabel’s meethods to delete all hydrogens of a molecule and return the same file type with the same
+filename</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>source_mol_file</strong></p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>output file of molecule without hydrogens, same file type as input</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="chemspax.utilities.copy_functionalization_list_xyz_2_mol">
+<span class="sig-prename descclassname"><span class="pre">chemspax.utilities.</span></span><span class="sig-name descname"><span class="pre">copy_functionalization_list_xyz_2_mol</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source_xyz_file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_mol_file</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/chemspax/utilities.html#copy_functionalization_list_xyz_2_mol"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#chemspax.utilities.copy_functionalization_list_xyz_2_mol" title="Link to this definition"></a></dt>
+<dd><p>Copy the functionalization list from a xyz file to a mol file</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>source_xyz_file</strong></p></li>
+<li><p><strong>target_mol_file</strong></p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../test/index.html" class="btn btn-neutral float-left" title="chemspax.test" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../../gjf_to_xyz/index.html" class="btn btn-neutral float-right" title="gjf_to_xyz" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, TU Delft.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

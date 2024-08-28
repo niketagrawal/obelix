@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>chemspax.attach_substituent &mdash; obelix 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css?v=fd3f3429" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=01f34227"></script>
+        <script src="../../_static/doctools.js?v=9a2dae69"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            obelix
+          </a>
+              <div class="version">
+                0.1.0
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../autoapi/index.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">obelix</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">chemspax.attach_substituent</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for chemspax.attach_substituent</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="c1">#                                                     #</span>
+<span class="c1">#  __authors__ = Adarsh Kalikadien &amp; Vivek Sinha      #</span>
+<span class="c1">#  __institution__ = TU Delft                         #</span>
+<span class="c1">#                                                     #</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">ast</span>
+<span class="kn">import</span> <span class="nn">glob</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">from</span> <span class="nn">openbabel</span> <span class="kn">import</span> <span class="n">openbabel</span>
+<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
+
+<span class="kn">from</span> <span class="nn">chemspax.utilities</span> <span class="kn">import</span> <span class="n">get_bonded_atoms</span><span class="p">,</span> <span class="n">scale_vector</span><span class="p">,</span> <span class="n">convert_list_of_string_to_np_array</span><span class="p">,</span> \
+    <span class="n">print_mol_counts_block</span><span class="p">,</span> <span class="n">print_correct_connectivity_line</span><span class="p">,</span> <span class="n">remove_last_line</span><span class="p">,</span> <span class="n">convert_xyz_2_mol_file</span><span class="p">,</span> \
+    <span class="n">read_connectivity_from_mol_file</span><span class="p">,</span> <span class="n">ff_optimize</span>
+<span class="sd">&quot;&quot;&quot;A substituent from the library can be attached to another molecule with the functions given in this file. </span>
+<span class="sd">The substituent is seen as a &#39;rigid block&#39; that is rotated and translated. After placement of a new substituent, the </span>
+<span class="sd">new substituent is optimized with openbabel&#39;s FF methods. This is a constrained optimization since the skeleton </span>
+<span class="sd">atoms will be frozen.</span>
+
+<span class="sd">This approach can be used in the functionalize_and_optimize_obabel.sh and functionalize_and_optimize_xtb.sh scripts.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+
+<div class="viewcode-block" id="Substituent">
+<a class="viewcode-back" href="../../autoapi/chemspax/attach_substituent/index.html#chemspax.attach_substituent.Substituent">[docs]</a>
+<span class="k">class</span> <span class="nc">Substituent</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">molecule</span><span class="p">,</span> <span class="n">path_to_substituents</span><span class="p">,</span> <span class="n">central_atom</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">bond_length</span><span class="o">=</span><span class="mf">1.2</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Holds information about substituents, used to write the central atom and centroid vector to the .csv database</span>
+<span class="sd">        The information of the .csv database is then used to attach the substituents to a skeleton in</span>
+<span class="sd">        attach_substituent.py</span>
+
+<span class="sd">        :param molecule: path to substituent xyz file</span>
+<span class="sd">        :param central_atom: index of central atom</span>
+<span class="sd">        :param bond_length: bond length between new substituent and skeleton</span>
+
+<span class="sd">        Example of writing adding a CH3 entry to the .csv database (this is done in data_preparation.py):</span>
+<span class="sd">        &gt;&gt;&gt; atom = Substituent(../CH3.xyz[36:-4], 0, 2.0)</span>
+<span class="sd">        &gt;&gt;&gt; atom.write_central_atom_and_centroid_to_csv(&#39;manually&#39;)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+<div class="viewcode-block" id="Substituent.substituents_folder">
+<a class="viewcode-back" href="../../autoapi/chemspax/attach_substituent/index.html#chemspax.attach_substituent.Substituent.substituents_folder">[docs]</a>
+        <span class="bp">self</span><span class="o">.</span><span class="n">substituents_folder</span> <span class="o">=</span> <span class="n">path_to_substituents</span></div>
+
+<div class="viewcode-block" id="Substituent.extension">
+<a class="viewcode-back" href="../../autoapi/chemspax/attach_substituent/index.html#chemspax.attach_substituent.Substituent.extension">[docs]</a>
+        <span class="n">extension</span> <span class="o">=</span> <span class="s1">&#39;.xyz&#39;</span></div>
+
+<div class="viewcode-block" id="Substituent.molecule">
+<a class="viewcode-back" href="../../autoapi/chemspax/attach_substituent/index.html#chemspax.attach_substituent.Substituent.molecule">[docs]</a>
+        <span class="bp">self</span><span class="o">.</span><span class="n">molecule</span> <span class="o">=</span> <span class="n">molecule</span></div>
+
+<div class="viewcode-block" id="Substituent.path">
+<a class="viewcode-back" href="../../autoapi/chemspax/attach_substituent/index.html#chemspax.attach_substituent.Substituent.path">[docs]</a>
+        <span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">substituents_folder</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">molecule</span> <span class="o">+</span> <span class="n">extension</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Substituent.bond_length">
+<a class="viewcode-back" href="../../autoapi/chemspax/attach_substituent/index.html#chemspax.attach_substituent.Substituent.bond_length">[docs]</a>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bond_length</span> <span class="o">=</span> <span class="n">bond_length</span>  <span class="c1"># bond_length for the newly formed bond</span></div>
+
+<div class="viewcode-block" id="Substituent.data_matrix">
+<a class="viewcode-back" href="../../autoapi/chemspax/attach_substituent/index.html#chemspax.attach_substituent.Substituent.data_matrix">[docs]</a>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data_matrix</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_table</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="n">skiprows</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">delim_whitespace</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">names</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;atom&#39;</span><span class="p">,</span> <span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="s1">&#39;z&#39;</span><span class="p">])</span>  <span class="c1"># read standard .xyz file</span></div>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data_matrix</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Substituent .xyz is empty&#39;</span><span class="p">)</span>
+<div class="viewcode-block" id="Substituent.central_atom_index">
+<a class="viewcode-back" href="../../autoapi/chemspax/attach_substituent/index.html#chemspax.attach_substituent.Substituent.central_atom_index">[docs]</a>
+        <span class="bp">self</span><span class="o">.</span><span class="n">central_atom_index</span> <span class="o">=</span> <span class="n">central_atom</span></div>
+
+<div class="viewcode-block" id="Substituent.central_atom">
+<a class="viewcode-back" href="../../autoapi/chemspax/attach_substituent/index.html#chemspax.attach_substituent.Substituent.central_atom">[docs]</a>
+        <span class="bp">self</span><span class="o">.</span><span class="n">central_atom</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_matrix</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">central_atom_index</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="s1">&#39;z&#39;</span><span class="p">]]</span>  <span class="c1"># get xyz coordinate of central atom</span></div>
+
+
+<div class="viewcode-block" id="Substituent.scale">
+<a class="viewcode-back" href="../../autoapi/chemspax/attach_substituent/index.html#chemspax.attach_substituent.Substituent.scale">[docs]</a>
+    <span class="k">def</span> <span class="nf">scale</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vector</span><span class="p">,</span> <span class="n">central_atom</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Function used to scale a vector to the given input bond length</span>
+
+<span class="sd">        :param vector: vector to be scaled</span>
+<span class="sd">        :param central_atom: xyz coordinates of central atom</span>
+<span class="sd">        :return: scaled vector</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">vector</span> <span class="o">=</span> <span class="n">vector</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">vector</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">central_atom</span> <span class="o">+</span> <span class="n">vector</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">bond_length</span>  <span class="c1"># length in angstrom</span></div>
+
+
+<div class="viewcode-block" id="Substituent.first_coordination">
+<a class="viewcode-back" href="../../autoapi/chemspax/attach_substituent/index.html#chemspax.attach_substituent.Substituent.first_coordination">[docs]</a>
+    <span class="k">def</span> <span class="nf">first_coordination</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Find centroid around a central atom, it is assumed that central atom has 3 bonds</span>
+<span class="sd">        the atom can be symmetrical or asymmetrical, say: C-X C-Y C-Z and a free electron pair for bonding</span>
+
+<span class="sd">        :return: centroid vector of substituent group</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+
+        <span class="c1">#OLD METHOD</span>
+        <span class="c1"># amount_atoms = len(self.data_matrix.index)  # amount of rows in data_matrix</span>
+        <span class="c1"># coordination = []</span>
+        <span class="c1"># r_critical = 2.5  # circle radius in which we want to search (P-I has largest bond length)</span>
+        <span class="c1"># for i in range(0, amount_atoms):</span>
+        <span class="c1">#     current_atom = self.data_matrix.loc[i, [&#39;x&#39;, &#39;y&#39;, &#39;z&#39;]]</span>
+        <span class="c1">#     d = self.central_atom - current_atom</span>
+        <span class="c1">#     # if coordinates are within radius there is a bond</span>
+        <span class="c1">#     if ((d[0]) ** 2 + (d[1]) ** 2 + (</span>
+        <span class="c1">#             d[2]) ** 2) &lt; r_critical**2 and i != self.central_atom_index:</span>
+        <span class="c1">#         coordination.append([np.linalg.norm(d), current_atom[0], current_atom[1], current_atom[2]])</span>
+        <span class="c1"># # sort by norm(d) to find the 3 shortest bonds at top of array</span>
+        <span class="c1"># coordination = np.array(coordination)</span>
+        <span class="c1"># # sort in ascending order, first column is the distance</span>
+        <span class="c1"># coordination = coordination[coordination[:, 0].argsort()]</span>
+        <span class="c1"># # find only the xyz coordinates of shortest bonds</span>
+        <span class="c1"># edges = coordination[0:3, 1:4]</span>
+
+        <span class="c1"># find atoms bonded to central atom of substituent, use mol file since graph representation is more accurate</span>
+        <span class="n">edges</span> <span class="o">=</span> <span class="n">get_bonded_atoms</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">[:</span><span class="o">-</span><span class="mi">4</span><span class="p">]</span><span class="o">+</span><span class="s1">&#39;.mol&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">central_atom_index</span><span class="p">)</span>
+        <span class="c1"># scale bonds such that an hypothetical symmetrical molecule is created say C-X&#39; C-Y&#39; C-Z&#39;</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">edges</span><span class="p">)[</span><span class="mi">0</span><span class="p">]):</span>
+            <span class="n">scale_vector</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">central_atom</span><span class="p">,</span> <span class="p">(</span><span class="n">edges</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:]</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">central_atom</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">bond_length</span><span class="p">)</span>
+        <span class="c1"># calculate centroid of this hypothetical molecule, which will be similar to real molecule</span>
+        <span class="n">centroid</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">edges</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">/</span><span class="n">edges</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>  <span class="c1"># sum over rows and divide by amount of atoms found</span>
+        <span class="c1"># get correct orientation of total group s.t. the centroid vector is pointing towards the bond to be made</span>
+        <span class="n">centroid</span> <span class="o">=</span> <span class="p">(</span><span class="n">centroid</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">central_atom</span><span class="p">)</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">centroid</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">central_atom</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">centroid</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Substituent.write_central_atom_and_centroid_to_csv">
+<a class="viewcode-back" href="../../autoapi/chemspax/attach_substituent/index.html#chemspax.attach_substituent.Substituent.write_central_atom_and_centroid_to_csv">[docs]</a>
+    <span class="k">def</span> <span class="nf">write_central_atom_and_centroid_to_csv</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Write the central atom and centroid data of the substituent to the csv database</span>
+
+<span class="sd">        :param manually_or_automatically_generated: folder where substituent.xyz should be read from</span>
+<span class="sd">        :return: new entry to csv database with molecule name, index of central atom, centroid vector for the s</span>
+<span class="sd">        substituent</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># path_to_file = folder + manually_or_automatically_generated + &#39;_generated/&#39; + filename</span>
+        <span class="n">path_to_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">substituents_folder</span><span class="p">,</span> <span class="s1">&#39;central_atom_centroid_database.csv&#39;</span><span class="p">)</span>
+        <span class="c1"># if there is only 1 atom to be attached there&#39;s no need to calculate a centroid, position atom == centroid</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data_matrix</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">centroid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">first_coordination</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">centroid</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">central_atom</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+        <span class="n">write_data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">([[</span><span class="bp">self</span><span class="o">.</span><span class="n">molecule</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">central_atom_index</span><span class="p">),</span> <span class="n">centroid</span><span class="p">]],</span>
+                                  <span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;group_to_be_attached&quot;</span><span class="p">,</span> <span class="s2">&quot;central_atom_index&quot;</span><span class="p">,</span> <span class="s2">&quot;centroid&quot;</span><span class="p">])</span>\
+            <span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s2">&quot;group_to_be_attached&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">path_to_file</span><span class="p">):</span>
+            <span class="n">write_data</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">path_to_file</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s1">&#39;,&#39;</span><span class="p">,</span> <span class="n">header</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">write_data</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">path_to_file</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s1">&#39;,&#39;</span><span class="p">,</span> <span class="n">header</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;a&#39;</span><span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="Complex">
+<a class="viewcode-back" href="../../autoapi/chemspax/attach_substituent/index.html#chemspax.attach_substituent.Complex">[docs]</a>
+<span class="k">class</span> <span class="nc">Complex</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">original_skeleton_name</span><span class="p">,</span> <span class="n">source_data</span><span class="p">,</span> <span class="n">substituent_to_be_attached</span><span class="p">,</span> <span class="n">path_to_database</span><span class="p">,</span> <span class="n">path_to_skeletons</span><span class="p">,</span> <span class="n">path_to_substituents</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Holds information about skeletons on which substituents will be placed,</span>
+<span class="sd">        used to attach substituents to the skeleton using information from the .csv database.</span>
+
+<span class="sd">        :param original_skeleton_name: name of the skeleton that needs to be functionalized</span>
+<span class="sd">        :param source_data: path to skeleton xyz file</span>
+<span class="sd">        :param substituent_to_be_attached: name of the substituent that will be attached</span>
+<span class="sd">        :param path_to_database: path to .csv database</span>
+
+<span class="sd">        Example of placing a CH3 substituent on a skeleton (this can be done in functionalize_and_optimize_obabel.sh and</span>
+<span class="sd">        functionalize_and_optimize_xtb.sh):</span>
+<span class="sd">        &gt;&gt;&gt; some_complex = Complex(&#39;PCP-cy&#39;, &#39;../skeletons/PCP-cy.xyz&#39;, &#39;CH3&#39;,</span>
+<span class="sd">                           &#39;../substituents_xyz/manually_generated/central_atom_centroid_database.csv&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; some_complex.generate_substituent_and_write_xyz(&#39;PCP-cy_func_1&#39;, 1.54, False)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># original skeleton data (so starting point of each functionalization)</span>
+<div class="viewcode-block" id="Complex.skeleton_folder">
+<a class="viewcode-back" href="../../autoapi/chemspax/attach_substituent/index.html#chemspax.attach_substituent.Complex.skeleton_folder">[docs]</a>
+        <span class="n">skeleton_folder</span> <span class="o">=</span> <span class="n">path_to_skeletons</span></div>
+
+<div class="viewcode-block" id="Complex.extension">
+<a class="viewcode-back" href="../../autoapi/chemspax/attach_substituent/index.html#chemspax.attach_substituent.Complex.extension">[docs]</a>
+        <span class="n">extension</span> <span class="o">=</span> <span class="s1">&#39;.xyz&#39;</span></div>
+
+<div class="viewcode-block" id="Complex.original_skeleton_path">
+<a class="viewcode-back" href="../../autoapi/chemspax/attach_substituent/index.html#chemspax.attach_substituent.Complex.original_skeleton_path">[docs]</a>
+        <span class="bp">self</span><span class="o">.</span><span class="n">original_skeleton_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">skeleton_folder</span><span class="p">,</span> <span class="n">original_skeleton_name</span> <span class="o">+</span><span class="n">extension</span><span class="p">)</span></div>
+
+        <span class="c1"># skeleton data</span>
+<div class="viewcode-block" id="Complex.skeleton_path">
+<a class="viewcode-back" href="../../autoapi/chemspax/attach_substituent/index.html#chemspax.attach_substituent.Complex.skeleton_path">[docs]</a>
+        <span class="bp">self</span><span class="o">.</span><span class="n">skeleton_path</span> <span class="o">=</span> <span class="n">source_data</span></div>
+
+        <span class="c1"># for the first usage this is purely the skeleton, for recursive usage it&#39;s skeleton + prev. functionalization</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">skeleton_xyz</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_table</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">skeleton_path</span><span class="p">,</span> <span class="n">skiprows</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">delim_whitespace</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                                             <span class="n">names</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;atom&#39;</span><span class="p">,</span> <span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="s1">&#39;z&#39;</span><span class="p">])</span>  <span class="c1"># read standard .xyz file</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">skeleton_xyz</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Skeleton .xyz is empty&#39;</span><span class="p">)</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="c1"># this error happens when there are more substituents defined than functionalization sites</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;No functionalization sites left. Exiting program&#39;</span><span class="p">)</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># substituent data</span>
+<div class="viewcode-block" id="Complex.substituent_molecule">
+<a class="viewcode-back" href="../../autoapi/chemspax/attach_substituent/index.html#chemspax.attach_substituent.Complex.substituent_molecule">[docs]</a>
+        <span class="bp">self</span><span class="o">.</span><span class="n">substituent_molecule</span> <span class="o">=</span> <span class="n">substituent_to_be_attached</span></div>
+
+<div class="viewcode-block" id="Complex.substituent_folder">
+<a class="viewcode-back" href="../../autoapi/chemspax/attach_substituent/index.html#chemspax.attach_substituent.Complex.substituent_folder">[docs]</a>
+        <span class="n">substituent_folder</span> <span class="o">=</span> <span class="n">path_to_substituents</span></div>
+
+        <span class="n">extension</span> <span class="o">=</span> <span class="s1">&#39;.xyz&#39;</span>
+<div class="viewcode-block" id="Complex.substituent_path">
+<a class="viewcode-back" href="../../autoapi/chemspax/attach_substituent/index.html#chemspax.attach_substituent.Complex.substituent_path">[docs]</a>
+        <span class="bp">self</span><span class="o">.</span><span class="n">substituent_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">substituent_folder</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">substituent_molecule</span> <span class="o">+</span> <span class="n">extension</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Complex.substituent_xyz">
+<a class="viewcode-back" href="../../autoapi/chemspax/attach_substituent/index.html#chemspax.attach_substituent.Complex.substituent_xyz">[docs]</a>
+        <span class="bp">self</span><span class="o">.</span><span class="n">substituent_xyz</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_table</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">substituent_path</span><span class="p">,</span> <span class="n">skiprows</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">delim_whitespace</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                                         <span class="n">names</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;atom&#39;</span><span class="p">,</span> <span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="s1">&#39;z&#39;</span><span class="p">])</span>  <span class="c1"># read standard .xyz file</span></div>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">substituent_xyz</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Substituent .xyz is empty&#39;</span><span class="p">)</span>
+<div class="viewcode-block" id="Complex.database_df">
+<a class="viewcode-back" href="../../autoapi/chemspax/attach_substituent/index.html#chemspax.attach_substituent.Complex.database_df">[docs]</a>
+        <span class="bp">self</span><span class="o">.</span><span class="n">database_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">path_to_database</span><span class="p">,</span> <span class="n">delimiter</span><span class="o">=</span><span class="s1">&#39;,&#39;</span><span class="p">)</span></div>
+
+                                       <span class="c1"># ,converters={&#39;centroid&#39;: convert_list_of_string_to_np_array})</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">substituent_df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">database_df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">database_df</span><span class="p">[</span><span class="s1">&#39;group_to_be_attached&#39;</span><span class="p">]</span>
+                                                       <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">substituent_molecule</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">KeyError</span>
+<div class="viewcode-block" id="Complex.substituent_central_atom_index">
+<a class="viewcode-back" href="../../autoapi/chemspax/attach_substituent/index.html#chemspax.attach_substituent.Complex.substituent_central_atom_index">[docs]</a>
+        <span class="bp">self</span><span class="o">.</span><span class="n">substituent_central_atom_index</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">substituent_df</span><span class="p">[</span><span class="s1">&#39;central_atom_index&#39;</span><span class="p">])</span></div>
+
+<div class="viewcode-block" id="Complex.substituent_centroid_vector">
+<a class="viewcode-back" href="../../autoapi/chemspax/attach_substituent/index.html#chemspax.attach_substituent.Complex.substituent_centroid_vector">[docs]</a>
+        <span class="bp">self</span><span class="o">.</span><span class="n">substituent_centroid_vector</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">substituent_df</span><span class="p">[</span><span class="s1">&#39;centroid&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span></div>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">substituent_centroid_vector</span> <span class="o">=</span> <span class="n">convert_list_of_string_to_np_array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">substituent_centroid_vector</span><span class="p">)</span>
+<div class="viewcode-block" id="Complex.substituent_central_atom_xyz">
+<a class="viewcode-back" href="../../autoapi/chemspax/attach_substituent/index.html#chemspax.attach_substituent.Complex.substituent_central_atom_xyz">[docs]</a>
+        <span class="bp">self</span><span class="o">.</span><span class="n">substituent_central_atom_xyz</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">substituent_xyz</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">substituent_central_atom_index</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="s1">&#39;z&#39;</span><span class="p">]]</span></div>
+
+
+        <span class="c1"># get functionalization list from source file</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">skeleton_path</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">lines</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">functionalization_site_list</span> <span class="o">=</span> <span class="n">lines</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># convert list from string to integer, throws exception if there is no list</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">functionalization_site_list</span> <span class="o">=</span> <span class="n">ast</span><span class="o">.</span><span class="n">literal_eval</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">functionalization_site_list</span><span class="p">)</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="c1"># when no functionalization list is defined, assume that all H need to be functionalized</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">functionalization_site_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">create_functionalization_list_dummy_atom</span><span class="p">(</span><span class="n">atomic_nr_of_dummy_atom</span><span class="o">=</span><span class="mi">35</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">functionalization_site_list</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="c1"># take indices from converted list and assign to correct variable</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">skeleton_atom_to_be_functionalized_index</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">functionalization_site_list</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>  <span class="c1"># index in .xyz file of atom to be functionalized</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">skeleton_bonded_atom_index</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">functionalization_site_list</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>  
+            <span class="c1"># index in .xyz file of atom bonded to atom to be functionalized</span>
+            <span class="c1"># write to .xyz file in generate_and_write_xyz function</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;No more indices left. Exiting program&#39;</span><span class="p">)</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Complex.skeleton_atom_to_be_functionalized_xyz">
+<a class="viewcode-back" href="../../autoapi/chemspax/attach_substituent/index.html#chemspax.attach_substituent.Complex.skeleton_atom_to_be_functionalized_xyz">[docs]</a>
+        <span class="bp">self</span><span class="o">.</span><span class="n">skeleton_atom_to_be_functionalized_xyz</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">skeleton_xyz</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">skeleton_atom_to_be_functionalized_index</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="s1">&#39;z&#39;</span><span class="p">]]</span>  <span class="c1"># get xyz coordinate of atom to be functionalized - H</span></div>
+
+<div class="viewcode-block" id="Complex.skeleton_bonded_atom_xyz">
+<a class="viewcode-back" href="../../autoapi/chemspax/attach_substituent/index.html#chemspax.attach_substituent.Complex.skeleton_bonded_atom_xyz">[docs]</a>
+        <span class="bp">self</span><span class="o">.</span><span class="n">skeleton_bonded_atom_xyz</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">skeleton_xyz</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">skeleton_bonded_atom_index</span><span class="p">,</span> <span class="p">[</span>
+                <span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="s1">&#39;z&#39;</span><span class="p">]]</span>  <span class="c1"># get xyz coordinate of bonded atom - C (in CH3: C= central atom)</span></div>
+
+<div class="viewcode-block" id="Complex.bond_length">
+<a class="viewcode-back" href="../../autoapi/chemspax/attach_substituent/index.html#chemspax.attach_substituent.Complex.bond_length">[docs]</a>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bond_length</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">skeleton_atom_to_be_functionalized_xyz</span> \
+                         <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">skeleton_bonded_atom_xyz</span>  <span class="c1"># vector with origin on C and points to H in xyz plane</span></div>
+
+<div class="viewcode-block" id="Complex.normalized_bond_vector">
+<a class="viewcode-back" href="../../autoapi/chemspax/attach_substituent/index.html#chemspax.attach_substituent.Complex.normalized_bond_vector">[docs]</a>
+        <span class="bp">self</span><span class="o">.</span><span class="n">normalized_bond_vector</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bond_length</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">bond_length</span><span class="p">)</span>  <span class="c1"># real bond between C-H in xyz plane</span></div>
+
+
+<div class="viewcode-block" id="Complex.create_functionalization_list_dummy_atom">
+<a class="viewcode-back" href="../../autoapi/chemspax/attach_substituent/index.html#chemspax.attach_substituent.Complex.create_functionalization_list_dummy_atom">[docs]</a>
+    <span class="k">def</span> <span class="nf">create_functionalization_list_dummy_atom</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">atomic_nr_of_dummy_atom</span> <span class="o">=</span> <span class="mi">1</span><span class="p">):</span>
+        <span class="c1"># ToDo: use an unconventional dummy atom (such as Br) instead of H to replace with substituent</span>
+        <span class="c1"># create functionalization list by finding all H atoms and atom bonded to it</span>
+        <span class="n">source_mol_file</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">skeleton_path</span>
+        <span class="c1"># find all H</span>
+        <span class="n">search_this_atomic_num</span> <span class="o">=</span> <span class="n">atomic_nr_of_dummy_atom</span>
+        <span class="c1"># initalize openbabel classes</span>
+        <span class="n">obconversion</span> <span class="o">=</span> <span class="n">openbabel</span><span class="o">.</span><span class="n">OBConversion</span><span class="p">()</span>
+        <span class="c1"># both xyz and mol can be used as input but mol contains an accurate graph representation</span>
+        <span class="k">if</span> <span class="n">source_mol_file</span><span class="p">[</span><span class="o">-</span><span class="mi">4</span><span class="p">:]</span> <span class="o">==</span> <span class="s1">&#39;.mol&#39;</span><span class="p">:</span>
+            <span class="n">obconversion</span><span class="o">.</span><span class="n">SetInFormat</span><span class="p">(</span><span class="s1">&#39;mol&#39;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">source_mol_file</span><span class="p">[</span><span class="o">-</span><span class="mi">4</span><span class="p">:]</span> <span class="o">==</span> <span class="s1">&#39;.xyz&#39;</span><span class="p">:</span>
+            <span class="n">obconversion</span><span class="o">.</span><span class="n">SetInFormat</span><span class="p">(</span><span class="s1">&#39;xyz&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;file type is incorrect, .mol and .xyz are supported, not&#39;</span><span class="p">,</span> <span class="n">source_mol_file</span><span class="p">[</span><span class="o">-</span><span class="mi">4</span><span class="p">:])</span>
+
+        <span class="n">mol</span> <span class="o">=</span> <span class="n">openbabel</span><span class="o">.</span><span class="n">OBMol</span><span class="p">()</span>
+        <span class="n">obconversion</span><span class="o">.</span><span class="n">ReadFile</span><span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="n">source_mol_file</span><span class="p">)</span>
+
+        <span class="n">functionalization_site_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="c1"># iterate over all atoms in structure</span>
+        <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">openbabel</span><span class="o">.</span><span class="n">OBMolAtomIter</span><span class="p">(</span><span class="n">mol</span><span class="p">):</span>
+            <span class="n">atomic_number</span> <span class="o">=</span> <span class="n">atom</span><span class="o">.</span><span class="n">GetAtomicNum</span><span class="p">()</span>
+            <span class="c1"># if a hydrogen is found</span>
+            <span class="k">if</span> <span class="n">atomic_number</span> <span class="o">==</span> <span class="n">search_this_atomic_num</span><span class="p">:</span>
+                <span class="n">atom_to_be_functionalized_index</span> <span class="o">=</span> <span class="n">atom</span><span class="o">.</span><span class="n">GetIndex</span><span class="p">()</span>  <span class="c1"># indexing for this OB method starts at 0</span>
+                <span class="c1"># if the hydrogen has 1 bond it can be functionalized and added to functionalization_list</span>
+                <span class="k">if</span> <span class="n">atom</span><span class="o">.</span><span class="n">CountBondsOfOrder</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="k">for</span> <span class="n">neighbour_atom</span> <span class="ow">in</span> <span class="n">openbabel</span><span class="o">.</span><span class="n">OBAtomAtomIter</span><span class="p">(</span><span class="n">atom</span><span class="p">):</span>
+                        <span class="n">bonded_atom_index</span> <span class="o">=</span> <span class="n">neighbour_atom</span><span class="o">.</span><span class="n">GetIndex</span><span class="p">()</span>  <span class="c1"># indexing for this OB method starts at 0</span>
+                        <span class="n">functionalization_site_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                            <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">atom_to_be_functionalized_index</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">bonded_atom_index</span><span class="p">)])</span>
+
+        <span class="k">return</span> <span class="n">functionalization_site_list</span></div>
+
+
+<div class="viewcode-block" id="Complex.generate_substituent_group_vector">
+<a class="viewcode-back" href="../../autoapi/chemspax/attach_substituent/index.html#chemspax.attach_substituent.Complex.generate_substituent_group_vector">[docs]</a>
+    <span class="k">def</span> <span class="nf">generate_substituent_group_vector</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">length_skeleton_bonded_substituent_central</span><span class="o">=</span><span class="mf">1.84</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Used to translate and rotate the substituent group for correct placement on the skeleton</span>
+
+<span class="sd">        :param length_skeleton_bonded_substituent_central: bond length between the substituent group and skeleton</span>
+<span class="sd">        :return: xyz matrix with correctly rotated and translated coordinates of substituent group&#39;s atoms</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">normal_vector</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">substituent_centroid_vector</span>
+        <span class="c1"># normal_vector = normal_vector / np.linalg.norm(normal_vector)  # vector is already unit vector (redundant)</span>
+
+        <span class="c1"># construct rotation matrix</span>
+        <span class="n">bond_length_norm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">normalized_bond_vector</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s1">&#39;float64&#39;</span><span class="p">))</span>
+
+        <span class="c1"># https://math.stackexchange.com/questions/180418/calculate-rotation-matrix-to-align-vector-a-to-vector-b-in-3d</span>
+        <span class="n">v</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="n">normal_vector</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">bond_length_norm</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>  <span class="c1"># v is perpendicular to normal vector and bond between C-H</span>
+        <span class="n">v_x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="n">v</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">v</span><span class="p">[</span><span class="mi">1</span><span class="p">]],</span> <span class="p">[</span><span class="n">v</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="n">v</span><span class="p">[</span><span class="mi">0</span><span class="p">]],</span> <span class="p">[</span><span class="o">-</span><span class="n">v</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">v</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">0</span><span class="p">]])</span>
+        <span class="n">v_xsq</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">v_x</span><span class="p">,</span> <span class="n">v_x</span><span class="p">)</span>
+        <span class="n">c</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">bond_length_norm</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">normal_vector</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">c</span> <span class="o">!=</span> <span class="o">-</span><span class="mf">1.0</span><span class="p">:</span>
+            <span class="n">rotation_matrix</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span> <span class="o">+</span> <span class="n">v_x</span> <span class="o">+</span> <span class="n">v_xsq</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">c</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">rotation_matrix</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+
+        <span class="n">n_atoms</span><span class="p">,</span> <span class="n">n_columns</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">substituent_xyz</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">substituent_xyz</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span>  <span class="c1"># atoms in substituent group</span>
+        <span class="n">substituent_vectors</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">substituent_xyz</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="p">[</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="s1">&#39;z&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>  <span class="c1"># xyz only</span>
+        <span class="c1"># calculate new position of substituent_central_atom, the other atoms will be placed around this</span>
+        <span class="n">new_position_substiuent</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">scale_vector</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">skeleton_bonded_atom_xyz</span><span class="p">,</span>
+                            <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">skeleton_atom_to_be_functionalized_xyz</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">skeleton_bonded_atom_xyz</span><span class="p">),</span>
+                            <span class="nb">float</span><span class="p">(</span><span class="n">length_skeleton_bonded_substituent_central</span><span class="p">)))</span>
+
+        <span class="c1"># do rotation first</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_atoms</span><span class="p">):</span>
+            <span class="n">substituent_vectors</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">rotation_matrix</span><span class="p">,</span> <span class="n">substituent_vectors</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:]</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+        <span class="c1"># save copy of correctly rotated central atom of substituent</span>
+        <span class="n">substituent_central_atom</span> <span class="o">=</span> <span class="n">substituent_vectors</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">substituent_central_atom_index</span><span class="p">,</span> <span class="p">:]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="c1"># do translation after</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_atoms</span><span class="p">):</span>
+            <span class="c1"># ToDo: for O-CH3 do new_position_substituent - Oxygen, how to detect these cases?</span>
+            <span class="n">substituent_vectors</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">substituent_vectors</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:]</span> <span class="o">+</span> <span class="p">(</span><span class="n">new_position_substiuent</span> <span class="o">-</span> <span class="n">substituent_central_atom</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">substituent_vectors</span></div>
+
+
+<div class="viewcode-block" id="Complex.write_connectivity_in_file">
+<a class="viewcode-back" href="../../autoapi/chemspax/attach_substituent/index.html#chemspax.attach_substituent.Complex.write_connectivity_in_file">[docs]</a>
+    <span class="k">def</span> <span class="nf">write_connectivity_in_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target_path</span><span class="p">,</span> <span class="n">new_connectivity_data</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Used to write given connectivity data to a MDL molfile. This necessary to add correct bonding information</span>
+<span class="sd">        from the input substituent and skeleton file to prevent weird bonds from being formed upon file conversions.</span>
+<span class="sd">        This assumes that the MDL molfile for substituents and skeletons are correct.</span>
+
+<span class="sd">        :param target_path: path to MDL molfile</span>
+<span class="sd">        :param new_connectivity_data: dataframe of new connectivity data</span>
+<span class="sd">        :return: same input MDL molfile but now with bonding information from given connectivity data</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># convert connectivity data to ints</span>
+        <span class="n">new_connectivity_data</span> <span class="o">=</span> <span class="n">new_connectivity_data</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+
+        <span class="c1"># save first part of file to write later</span>
+        <span class="n">lines</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">target_path</span><span class="p">)</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>
+        <span class="n">n_atoms</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">skeleton_xyz</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">substituent_xyz</span><span class="p">)</span>
+        <span class="n">n_atoms_and_comments</span> <span class="o">=</span> <span class="n">n_atoms</span> <span class="o">+</span> <span class="mi">4</span>
+
+        <span class="n">first_part</span> <span class="o">=</span> <span class="n">lines</span><span class="p">[:</span><span class="n">n_atoms_and_comments</span><span class="p">]</span>
+        <span class="n">first_part</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="n">print_mol_counts_block</span><span class="p">(</span><span class="n">first_part</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="n">n_atoms</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">new_connectivity_data</span><span class="p">))</span>  <span class="c1"># correct counts</span>
+        <span class="c1"># read data and skip first 4 lines</span>
+        <span class="n">all_data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_table</span><span class="p">(</span><span class="n">target_path</span><span class="p">,</span> <span class="n">skiprows</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">delim_whitespace</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">header</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+        <span class="c1"># fill NaN with space &amp; save ending line to write at end of file</span>
+        <span class="n">end_line</span> <span class="o">=</span> <span class="n">all_data</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">iloc</span><span class="p">[[</span><span class="o">-</span><span class="mi">1</span><span class="p">]]</span>
+
+        <span class="c1"># write new .mol file correctly</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">target_path</span><span class="p">)</span>  <span class="c1"># delete original file to prevent errors</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">target_path</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">wr</span><span class="p">:</span>
+            <span class="n">wr</span><span class="o">.</span><span class="n">writelines</span><span class="p">(</span><span class="n">first_part</span><span class="p">)</span>
+
+        <span class="c1"># connectivity is separated by 2 spaces (I thought), but this is not correct for the official .mol format</span>
+        <span class="c1"># I couldn&#39;t find a way to directly write every digit in the correct format from dataframe to file</span>
+        <span class="c1"># so now the dataframe is first written and string formatting is done afterwards</span>
+        <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">target_path</span><span class="p">,</span> <span class="s1">&#39;ab&#39;</span><span class="p">)</span>  <span class="c1"># open file in binary to be able to append with np.savetxt</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">savetxt</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">new_connectivity_data</span><span class="p">,</span> <span class="n">delimiter</span><span class="o">=</span><span class="s1">&#39;  &#39;</span><span class="p">,</span> <span class="n">fmt</span><span class="o">=</span><span class="s1">&#39;</span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">)</span>  <span class="c1"># pd doesn&#39;t support &#39;  &#39; as delimiter :(</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+        <span class="c1"># add correct spacing of connectivity table for official .mol format, each number has 3 allocated spaces</span>
+        <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">target_path</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span>
+        <span class="n">lines</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>
+        <span class="n">connectivity_lines_only</span> <span class="o">=</span> <span class="n">lines</span><span class="p">[</span><span class="n">n_atoms_and_comments</span><span class="p">:]</span>
+        <span class="n">newlines</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">connectivity_lines_only</span><span class="p">:</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">print_correct_connectivity_line</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+            <span class="n">newlines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+        <span class="n">wr</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">target_path</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span>
+        <span class="n">lines_above_connectivity_lines</span> <span class="o">=</span> <span class="n">lines</span><span class="p">[:</span><span class="n">n_atoms_and_comments</span><span class="p">]</span>
+        <span class="n">wr</span><span class="o">.</span><span class="n">writelines</span><span class="p">(</span><span class="n">lines_above_connectivity_lines</span> <span class="o">+</span> <span class="n">newlines</span><span class="p">)</span>
+        <span class="n">wr</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+        <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">target_path</span><span class="p">,</span> <span class="s1">&#39;ab&#39;</span><span class="p">)</span>  <span class="c1"># open file in binary to be able to append with np.savetxt</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">savetxt</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">end_line</span><span class="p">,</span> <span class="n">delimiter</span><span class="o">=</span><span class="s1">&#39;  &#39;</span><span class="p">,</span> <span class="n">fmt</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">)</span>  <span class="c1"># pd doesn&#39;t support &#39;  &#39; as delimiter :(</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="Complex.generate_substituent_and_write_xyz">
+<a class="viewcode-back" href="../../autoapi/chemspax/attach_substituent/index.html#chemspax.attach_substituent.Complex.generate_substituent_and_write_xyz">[docs]</a>
+    <span class="k">def</span> <span class="nf">generate_substituent_and_write_xyz</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target_filename</span><span class="p">,</span> <span class="n">path_to_output</span><span class="p">,</span> <span class="n">length_skeleton_bonded_substituent_central</span><span class="o">=</span><span class="mf">1.84</span><span class="p">,</span>
+                                           <span class="n">use_xtb_script_after</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Used to generate translated and rotated vectors for substituents and attaching them to the skeleton</span>
+
+<span class="sd">        :param target_filename: name of target xyz file that will be written</span>
+<span class="sd">        :param length_skeleton_bonded_substituent_central: bond length between the skeleton and substituent group</span>
+<span class="sd">        (does not really matter since force field optimization is used after placement of a new substituent)</span>
+<span class="sd">        :param use_xtb_script_after: REDUNDANT parameter, was used to enable xtb optimization after a functionalization.</span>
+<span class="sd">        This can still be done by uncommenting last part of this function if desired.</span>
+<span class="sd">        :return: xyz file of substituent attached to skeleton and FF optimized MDL molfile of substituent attached to</span>
+<span class="sd">        skeleton</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">Path</span><span class="p">(</span><span class="n">path_to_output</span><span class="p">)</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>  <span class="c1">#create directory for functionalized output</span>
+        <span class="n">folder</span> <span class="o">=</span> <span class="n">path_to_output</span>
+        <span class="n">extension</span> <span class="o">=</span> <span class="s1">&#39;.xyz&#39;</span>
+        <span class="n">target_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">folder</span><span class="p">,</span> <span class="n">target_filename</span> <span class="o">+</span> <span class="n">extension</span><span class="p">)</span>
+
+        <span class="c1"># replace substituent x y z with newly calculated positions</span>
+        <span class="n">substituent_vectors</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">generate_substituent_group_vector</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">length_skeleton_bonded_substituent_central</span><span class="p">))</span>
+        <span class="n">substituents_new_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">substituent_xyz</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>  <span class="c1"># always copy a df to modify it!</span>
+        <span class="n">substituents_new_data</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="p">[</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="s1">&#39;z&#39;</span><span class="p">]]</span> <span class="o">=</span> <span class="n">substituent_vectors</span>
+        <span class="c1"># remove skeleton_atom_to_be_functionalized and place substituent data at end of file</span>
+        <span class="n">skeleton_new_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">skeleton_xyz</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">skeleton_new_data</span> <span class="o">=</span> <span class="n">skeleton_new_data</span><span class="o">.</span><span class="n">drop</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">skeleton_atom_to_be_functionalized_index</span><span class="p">])</span>
+
+        <span class="c1"># old method: write substituent central atom at atom_to_be_functinoalized and paste rest of sub. to bottom</span>
+        <span class="c1"># skeleton_new_data.loc[self.skeleton_atom_to_be_functionalized_index, :] = \</span>
+        <span class="c1">#     substituents_new_data.loc[self.substituent_central_atom_index, :]</span>
+        <span class="c1"># # remove central atom from dataframe of substituent group</span>
+        <span class="c1"># substituents_new_data = substituents_new_data.drop([self.substituent_central_atom_index])</span>
+
+        <span class="c1"># since atom_to_be_functionalized is dropped, indices in functionalization list need to shift</span>
+        <span class="c1"># shift bonded_atom first</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">skeleton_bonded_atom_index</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">skeleton_bonded_atom_index</span> <span class="o">-</span> <span class="mi">1</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">skeleton_bonded_atom_index</span> <span class="o">&gt;</span> <span class="bp">self</span>\
+            <span class="o">.</span><span class="n">skeleton_atom_to_be_functionalized_index</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">skeleton_bonded_atom_index</span>
+        <span class="c1"># make nested list as big as functionalization list</span>
+        <span class="n">new_functionalization_list</span> <span class="o">=</span> <span class="p">[[]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">functionalization_site_list</span><span class="p">))]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">functionalization_site_list</span><span class="p">)):</span>
+            <span class="n">some_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">functionalization_site_list</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">some_list</span><span class="p">)):</span>
+                <span class="n">item</span> <span class="o">=</span> <span class="n">some_list</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
+                <span class="c1"># shift is only needed if item contains index larger than atom to be functionalized</span>
+                <span class="n">item</span> <span class="o">=</span> <span class="n">item</span> <span class="o">-</span> <span class="mi">1</span> <span class="k">if</span> <span class="n">item</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">skeleton_atom_to_be_functionalized_index</span> <span class="k">else</span> <span class="n">item</span>
+                <span class="n">some_list</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">item</span>
+            <span class="n">new_functionalization_list</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">some_list</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">functionalization_site_list</span> <span class="o">=</span> <span class="n">new_functionalization_list</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>  <span class="c1"># remove first element, which is functionalized</span>
+
+        <span class="c1"># concat both dataframes and write to file</span>
+        <span class="n">write_data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">skeleton_new_data</span><span class="p">,</span> <span class="n">substituents_new_data</span><span class="p">])</span>
+        <span class="n">write_data</span> <span class="o">=</span> <span class="n">write_data</span><span class="o">.</span><span class="n">astype</span><span class="p">({</span><span class="s1">&#39;x&#39;</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="s1">&#39;y&#39;</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="s1">&#39;z&#39;</span><span class="p">:</span> <span class="nb">float</span><span class="p">})</span>  <span class="c1"># correct types in df</span>
+        <span class="n">write_data</span> <span class="o">=</span> <span class="n">write_data</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s1">&#39;atom&#39;</span><span class="p">)</span>
+        <span class="c1"># # check if there is overlap between atoms and then ToDO: then what? Not necessary if ff_opt works</span>
+        <span class="c1"># is_there_overlap, overlapping_atoms = check_overlap(write_data)</span>
+        <span class="c1"># print(is_there_overlap, overlapping_atoms)</span>
+        <span class="c1"># increase n_atoms of source file accordingly</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">skeleton_path</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">n_atoms</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">())</span>
+        <span class="n">n_atoms</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">substituents_new_data</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>  <span class="c1"># atom_to_be_functionalized is dropped so 1 less atom to count</span>
+        <span class="c1"># write to file</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">target_path</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">wr</span><span class="p">:</span>
+            <span class="n">wr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">n_atoms</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+            <span class="n">wr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">functionalization_site_list</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="n">write_data</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">target_path</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="n">header</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;a&#39;</span><span class="p">)</span>
+        <span class="c1"># remove last whiteline generated by pandas&#39; to_csv function</span>
+        <span class="n">remove_last_line</span><span class="p">(</span><span class="n">target_path</span><span class="p">)</span>
+
+        <span class="c1"># fix bug with bonds being formed &amp; weirdly broken</span>
+        <span class="c1"># remember, indexing in .mol files starts from 1 for some reason...</span>
+
+        <span class="c1"># convert skeleton to .mol if .mol file doesn&#39;t exist</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">skeleton_path</span><span class="p">[:</span><span class="o">-</span><span class="mi">4</span><span class="p">]</span><span class="o">+</span><span class="s1">&#39;.mol&#39;</span><span class="p">):</span>
+            <span class="n">convert_xyz_2_mol_file</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">skeleton_path</span><span class="p">)</span>
+
+        <span class="c1"># read connectivity of skeleton</span>
+        <span class="n">skeleton_connectivity</span> <span class="o">=</span> <span class="n">read_connectivity_from_mol_file</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">skeleton_path</span><span class="p">[:</span><span class="o">-</span><span class="mi">4</span><span class="p">]</span><span class="o">+</span><span class="s1">&#39;.mol&#39;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">skeleton_xyz</span><span class="p">))</span>
+        <span class="n">skeleton_connectivity</span> <span class="o">=</span> <span class="n">skeleton_connectivity</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+        <span class="c1"># substituent is pasted below skeleton data so index of central atom += len(original skeleton)</span>
+        <span class="n">new_substituent_central_atom_index</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">substituent_central_atom_index</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">skeleton_xyz</span><span class="p">)</span>
+
+        <span class="c1"># drop bonds with atom_to_be_functionalized</span>
+        <span class="n">skeleton_connectivity</span> <span class="o">=</span> <span class="n">skeleton_connectivity</span><span class="p">[</span><span class="n">skeleton_connectivity</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span>
+                                                      <span class="bp">self</span><span class="o">.</span><span class="n">skeleton_atom_to_be_functionalized_index</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">skeleton_connectivity</span> <span class="o">=</span> <span class="n">skeleton_connectivity</span><span class="p">[</span><span class="n">skeleton_connectivity</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span>
+                                                      <span class="bp">self</span><span class="o">.</span><span class="n">skeleton_atom_to_be_functionalized_index</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="c1"># since atom_to_be_functionalized is dropped the indices of atoms below that need to be decreased by 1</span>
+        <span class="n">skeleton_connectivity</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">skeleton_connectivity</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span>
+            <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">-</span><span class="mi">1</span> <span class="k">if</span> <span class="n">x</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">skeleton_atom_to_be_functionalized_index</span><span class="o">+</span><span class="mi">1</span> <span class="k">else</span> <span class="n">x</span><span class="p">)</span>
+        <span class="n">skeleton_connectivity</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">skeleton_connectivity</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span>
+            <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">-</span><span class="mi">1</span> <span class="k">if</span> <span class="n">x</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">skeleton_atom_to_be_functionalized_index</span><span class="o">+</span><span class="mi">1</span> <span class="k">else</span> <span class="n">x</span><span class="p">)</span>
+
+        <span class="c1"># append new bond between substituent_central_atom and skeleton_bonded_atom</span>
+        <span class="n">new_bond</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="mi">0</span><span class="p">:</span> <span class="p">[</span><span class="n">new_substituent_central_atom_index</span><span class="p">],</span> <span class="mi">1</span><span class="p">:</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">skeleton_bonded_atom_index</span><span class="o">+</span><span class="mi">1</span><span class="p">],</span>
+                                 <span class="mi">2</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="mi">3</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">4</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">5</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">6</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">]})</span>
+        <span class="n">skeleton_connectivity</span> <span class="o">=</span> <span class="n">skeleton_connectivity</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">new_bond</span><span class="p">)</span>
+        <span class="n">skeleton_connectivity</span> <span class="o">=</span> <span class="n">skeleton_connectivity</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+
+        <span class="c1"># convert substituent to .mol if .mol file doesn&#39;t exist</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">substituent_path</span><span class="p">[:</span><span class="o">-</span><span class="mi">4</span><span class="p">]</span><span class="o">+</span><span class="s1">&#39;.mol&#39;</span><span class="p">):</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;have you forgotten to run data_preparation.py? generating .mol for substituent...&#39;</span><span class="p">)</span>
+            <span class="n">convert_xyz_2_mol_file</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">substituent_path</span><span class="p">)</span>
+
+        <span class="c1"># read connectivity of substituent</span>
+        <span class="n">substituent_connectivity</span> <span class="o">=</span> <span class="n">read_connectivity_from_mol_file</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">substituent_path</span><span class="p">[:</span><span class="o">-</span><span class="mi">4</span><span class="p">]</span><span class="o">+</span><span class="s1">&#39;.mol&#39;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">substituent_xyz</span><span class="p">))</span>
+        <span class="n">substituent_connectivity</span> <span class="o">=</span> <span class="n">substituent_connectivity</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+        <span class="c1"># make indices correct, originally from substituent file indices start from 0, now: 0 + len(skeleton)</span>
+        <span class="c1"># for initial case, for recursive case: 0 + len(skeleton) + len(substituent)</span>
+        <span class="n">substituent_connectivity</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">substituent_connectivity</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">skeleton_new_data</span><span class="p">)</span>
+        <span class="n">substituent_connectivity</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">substituent_connectivity</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">skeleton_new_data</span><span class="p">)</span>
+        <span class="c1"># concat connectivities</span>
+        <span class="n">total_connectivities</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">skeleton_connectivity</span><span class="p">,</span> <span class="n">substituent_connectivity</span><span class="p">])</span>
+
+        <span class="c1"># convert functionalized skeleton to .mol</span>
+        <span class="c1"># ToDo: C-O 13 and 14 are triple bonded, manually fix or does xtb/gaussian do that?</span>
+        <span class="n">convert_xyz_2_mol_file</span><span class="p">(</span><span class="n">target_path</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">write_connectivity_in_file</span><span class="p">(</span><span class="n">target_path</span><span class="p">[:</span><span class="o">-</span><span class="mi">4</span><span class="p">]</span><span class="o">+</span><span class="s1">&#39;.mol&#39;</span><span class="p">,</span> <span class="n">total_connectivities</span><span class="p">)</span>
+        <span class="c1"># optimize .mol file</span>
+        <span class="c1"># indices_to_freeze = None</span>
+        <span class="c1"># since self.skeleton changes because of recursive functionalizations, the original skeleton atoms need to be</span>
+        <span class="c1"># freezed before ff optimization to try to improve calculation efficiency</span>
+
+        <span class="c1"># in functionalize_and_optimize scripts name after uff is skeleton + _func_i</span>
+        <span class="c1"># and in xtb skeleton + _func + _i + _opt</span>
+        <span class="n">n_iteration</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">target_filename</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+
+        <span class="n">n_atoms_original_skeleton</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">original_skeleton_path</span><span class="p">)</span><span class="o">.</span><span class="n">readline</span><span class="p">())</span> <span class="o">-</span> <span class="n">n_iteration</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">indices_to_freeze</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_atoms_original_skeleton</span><span class="p">)]</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;No indices found to freeze&#39;</span><span class="p">)</span>
+            <span class="n">indices_to_freeze</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">ff_optimize</span><span class="p">(</span><span class="n">target_path</span><span class="p">[:</span><span class="o">-</span><span class="mi">4</span><span class="p">]</span><span class="o">+</span><span class="s1">&#39;.mol&#39;</span><span class="p">,</span> <span class="s1">&#39;gaff&#39;</span><span class="p">,</span> <span class="n">indices_to_freeze</span><span class="p">)</span>
+        <span class="n">ff_optimize</span><span class="p">(</span><span class="n">target_path</span><span class="p">[:</span><span class="o">-</span><span class="mi">4</span><span class="p">]</span><span class="o">+</span><span class="s1">&#39;.mol&#39;</span><span class="p">,</span> <span class="s1">&#39;uff&#39;</span><span class="p">,</span> <span class="n">indices_to_freeze</span><span class="p">)</span></div>
+</div>
+
+
+        <span class="c1"># conversion from .mol to .xyz is taken care of in xtb bash script: xtbopt.mol --&gt; xtbopt.xyz</span>
+        <span class="c1"># REDUNDANT: xyz conversion can be done in batch after all functionalizations are done</span>
+        <span class="c1"># set to True if the xtb bash script will be used</span>
+        <span class="c1"># if not use_xtb_script_after:</span>
+        <span class="c1">#     # convert .mol file back to xyz file</span>
+        <span class="c1">#     convert_mol_2_xyz_file(target_path[:-4]+&#39;.mol&#39;)</span>
+        <span class="c1">#     # remove last white line</span>
+              <span class="c1"># remove_last_line(target_path)</span>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="c1"># os.remove(&#39;../substituents_xyz/manually_generated/central_atom_centroid_database.csv&#39;)</span>
+    <span class="c1"># for file in glob.glob(&#39;../substituents_xyz/manually_generated/*.xyz&#39;):</span>
+    <span class="c1">#     print(file)</span>
+    <span class="c1">#     atom = Substituent(file[39:-4], 0, 2.0)</span>
+    <span class="c1">#     atom.write_central_atom_and_centroid_to_csv(&#39;manually&#39;)</span>
+    <span class="c1"># phenyl = Substituent(&#39;C6H6&#39;, 0, 2.0)</span>
+    <span class="c1"># print(phenyl.first_coordination())</span>
+    <span class="c1"># phenyl.write_central_atom_and_centroid_to_csv(&#39;manually&#39;)</span>
+<div class="viewcode-block" id="folder_name">
+<a class="viewcode-back" href="../../autoapi/chemspax/attach_substituent/index.html#chemspax.attach_substituent.folder_name">[docs]</a>
+    <span class="n">folder_name</span> <span class="o">=</span> <span class="s1">&#39;../substituents_xyz/automatically_generated/&#39;</span></div>
+
+    <span class="n">folder</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="s1">&#39;../substituents_xyz/automatically_generated/&#39;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">folder</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">item</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;.xyz&quot;</span><span class="p">):</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">folder_name</span><span class="p">,</span> <span class="n">item</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="n">item</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;.mol&quot;</span><span class="p">):</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">folder_name</span><span class="p">,</span> <span class="n">item</span><span class="p">))</span>
+
+    <span class="n">some_complex</span> <span class="o">=</span> <span class="n">Complex</span><span class="p">(</span><span class="s1">&#39;PCP-cy&#39;</span><span class="p">,</span> <span class="s1">&#39;../skeletons/PCP-cy.xyz&#39;</span><span class="p">,</span> <span class="s1">&#39;CH3&#39;</span><span class="p">,</span>
+                           <span class="s1">&#39;../substituents_xyz/manually_generated/central_atom_centroid_database.csv&#39;</span><span class="p">)</span>
+    <span class="n">some_complex</span><span class="o">.</span><span class="n">generate_substituent_and_write_xyz</span><span class="p">(</span><span class="s1">&#39;PCP-cy_func_1&#39;</span><span class="p">,</span> <span class="mf">1.84</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+    <span class="c1"># some_complex.write_connectivity_in_file(&#39;../substituents_xyz/automatically_generated/something.mol&#39;, &#39;moh&#39;)</span>
+    <span class="n">other_complex</span> <span class="o">=</span> <span class="n">Complex</span><span class="p">(</span><span class="s1">&#39;PCP-cy&#39;</span><span class="p">,</span> <span class="s1">&#39;../substituents_xyz/automatically_generated/PCP-cy_func_1.xyz&#39;</span><span class="p">,</span> <span class="s1">&#39;CH3&#39;</span><span class="p">,</span>
+                            <span class="s1">&#39;../substituents_xyz/manually_generated/central_atom_centroid_database.csv&#39;</span><span class="p">)</span>
+    <span class="n">other_complex</span><span class="o">.</span><span class="n">generate_substituent_and_write_xyz</span><span class="p">(</span><span class="s1">&#39;PCP-cy_func_2&#39;</span><span class="p">,</span> <span class="mf">1.84</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+    <span class="n">some_other_complex</span> <span class="o">=</span> <span class="n">Complex</span><span class="p">(</span><span class="s1">&#39;PCP-cy&#39;</span><span class="p">,</span> <span class="s1">&#39;../substituents_xyz/automatically_generated/PCP-cy_func_2.xyz&#39;</span><span class="p">,</span> <span class="s1">&#39;CH3&#39;</span><span class="p">,</span>
+                            <span class="s1">&#39;../substituents_xyz/manually_generated/central_atom_centroid_database.csv&#39;</span><span class="p">)</span>
+    <span class="n">some_other_complex</span><span class="o">.</span><span class="n">generate_substituent_and_write_xyz</span><span class="p">(</span><span class="s1">&#39;PCP-cy_func_3&#39;</span><span class="p">,</span> <span class="mf">1.84</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+    <span class="c1"># other_other_complex = Complex(&#39;../substituents_xyz/automatically_generated/something_2.xyz&#39;, &#39;CH4N2OH&#39;,</span>
+    <span class="c1">#                         &#39;../substituents_xyz/manually_generated/central_atom_centroid_database.csv&#39;)</span>
+    <span class="c1"># other_other_complex.generate_substituent_and_write_xyz(&#39;something_3&#39;, 1.54)</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, TU Delft.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

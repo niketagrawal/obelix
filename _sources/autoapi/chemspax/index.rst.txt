@@ -1,0 +1,29 @@
+chemspax
+========
+
+.. py:module:: chemspax
+
+
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 1
+
+   /autoapi/chemspax/tests/index
+
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 1
+
+   /autoapi/chemspax/attach_substituent/index
+   /autoapi/chemspax/data_preparation/index
+   /autoapi/chemspax/exceptions/index
+   /autoapi/chemspax/main/index
+   /autoapi/chemspax/test/index
+   /autoapi/chemspax/utilities/index
+
+

@@ -1,0 +1,46 @@
+remove_hydrogens
+================
+
+.. py:module:: remove_hydrogens
+
+.. autoapi-nested-parse::
+
+   This script was used on the Cartesius cluster to remove hydrogens from a molecule to calculate the
+   HRMSD, this functionality was also incorporated as a function in utilities.py (note: this script writes the OBMol object
+   to a different filename!)
+
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   remove_hydrogens.ob_log_handler
+   remove_hydrogens.source_file
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   remove_hydrogens.remove_hydrogens_and_write
+
+
+Module Contents
+---------------
+
+.. py:data:: ob_log_handler
+
+.. py:function:: remove_hydrogens_and_write(source_mol_file)
+
+   Use Openbabel's meethods to delete all hydrogens of a molecule and return the same file type with a different
+   filename
+
+   :param source_mol_file:
+   :return: output file of molecule without hydrogens, same file type as input
+
+
+.. py:data:: source_file
+

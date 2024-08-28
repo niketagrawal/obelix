@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>chemspax.main &mdash; obelix 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css?v=fd3f3429" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=01f34227"></script>
+        <script src="../../_static/doctools.js?v=9a2dae69"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            obelix
+          </a>
+              <div class="version">
+                0.1.0
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../autoapi/index.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">obelix</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">chemspax.main</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for chemspax.main</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*- </span>
+<span class="c1">#                                                     #</span>
+<span class="c1">#  __authors__ = Adarsh Kalikadien &amp; Vivek Sinha      #</span>
+<span class="c1">#  __institution__ = TU Delft                         #</span>
+<span class="c1">#                                                     #</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">random</span>
+<span class="kn">import</span> <span class="nn">glob</span>
+<span class="kn">import</span> <span class="nn">argparse</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
+
+<span class="kn">from</span> <span class="nn">chemspax.attach_substituent</span> <span class="kn">import</span> <span class="n">Complex</span>
+<span class="kn">from</span> <span class="nn">chemspax.utilities</span> <span class="kn">import</span> <span class="n">copy_functionalization_list_xyz_2_mol</span>
+<span class="kn">from</span> <span class="nn">chemspax.data_preparation</span> <span class="kn">import</span> <span class="n">prepare_data</span>
+
+
+<div class="viewcode-block" id="initialize_complex">
+<a class="viewcode-back" href="../../autoapi/chemspax/main/index.html#chemspax.main.initialize_complex">[docs]</a>
+<span class="k">def</span> <span class="nf">initialize_complex</span><span class="p">(</span><span class="n">original_skeleton_name</span><span class="p">,</span> <span class="n">source_data</span><span class="p">,</span> <span class="n">substituent_name</span><span class="p">,</span> <span class="n">path_to_database</span><span class="p">,</span> <span class="n">path_to_skeletons</span><span class="p">,</span> <span class="n">path_to_substituents</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Main function that takes command line arguments and passes them to attach_substituent.py&#39;s Complex class</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">structure</span> <span class="o">=</span> <span class="n">Complex</span><span class="p">(</span><span class="n">original_skeleton_name</span><span class="p">,</span> <span class="n">source_data</span><span class="p">,</span> <span class="n">substituent_name</span><span class="p">,</span> <span class="n">path_to_database</span><span class="p">,</span> <span class="n">path_to_skeletons</span><span class="p">,</span> <span class="n">path_to_substituents</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">structure</span></div>
+
+
+
+<div class="viewcode-block" id="main">
+<a class="viewcode-back" href="../../autoapi/chemspax/main/index.html#chemspax.main.main">[docs]</a>
+<span class="k">def</span> <span class="nf">main</span><span class="p">(</span><span class="n">skeleton_list</span><span class="p">,</span> <span class="n">substituent_list</span><span class="p">,</span> <span class="n">path_to_database</span><span class="p">,</span> <span class="n">path_to_substituents</span><span class="p">,</span> <span class="n">path_to_skeletons</span><span class="p">,</span> <span class="n">working_directory</span><span class="p">,</span> <span class="n">path_to_output</span><span class="p">):</span>
+    <span class="c1"># initialize logger</span>
+    <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">)</span>
+    <span class="c1"># create a file handler</span>
+    <span class="n">handler</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">FileHandler</span><span class="p">(</span><span class="s1">&#39;chemspax.log&#39;</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;a&#39;</span><span class="p">)</span>
+    <span class="n">handler</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">)</span>
+    <span class="c1"># create a logging format</span>
+    <span class="n">formatter</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">Formatter</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%(asctime)s</span><span class="s1"> - </span><span class="si">%(name)s</span><span class="s1"> - </span><span class="si">%(levelname)s</span><span class="s1"> - </span><span class="si">%(message)s</span><span class="s1">&#39;</span><span class="p">)</span>
+    <span class="n">handler</span><span class="o">.</span><span class="n">setFormatter</span><span class="p">(</span><span class="n">formatter</span><span class="p">)</span>
+    <span class="c1"># add the handlers to the logger</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">addHandler</span><span class="p">(</span><span class="n">handler</span><span class="p">)</span>
+    <span class="c1"># create a console handler</span>
+    <span class="n">console</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">StreamHandler</span><span class="p">()</span>
+    <span class="n">console</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">)</span>
+    <span class="c1"># add the handlers to the logger</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">addHandler</span><span class="p">(</span><span class="n">console</span><span class="p">)</span>
+
+    <span class="n">Path</span><span class="p">(</span><span class="n">path_to_output</span><span class="p">)</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>  <span class="c1"># create directory for functionalized output</span>
+
+    <span class="c1"># check if working directory is set in environment variable, else set to current folder</span>
+    <span class="c1"># if working_directory is None:</span>
+    <span class="c1">#     logger.log(logging.INFO, &quot;No ChemSpaX home directory specified, using default&quot;)</span>
+    <span class="c1">#     working_directory = os.getcwd()</span>
+    <span class="c1"># else:</span>
+    <span class="c1">#     logger.log(logging.INFO, f&quot;ChemSpaX working directory is set in environment variable to {working_directory}&quot;)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;ChemSpaX working directory is set to </span><span class="si">{</span><span class="n">working_directory</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="c1"># start ChemSpaX main loop to attach substituents to the skeleton</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">,</span> <span class="s2">&quot;Looks like you want to add some substituents to a metal-ligand complex &amp; optimize &#39;em.</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">,</span> <span class="s2">&quot;Created by: Adarsh Kalikadien &amp; Vivek Sinha</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">skeleton_list</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">,</span> <span class="s2">&quot;No skeletons supplied, exiting&quot;</span><span class="p">)</span>
+        <span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">skeleton_list</span><span class="p">)</span><span class="si">}</span><span class="s2"> skeletons provided to functionalize&quot;</span><span class="p">)</span>
+
+    <span class="c1"># list of all substituents for later use</span>
+    <span class="n">all_substituents</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path_to_substituents</span><span class="p">,</span> <span class="s2">&quot;C*.xyz&quot;</span><span class="p">))</span>
+    <span class="c1"># only get name of substituent file without extension</span>
+    <span class="n">all_substituents</span> <span class="o">=</span> <span class="p">[</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">normpath</span><span class="p">(</span><span class="n">substituent</span><span class="p">))</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">substituent</span> <span class="ow">in</span>
+                        <span class="n">all_substituents</span><span class="p">]</span>
+
+    <span class="k">for</span> <span class="n">skeleton</span> <span class="ow">in</span> <span class="n">skeleton_list</span><span class="p">:</span>
+        <span class="n">skeleton_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">normpath</span><span class="p">(</span><span class="n">skeleton</span><span class="p">)</span>
+        <span class="n">skeleton_name</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">skeleton_path</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Attaching substituents to skeleton: </span><span class="si">{</span><span class="n">skeleton_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="c1"># intialize the complex class with a random substituent to be able to find lenght of functionalization_list</span>
+        <span class="n">first_target_file</span> <span class="o">=</span> <span class="n">skeleton_name</span> <span class="o">+</span> <span class="s2">&quot;_func_&quot;</span> <span class="o">+</span> <span class="s1">&#39;1&#39;</span>
+<span class="c1">#        path_to_substituent_database = os.path.join(&quot;substituents_xyz&quot;, &quot;manually_generated&quot;, &quot;central_atom_centroid_database.csv&quot;)    #to keep things consistent let us just use &quot;path_to_database&quot; as used in &quot;Complex&quot; class as well&quot;</span>
+        <span class="nb">complex</span> <span class="o">=</span> <span class="n">initialize_complex</span><span class="p">(</span><span class="n">skeleton_name</span><span class="p">,</span> <span class="n">skeleton_path</span><span class="p">,</span> <span class="s2">&quot;CH3&quot;</span><span class="p">,</span> <span class="n">path_to_database</span><span class="p">,</span> <span class="n">path_to_skeletons</span><span class="p">,</span> <span class="n">path_to_substituents</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">substituent_list</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;initializing complex by placing </span><span class="si">{</span><span class="n">substituent_list</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2"> on </span><span class="si">{</span><span class="n">skeleton_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;initializing complex by placing random substituents based on length of functionalization_list&quot;</span><span class="p">)</span>
+            <span class="c1"># create substituent_list with correct length (number of substituents)</span>
+            <span class="n">len_functionalization_list</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="nb">complex</span><span class="o">.</span><span class="n">functionalization_site_list</span><span class="p">)</span>
+            <span class="c1"># select random carbon (C) substituents, same length as functionalization_list (number of functionalization sites)</span>
+            <span class="n">substituent_list</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">choices</span><span class="p">(</span><span class="n">all_substituents</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="n">len_functionalization_list</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;initializing complex by placing </span><span class="si">{</span><span class="n">substituent_list</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2"> on </span><span class="si">{</span><span class="n">skeleton_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+
+        <span class="c1"># if functionalization_list is empty, skip this skeleton</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="nb">complex</span><span class="o">.</span><span class="n">functionalization_site_list</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;No functionalization sites found for </span><span class="si">{</span><span class="n">skeleton_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">continue</span>
+        <span class="c1"># if substituent_list is too large, just use the first n elements of the list</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">substituent_list</span><span class="p">)</span> <span class="o">&gt;</span> <span class="nb">len</span><span class="p">(</span><span class="nb">complex</span><span class="o">.</span><span class="n">functionalization_site_list</span><span class="p">):</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Substituent list is larger than amount of specified functionalization sites, &quot;</span>
+                                     <span class="sa">f</span><span class="s2">&quot;only using first </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="nb">complex</span><span class="o">.</span><span class="n">functionalization_site_list</span><span class="p">)</span><span class="si">}</span><span class="s2"> elements&quot;</span><span class="p">)</span>
+            <span class="n">substituent_list</span> <span class="o">=</span> <span class="n">substituent_list</span><span class="p">[:</span><span class="nb">len</span><span class="p">(</span><span class="nb">complex</span><span class="o">.</span><span class="n">functionalization_site_list</span><span class="p">)]</span>
+        <span class="c1"># if substituent_list is too small, add random substituents to the list</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">substituent_list</span><span class="p">)</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="nb">complex</span><span class="o">.</span><span class="n">functionalization_site_list</span><span class="p">):</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Substituent list is smaller than amount of specified functionalization sites, &quot;</span>
+                                     <span class="sa">f</span><span class="s2">&quot;adding random carbon (C) substituents to the list&quot;</span><span class="p">)</span>
+            <span class="c1"># add random substituents to the list</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">substituent_list</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="nb">complex</span><span class="o">.</span><span class="n">functionalization_site_list</span><span class="p">)):</span>
+                <span class="n">substituent_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">all_substituents</span><span class="p">))</span>
+
+        <span class="nb">complex</span> <span class="o">=</span> <span class="n">initialize_complex</span><span class="p">(</span><span class="n">skeleton_name</span><span class="p">,</span> <span class="n">skeleton_path</span><span class="p">,</span> <span class="n">substituent_list</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">path_to_database</span><span class="p">,</span> <span class="n">path_to_skeletons</span><span class="p">,</span> <span class="n">path_to_substituents</span><span class="p">)</span>
+        <span class="nb">complex</span><span class="o">.</span><span class="n">generate_substituent_and_write_xyz</span><span class="p">(</span><span class="n">target_filename</span><span class="o">=</span><span class="n">first_target_file</span><span class="p">,</span> <span class="n">path_to_output</span><span class="o">=</span><span class="n">path_to_output</span><span class="p">,</span>
+                                                   <span class="n">length_skeleton_bonded_substituent_central</span><span class="o">=</span><span class="mf">1.84</span><span class="p">,</span>
+                                                   <span class="n">use_xtb_script_after</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+        <span class="c1"># copy functionalization_list from xyz to molfile</span>
+        <span class="n">copy_functionalization_list_xyz_2_mol</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path_to_output</span><span class="p">,</span> <span class="n">first_target_file</span> <span class="o">+</span> <span class="s1">&#39;.xyz&#39;</span><span class="p">),</span>
+                                              <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path_to_output</span><span class="p">,</span> <span class="n">first_target_file</span> <span class="o">+</span> <span class="s1">&#39;.mol&#39;</span><span class="p">))</span>
+        <span class="c1"># Continue with looping over substituents and attaching them to the skeleton</span>
+        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">substituent</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">substituent_list</span><span class="p">[</span><span class="mi">1</span><span class="p">:]):</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Attaching substituent: </span><span class="si">{</span><span class="n">substituent</span><span class="si">}</span><span class="s2"> iteration: </span><span class="si">{</span><span class="n">idx</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="c1"># enumerate starts at 0, so we need to add +1 to get the correct index of previous functionalization</span>
+            <span class="n">new_skeleton_name</span> <span class="o">=</span> <span class="n">skeleton_name</span> <span class="o">+</span> <span class="sa">f</span><span class="s1">&#39;_func_</span><span class="si">{</span><span class="n">idx</span><span class="o">+</span><span class="mi">1</span><span class="si">}</span><span class="s1">&#39;</span>
+            <span class="n">new_skeleton_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path_to_output</span><span class="p">,</span> <span class="n">new_skeleton_name</span> <span class="o">+</span> <span class="s1">&#39;.xyz&#39;</span><span class="p">)</span>
+            <span class="n">target_name</span> <span class="o">=</span> <span class="n">skeleton_name</span> <span class="o">+</span> <span class="s2">&quot;_func_&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">idx</span> <span class="o">+</span> <span class="mi">2</span><span class="p">)</span>
+            <span class="nb">complex</span> <span class="o">=</span> <span class="n">initialize_complex</span><span class="p">(</span><span class="n">skeleton_name</span><span class="p">,</span> <span class="n">new_skeleton_path</span><span class="p">,</span> <span class="n">substituent</span><span class="p">,</span> <span class="n">path_to_database</span><span class="p">,</span> <span class="n">path_to_skeletons</span><span class="p">,</span> <span class="n">path_to_substituents</span><span class="p">)</span>
+            <span class="nb">complex</span><span class="o">.</span><span class="n">generate_substituent_and_write_xyz</span><span class="p">(</span><span class="n">target_filename</span><span class="o">=</span><span class="n">target_name</span><span class="p">,</span> <span class="n">path_to_output</span><span class="o">=</span><span class="n">path_to_output</span><span class="p">,</span>
+                                                       <span class="n">length_skeleton_bonded_substituent_central</span><span class="o">=</span><span class="mf">1.84</span><span class="p">,</span>
+                                                       <span class="n">use_xtb_script_after</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="n">copy_functionalization_list_xyz_2_mol</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path_to_output</span><span class="p">,</span> <span class="n">target_name</span> <span class="o">+</span> <span class="s1">&#39;.xyz&#39;</span><span class="p">),</span>
+                                                  <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path_to_output</span><span class="p">,</span> <span class="n">target_name</span> <span class="o">+</span> <span class="s1">&#39;.mol&#39;</span><span class="p">))</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Attached substituent: </span><span class="si">{</span><span class="n">substituent</span><span class="si">}</span><span class="s2"> iteration: </span><span class="si">{</span><span class="n">idx</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Attached substituents to skeleton: </span><span class="si">{</span><span class="n">skeleton_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="c1"># get current directory since this is where substituents and substituents CSV file is located</span>
+<div class="viewcode-block" id="current_directory">
+<a class="viewcode-back" href="../../autoapi/chemspax/main/index.html#chemspax.main.current_directory">[docs]</a>
+    <span class="n">current_directory</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">()</span></div>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">chemspax_working_directory</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;CHEMSPAX_HOME_DIR&quot;</span><span class="p">]</span>
+    <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+        <span class="n">chemspax_working_directory</span> <span class="o">=</span> <span class="n">current_directory</span>
+
+    <span class="n">path_to_substituents</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">current_directory</span><span class="p">,</span> <span class="s2">&quot;substituents_xyz&quot;</span><span class="p">,</span> <span class="s2">&quot;manually_generated/&quot;</span><span class="p">)</span>
+    <span class="n">path_to_database</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path_to_substituents</span><span class="p">,</span> <span class="s2">&quot;central_atom_centroid_database.csv&quot;</span><span class="p">)</span>
+    <span class="n">path_to_output</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">current_directory</span><span class="p">,</span> <span class="s2">&quot;substituents_xyz&quot;</span><span class="p">,</span> <span class="s2">&quot;automatically_generated&quot;</span><span class="p">)</span>
+    <span class="n">path_to_skeletons</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">current_directory</span><span class="p">,</span> <span class="s2">&quot;skeletons&quot;</span><span class="p">)</span>
+
+    <span class="c1"># parse input arguments</span>
+    <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span><span class="n">prog</span><span class="o">=</span><span class="s1">&#39;chemspax&#39;</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s1">&#39;Attach substituents to a skeleton molecule&#39;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;-s&#39;</span><span class="p">,</span> <span class="s1">&#39;--substituent&#39;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s1">&#39;Name of substituent to attach&#39;</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s1">&#39;append&#39;</span><span class="p">,</span>
+                        <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;-k&#39;</span><span class="p">,</span> <span class="s1">&#39;--skeleton&#39;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s1">&#39;Provide folder where skeletons are located&#39;</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                        <span class="n">action</span><span class="o">=</span><span class="s1">&#39;store&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;-o&#39;</span><span class="p">,</span> <span class="s1">&#39;--output&#39;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;path to output files&quot;</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s1">&#39;store&#39;</span><span class="p">,</span>
+                        <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+    <span class="c1"># if --prepare argument is there, the data_preparation script will run prior to the main file</span>
+    <span class="c1"># users should still check their structures after this preparation is done</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;-pd&#39;</span><span class="p">,</span> <span class="s1">&#39;--prepare&#39;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;do xyz and mol conversions, and add new substituents to substituent database&quot;</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s1">&#39;store_true&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">substituent</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># make list of supplied substituents</span>
+        <span class="n">substituent_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">args</span><span class="o">.</span><span class="n">substituent</span><span class="p">:</span>
+            <span class="n">substituent_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># if None the substituents will be chosen automatically in the main loop</span>
+        <span class="n">substituent_list</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">skeleton</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">path_to_skeletons</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">skeleton</span>
+        <span class="n">list_of_skeleton_files</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">skeleton</span><span class="p">,</span> <span class="s2">&quot;*.xyz&quot;</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">list_of_skeleton_files</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">chemspax_working_directory</span><span class="p">,</span> <span class="s2">&quot;skeletons&quot;</span><span class="p">,</span> <span class="s2">&quot;*.xyz&quot;</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">output</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">path_to_output</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">output</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">prepare</span><span class="p">:</span>
+        <span class="n">prepare_data</span><span class="p">(</span><span class="n">path_to_substituents</span><span class="o">=</span><span class="n">path_to_substituents</span><span class="p">,</span> <span class="n">path_to_skeletons</span><span class="o">=</span><span class="n">path_to_skeletons</span><span class="p">,</span> <span class="n">path_to_database</span><span class="o">=</span><span class="n">path_to_database</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">main</span><span class="p">(</span><span class="n">skeleton_list</span><span class="o">=</span><span class="n">list_of_skeleton_files</span><span class="p">,</span> <span class="n">substituent_list</span><span class="o">=</span><span class="n">substituent_list</span><span class="p">,</span> <span class="n">path_to_database</span><span class="o">=</span><span class="n">path_to_database</span><span class="p">,</span> <span class="n">path_to_substituents</span><span class="o">=</span><span class="n">path_to_substituents</span><span class="p">,</span>
+             <span class="n">path_to_skeletons</span><span class="o">=</span><span class="n">path_to_skeletons</span><span class="p">,</span> <span class="n">working_directory</span><span class="o">=</span><span class="n">chemspax_working_directory</span><span class="p">,</span> <span class="n">path_to_output</span><span class="o">=</span><span class="n">path_to_output</span><span class="p">)</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, TU Delft.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

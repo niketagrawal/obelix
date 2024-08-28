@@ -1,0 +1,61 @@
+chemspax.test
+=============
+
+.. py:module:: chemspax.test
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   chemspax.test.test_folder
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   chemspax.test.create_test_ch3_file
+   chemspax.test.create_random_file
+   chemspax.test.return_last_line
+   chemspax.test.test_find_distance
+   chemspax.test.test_remove_last_line
+   chemspax.test.test_create_molecule_and_write_xyz
+   chemspax.test.test_scale_vector
+   chemspax.test.test_convert_list_of_strings_to_np_array
+   chemspax.test.test_convert_xyz_2_mol
+   chemspax.test.test_print_mol_counts_block
+   chemspax.test.test_print_correct_connectivity_line
+
+
+Module Contents
+---------------
+
+.. py:data:: test_folder
+   :value: 'tests/'
+
+
+.. py:function:: create_test_ch3_file()
+
+.. py:function:: create_random_file(filename)
+
+.. py:function:: return_last_line(filename)
+
+.. py:function:: test_find_distance()
+
+.. py:function:: test_remove_last_line()
+
+.. py:function:: test_create_molecule_and_write_xyz()
+
+.. py:function:: test_scale_vector()
+
+.. py:function:: test_convert_list_of_strings_to_np_array()
+
+.. py:function:: test_convert_xyz_2_mol()
+
+.. py:function:: test_print_mol_counts_block()
+
+.. py:function:: test_print_correct_connectivity_line()
+

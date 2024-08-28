@@ -1,0 +1,32 @@
+chemspax.data_preparation
+=========================
+
+.. py:module:: chemspax.data_preparation
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   chemspax.data_preparation.current_directory
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   chemspax.data_preparation.convert_file
+   chemspax.data_preparation.prepare_data
+
+
+Module Contents
+---------------
+
+.. py:function:: convert_file(from_extension, to_extension, folder)
+
+.. py:function:: prepare_data(path_to_substituents, path_to_skeletons, path_to_database)
+
+.. py:data:: current_directory
+
