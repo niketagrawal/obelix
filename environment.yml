@@ -1,4 +1,4 @@
-name: remove-chemspax
+name: obelix
 channels:
      - conda-forge
      - anaconda
