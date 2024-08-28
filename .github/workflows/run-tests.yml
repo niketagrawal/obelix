@@ -23,7 +23,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
 
@@ -40,9 +40,6 @@ jobs:
        # This step installs the dependencies listed in the environment.yml file. Some dependencies are available only via conda, so environment.yml is preferred over requirements.txt or pyproject.toml.
        # Additionally, install pytest via mamba to run tests.
       run: mamba env update -n obelix -f environment.yml && mamba install -n obelix pytest -y
-
-    - name: Verify pytest installation
-      run: mamba list -n obelix | grep pytest
 
     - name: Test with pytest
       run: mamba run -n obelix python -m pytest -v
