@@ -17,6 +17,10 @@ dependencies:
 - openpyxl
 - scikit-learn
 - xtb-python
+- sphinx
+- sphinx-autoapi
+- sphinx-rtd-theme
+- myst-parser
 - pip
 - pip:
   - libconeangle
