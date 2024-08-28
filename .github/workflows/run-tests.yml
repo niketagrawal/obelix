@@ -1,0 +1,51 @@
+# GitHub Actions workflow to run tests upon push or pull request to the main branch. The workflow runs on Ubuntu, macOS, and Windows operating systems with Python versions 3.10, 3.11, and 3.12. The workflow sets up a conda environment using mamba, installs dependencies listed in the environment.yml file, and runs tests with pytest.
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python
+
+
+name: Run tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-20.04]
+        python-version: ["3.10", "3.11", "3.12"]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Setup conda environment using mamba
+        # This step sets up a conda environment using mamba, a faster alternative to conda. It creates an empty conda environment with the name 'obelix' and activates it. The environment is created using the latest version of Mambaforge, a conda distribution that includes mamba.
+      uses: conda-incubator/setup-miniconda@v3
+      with:
+           miniforge-variant: Mambaforge
+           miniforge-version: latest
+           activate-environment: obelix
+           use-mamba: true
+
+    - name: Install dependencies
+       # This step installs the dependencies listed in the environment.yml file. Some dependencies are available only via conda, so environment.yml is preferred over requirements.txt or pyproject.toml.
+       # Additionally, install pytest via mamba to run tests.
+      run: mamba env update -n obelix -f environment.yml && mamba install -n obelix pytest -y
+
+    - name: Test with pytest
+      run: mamba run -n obelix python -m pytest -v
+      # `python -m pytest` is almost equivalent to invoking the command line
+      # script pytest [...] directly, except that calling via python will also # add the current directory to sys.path. Since we do not opt to install # obelix package in development mode, obelix/ must be present in
+      # sys. path for the tests to be able to import obelix/.
+      # The -v flag prints the pass/fail status of testcases along with the iinput each test case is run with.
+
+
